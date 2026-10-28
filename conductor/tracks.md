@@ -5,5 +5,5 @@
   *Link: [./tracks/scenarios_c03_c18_20261028/index.md](./tracks/scenarios_c03_c18_20261028/index.md)*
 - [x] **Track: Surco Móvil Offline y Ejecución en Memoria (Fase 1)**
   *Link: [./tracks/mobile_offline_phase1_20261028/index.md](./tracks/mobile_offline_phase1_20261028/index.md)*
-- [~] **Track: Motor LLM On-Device Local y RAG Anti-Alucinaciones (Fase 2)**
+- [x] **Track: Motor LLM On-Device Local y RAG Anti-Alucinaciones (Fase 2)**
   *Link: [./tracks/ondevice_llm_phase2_20261028/index.md](./tracks/ondevice_llm_phase2_20261028/index.md)*

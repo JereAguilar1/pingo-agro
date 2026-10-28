@@ -26,8 +26,8 @@
 - [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 4: Verification, Build & Deployment
-- [~] Task: Full test suite, Next.js build and mobile sync
-  - [ ] Run all Vitest unit tests (`npm test`)
-  - [ ] Run `npm run build` and `npm run build:mobile`
-  - [ ] Deploy update to Vercel production
-- [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
+- [x] Task: Full test suite, Next.js build and mobile sync
+  - [x] Run all Vitest unit tests (`npm test`)
+  - [x] Run `npm run build` and `npm run build:mobile`
+  - [x] Deploy update to Vercel production
+- [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
