@@ -46,15 +46,15 @@
 - [x] Task: Phase 4 Verification & Checkpoint (Refer to workflow.md) (d6406be)
 
 ## Phase 5: Weather, Application Conditions & Regulatory Scenarios (C16, C17, C10, C11, C18)
-- [ ] Task: Write failing unit tests for C16, C17, C10, C11, C18
-  - [ ] Tests for C16 (Heladas - R17/R26 vs R18)
-  - [ ] Tests for C17 (Condiciones de aplicación - prohibición de autorización automática, marbetes y R19)
-  - [ ] Tests for C10 (Normativa de otros municipios fuera de Tandil)
-  - [ ] Tests for C11 (Novedades de insumos sin feeds en tiempo real)
-  - [ ] Tests for C18 (Biblioteca propia fuera de alcance MVP)
-- [ ] Task: Implement C16, C17, C10, C11, C18 in `src/lib/respond.ts`
-  - [ ] Implement detectors and structured handlers
-  - [ ] Wire up in `respond()` in strict precedence order to prevent overlaps
+- [x] Task: Write failing unit tests for C16, C17, C10, C11, C18 (abef68e)
+  - [x] Tests for C16 (Heladas - R17/R26 vs R18)
+  - [x] Tests for C17 (Condiciones de aplicación - prohibición de autorización automática, marbetes y R19)
+  - [x] Tests for C10 (Normativa de otros municipios fuera de Tandil)
+  - [x] Tests for C11 (Novedades de insumos sin feeds en tiempo real)
+  - [x] Tests for C18 (Biblioteca propia fuera de alcance MVP)
+- [x] Task: Implement C16, C17, C10, C11, C18 in `src/lib/respond.ts` (abef68e)
+  - [x] Implement detectors and structured handlers
+  - [x] Wire up in `respond()` in strict precedence order to prevent overlaps
 - [ ] Task: Phase 5 Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 6: End-to-End Verification, Documentation & Production Deployment
