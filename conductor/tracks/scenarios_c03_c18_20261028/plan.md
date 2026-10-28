@@ -10,7 +10,7 @@
   - [x] Update `FORM_KINDS` whitelist in `src/app/api/chat/route.ts`
 - [x] Task: Phase 1 Verification & Checkpoint (Refer to workflow.md) (1fa8b5d)
 
-## Phase 2: Economic Scenarios (C13, C14, C15)
+## Phase 2: Economic Scenarios (C13, C14, C15) [checkpoint: b8f0180]
 - [x] Task: Write failing unit tests for C13, C14, C15 (b8f0180)
   - [x] Tests for C13 (Alquileres rurales) query detection, form generation, and form submission
   - [x] Tests for C14 (Costos de labores FACMA) query detection, form generation, and submission
@@ -20,7 +20,7 @@
   - [x] Handlers with clarification forms and honest boundary declarations
   - [x] Form submission handlers returning grounded next-step actions
   - [x] Integrate into `respond()` and `handleFormSubmission()`
-- [ ] Task: Phase 2 Verification & Checkpoint (Refer to workflow.md)
+- [x] Task: Phase 2 Verification & Checkpoint (Refer to workflow.md) (b8f0180)
 
 ## Phase 3: Crop Management & Protection Scenarios (C03, C04, C05, C06, C07)
 - [ ] Task: Write failing unit tests for C03, C04, C05, C06, C07
