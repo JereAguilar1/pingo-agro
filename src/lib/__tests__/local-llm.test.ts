@@ -4,7 +4,7 @@ import {
   formatGroundingPrompt,
   DEFAULT_MODEL_ID,
 } from "../local-llm";
-import { DocumentSnippet } from "../library";
+import { SourceFragment } from "../library";
 
 describe("Local LLM Service", () => {
   it("exposes the recommended default model id", () => {
@@ -23,15 +23,18 @@ describe("Local LLM Service", () => {
   });
 
   describe("formatGroundingPrompt", () => {
-    const mockSnippets: DocumentSnippet[] = [
+    const mockSnippets: SourceFragment[] = [
       {
+        id: "mock-r08",
         sourceCode: "R08",
         institution: "Aapresid REM",
         title: "Alerta de biotipos resistentes",
         date: "2024-05",
         url: "https://www.aapresid.org.ar/rem",
+        verification: "verified",
         section: "Biotipos",
-        limit: "Solo informa resistencias confirmadas; no reemplaza diagnóstico a campo.",
+        limitation: "Solo informa resistencias confirmadas; no reemplaza diagnóstico a campo.",
+        topics: ["maleza", "resistencia"],
         text: "Conyza bonariensis presenta resistencia comprobada a glifosato y a inhibidores de ALS en la zona sur de Buenos Aires.",
       },
     ];

@@ -1,5 +1,5 @@
 import type { InitProgressReport, MLCEngineInterface } from "@mlc-ai/web-llm";
-import { DocumentSnippet } from "./library";
+import { SourceFragment } from "./library";
 
 export const DEFAULT_MODEL_ID = "Llama-3.2-1B-Instruct-q4f16_1-MLC";
 
@@ -18,7 +18,7 @@ export function isWebGPUSupported(nav?: Navigator): boolean {
 
 export function formatGroundingPrompt(params: {
   question: string;
-  snippets: DocumentSnippet[];
+  snippets: SourceFragment[];
 }): { systemPrompt: string; userPrompt: string } {
   const { question, snippets } = params;
 
@@ -38,7 +38,7 @@ REGLAS DE ORO OBLIGATORIAS (CERO ALUCINACIÓN):
     snippetsBlock = snippets
       .map(
         (s, idx) =>
-          `[Fragmento ${idx + 1}] Código: ${s.sourceCode} | Fuente: ${s.institution} — "${s.title}" (${s.date})\nSección: ${s.section}\nLímite oficial: ${s.limit}\nTexto: ${s.text}`
+          `[Fragmento ${idx + 1}] Código: ${s.sourceCode} | Fuente: ${s.institution} — "${s.title}" (${s.date ?? ""})\nSección: ${s.section ?? ""}\nLímite oficial: ${s.limitation}\nTexto: ${s.text}`
       )
       .join("\n\n");
   }
@@ -124,7 +124,7 @@ export async function initLocalLLM(
 
 export async function generateLocalGroundedResponse(params: {
   question: string;
-  snippets: DocumentSnippet[];
+  snippets: SourceFragment[];
   onToken?: (partialText: string) => void;
 }): Promise<string | null> {
   if (!engineInstance || currentStatus !== "ready") {

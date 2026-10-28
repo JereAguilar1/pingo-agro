@@ -5,8 +5,11 @@ import { useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useEffect, useRef, useState } from "react";
 import { MessageBubble } from "@/components/MessageBubble";
 import { NetworkBadge } from "@/components/NetworkBadge";
+import { ModelManager } from "@/components/ModelManager";
+import { ModelStatusButton } from "@/components/ModelStatusButton";
 import { ChatMessage, FormSubmission } from "@/lib/types";
 import { resolveChatQuery } from "@/lib/offline-client";
+import { LocalLLMStatus } from "@/lib/local-llm";
 
 // v2: el esquema de AssistantResponse ganó `clarificationForm`; se bumpea la
 // clave para que las conversaciones guardadas antes de esta función (sin
@@ -38,6 +41,8 @@ function ChatInner() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showModelManager, setShowModelManager] = useState(false);
+  const [modelStatus, setModelStatus] = useState<LocalLLMStatus>("unloaded");
   const bottomRef = useRef<HTMLDivElement>(null);
   const initialized = useRef(false);
 
@@ -73,17 +78,50 @@ function ChatInner() {
     setLoading(true);
     setError(null);
 
+    const assistantId = crypto.randomUUID();
+    let hasStreamed = false;
+
     try {
-      const result = await resolveChatQuery({ question: q, form });
+      const result = await resolveChatQuery({
+        question: q,
+        form,
+        onToken: (partial) => {
+          if (!hasStreamed) {
+            hasStreamed = true;
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: assistantId,
+                role: "assistant",
+                content: partial,
+                createdAt: Date.now(),
+              },
+            ]);
+          } else {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId ? { ...m, content: partial } : m
+              )
+            );
+          }
+        },
+      });
 
       const assistantMsg: ChatMessage = {
-        id: crypto.randomUUID(),
+        id: assistantId,
         role: "assistant",
         content: result.response.answer,
         response: result.response,
         createdAt: Date.now(),
       };
-      setMessages((prev) => [...prev, assistantMsg]);
+
+      setMessages((prev) => {
+        const exists = prev.some((m) => m.id === assistantId);
+        if (exists) {
+          return prev.map((m) => (m.id === assistantId ? assistantMsg : m));
+        }
+        return [...prev, assistantMsg];
+      });
     } catch {
       setError("Ocurrió un error inesperado al procesar la consulta.");
     } finally {
@@ -130,14 +168,26 @@ function ChatInner() {
           </Link>
           <NetworkBadge />
         </div>
-        <button
-          onClick={handleNewChat}
-          className="text-sm rounded-lg border px-3 py-1.5"
-          style={{ borderColor: "var(--surco-border)", color: "var(--surco-ink-soft)" }}
-        >
-          Nueva consulta
-        </button>
+        <div className="flex items-center gap-2">
+          <ModelStatusButton
+            onClick={() => setShowModelManager(true)}
+            statusOverride={modelStatus}
+          />
+          <button
+            onClick={handleNewChat}
+            className="text-sm rounded-lg border px-3 py-1.5"
+            style={{ borderColor: "var(--surco-border)", color: "var(--surco-ink-soft)" }}
+          >
+            Nueva consulta
+          </button>
+        </div>
       </header>
+
+      <ModelManager
+        isOpen={showModelManager}
+        onClose={() => setShowModelManager(false)}
+        onStatusChange={setModelStatus}
+      />
 
       <main className="flex-1 w-full max-w-3xl mx-auto px-4 sm:px-6 py-6 flex flex-col gap-4">
         {messages.length === 0 && !loading && (

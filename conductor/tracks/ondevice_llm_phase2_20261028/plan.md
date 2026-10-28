@@ -19,14 +19,14 @@
 - [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 3: UI Model Manager & Streaming
-- [ ] Task: Build Model Manager Modal & Progress Bar
-  - [ ] Create `src/components/ModelManager.tsx` with download button, progress % and delete cache
-  - [ ] Add Model status button/indicator to the chat header next to `NetworkBadge`
-  - [ ] Connect streaming tokens to `ChatMessage` in `src/app/chat/page.tsx`
-- [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
+- [x] Task: Build Model Manager Modal & Progress Bar
+  - [x] Create `src/components/ModelManager.tsx` with download button, progress % and delete cache
+  - [x] Add Model status button/indicator to the chat header next to `NetworkBadge`
+  - [x] Connect streaming tokens to `ChatMessage` in `src/app/chat/page.tsx`
+- [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 4: Verification, Build & Deployment
-- [ ] Task: Full test suite, Next.js build and mobile sync
+- [~] Task: Full test suite, Next.js build and mobile sync
   - [ ] Run all Vitest unit tests (`npm test`)
   - [ ] Run `npm run build` and `npm run build:mobile`
   - [ ] Deploy update to Vercel production
