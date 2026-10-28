@@ -12,13 +12,13 @@
 - [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 2: Connectivity Indicator & UI Polish (TDD)
-- [ ] Task: Write tests for Connectivity Hook and Badge
-  - [ ] Create test suite for `useNetworkStatus` in `src/hooks/__tests__/useNetworkStatus.test.ts`
-- [ ] Task: Implement Network Status Hook and Header Badge
-  - [ ] Create `src/hooks/useNetworkStatus.ts` listening to `online`/`offline` events
-  - [ ] Add connectivity badge to header in `src/app/layout.tsx` or navigation component
-  - [ ] Style "Modo Campo (Offline)" and "En línea" states with Tailwind CSS
-- [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
+- [x] Task: Write tests for Connectivity Hook and Badge
+  - [x] Create test suite for `useNetworkStatus` in `src/hooks/__tests__/useNetworkStatus.test.ts`
+- [x] Task: Implement Network Status Hook and Header Badge
+  - [x] Create `src/hooks/useNetworkStatus.ts` listening to `online`/`offline` events
+  - [x] Add connectivity badge to header in `src/app/layout.tsx` or navigation component
+  - [x] Style "Modo Campo (Offline)" and "En línea" states with Tailwind CSS
+- [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 3: PWA Scaffolding & Manifest Configuration
 - [ ] Task: Web App Manifest & Service Worker Setup

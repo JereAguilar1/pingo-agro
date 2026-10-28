@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useEffect, useRef, useState } from "react";
 import { MessageBubble } from "@/components/MessageBubble";
+import { NetworkBadge } from "@/components/NetworkBadge";
 import { ChatMessage, FormSubmission } from "@/lib/types";
 import { resolveChatQuery } from "@/lib/offline-client";
 
@@ -123,9 +124,12 @@ function ChatInner() {
         className="sticky top-0 z-10 border-b px-4 sm:px-6 py-3 flex items-center justify-between"
         style={{ background: "var(--surco-bg)", borderColor: "var(--surco-border)" }}
       >
-        <Link href="/" className="font-semibold text-lg" style={{ color: "var(--surco-green)" }}>
-          Surco
-        </Link>
+        <div className="flex items-center gap-2.5">
+          <Link href="/" className="font-semibold text-lg" style={{ color: "var(--surco-green)" }}>
+            Surco
+          </Link>
+          <NetworkBadge />
+        </div>
         <button
           onClick={handleNewChat}
           className="text-sm rounded-lg border px-3 py-1.5"
