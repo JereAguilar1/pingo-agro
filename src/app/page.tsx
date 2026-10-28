@@ -3,15 +3,6 @@
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 
-const SUGGESTED_QUERIES = [
-  "¿Cuánto nitrógeno contienen 100 kg de urea al 46 %?",
-  "Con 60 kg de N/ha, urea al 46 % y 12 ha, ¿cuánto producto necesito?",
-  "¿Qué información necesitás para evaluar un herbicida para un cultivo?",
-  "¿Qué debería tener en cuenta para planificar un muestreo de suelo?",
-  "¿Cómo puedo verificar si una afirmación técnica está respaldada por una fuente?",
-  "¿Podés analizar un documento técnico que te comparta?",
-];
-
 export default function Home() {
   const router = useRouter();
   const [value, setValue] = useState("");
@@ -100,31 +91,6 @@ export default function Home() {
             </button>
           </div>
         </form>
-
-        <section className="mt-10">
-          <p
-            className="text-sm font-medium mb-3"
-            style={{ color: "var(--surco-ink-soft)" }}
-          >
-            Consultas sugeridas
-          </p>
-          <div className="grid sm:grid-cols-2 gap-3">
-            {SUGGESTED_QUERIES.map((q) => (
-              <button
-                key={q}
-                onClick={() => goToChat(q)}
-                className="text-left text-sm rounded-xl border px-4 py-3 transition-colors hover:shadow-sm"
-                style={{
-                  borderColor: "var(--surco-border)",
-                  background: "var(--surco-card)",
-                  color: "var(--surco-ink)",
-                }}
-              >
-                {q}
-              </button>
-            ))}
-          </div>
-        </section>
 
         <section
           className="mt-10 rounded-xl border px-4 py-4 text-sm flex gap-3"
