@@ -2,6 +2,7 @@
 
 import { ChatMessage } from "@/lib/types";
 import { SourceCard } from "./SourceCard";
+import { ClarificationForm } from "./ClarificationForm";
 
 const KIND_LABEL: Record<string, string> = {
   calculation: "Cálculo verificado",
@@ -11,7 +12,12 @@ const KIND_LABEL: Record<string, string> = {
   general: "Respuesta",
 };
 
-export function MessageBubble({ message }: { message: ChatMessage }) {
+interface Props {
+  message: ChatMessage;
+  onSubmitForm?: (messageId: string, data: Record<string, string>) => void;
+}
+
+export function MessageBubble({ message, onSubmitForm }: Props) {
   if (message.role === "user") {
     return (
       <div className="flex justify-end">
@@ -94,17 +100,27 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
           </div>
         )}
 
-        {r && r.followUpQuestions && r.followUpQuestions.length > 0 && (
-          <div className="flex flex-col gap-1 text-sm">
-            <span className="font-medium" style={{ color: "var(--surco-ink-soft)" }}>
-              Para avanzar, necesito saber:
-            </span>
-            <ul className="list-disc pl-5" style={{ color: "var(--surco-ink)" }}>
-              {r.followUpQuestions.map((f, i) => (
-                <li key={i}>{f}</li>
-              ))}
-            </ul>
-          </div>
+        {r?.clarificationForm ? (
+          <ClarificationForm
+            form={r.clarificationForm}
+            disabled={message.formAnswered || !onSubmitForm}
+            onSubmit={(data) => onSubmitForm?.(message.id, data)}
+          />
+        ) : (
+          r &&
+          r.followUpQuestions &&
+          r.followUpQuestions.length > 0 && (
+            <div className="flex flex-col gap-1 text-sm">
+              <span className="font-medium" style={{ color: "var(--surco-ink-soft)" }}>
+                Para avanzar, necesito saber:
+              </span>
+              <ul className="list-disc pl-5" style={{ color: "var(--surco-ink)" }}>
+                {r.followUpQuestions.map((f, i) => (
+                  <li key={i}>{f}</li>
+                ))}
+              </ul>
+            </div>
+          )
         )}
 
         {r && r.sources.length > 0 && (

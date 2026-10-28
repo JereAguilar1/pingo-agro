@@ -22,6 +22,23 @@ export type ResponseKind =
 
 export type ResponseMode = "demo" | "ai";
 
+export type ClarificationFormKind = "phyto" | "soil_sampling" | "crop_rotation";
+
+export interface ClarificationField {
+  id: string;
+  label: string;
+  type: "text" | "select" | "date";
+  placeholder?: string;
+  options?: string[]; // solo para type "select"
+  required?: boolean;
+}
+
+export interface ClarificationForm {
+  kind: ClarificationFormKind;
+  fields: ClarificationField[];
+  submitLabel?: string;
+}
+
 export interface AssistantResponse {
   kind: ResponseKind;
   answer: string;
@@ -29,7 +46,13 @@ export interface AssistantResponse {
   sources: SourceCardData[];
   warnings: string[];
   followUpQuestions?: string[];
+  clarificationForm?: ClarificationForm;
   mode: ResponseMode;
+}
+
+export interface FormSubmission {
+  kind: ClarificationFormKind;
+  data: Record<string, string>;
 }
 
 export interface ChatMessage {
@@ -38,4 +61,5 @@ export interface ChatMessage {
   content: string;
   response?: AssistantResponse;
   createdAt: number;
+  formAnswered?: boolean;
 }

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useEffect, useRef, useState } from "react";
 import { MessageBubble } from "@/components/MessageBubble";
-import { ChatMessage } from "@/lib/types";
+import { ChatMessage, FormSubmission } from "@/lib/types";
 
 const STORAGE_KEY = "surco-chat-v1";
 
@@ -53,7 +53,7 @@ function ChatInner() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  async function sendMessage(question: string) {
+  async function sendMessage(question: string, form?: FormSubmission) {
     const q = question.trim();
     if (!q || loading) return;
 
@@ -72,7 +72,7 @@ function ChatInner() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ question: q }),
+        body: JSON.stringify({ question: q, form }),
       });
 
       const data = await res.json();
@@ -101,6 +101,22 @@ function ChatInner() {
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     void sendMessage(input);
+  }
+
+  function handleFormSubmit(messageId: string, data: Record<string, string>) {
+    const target = messages.find((m) => m.id === messageId);
+    const form = target?.response?.clarificationForm;
+    if (!form) return;
+
+    setMessages((prev) =>
+      prev.map((m) => (m.id === messageId ? { ...m, formAnswered: true } : m))
+    );
+
+    const displayText = form.fields
+      .map((f) => `${f.label}: ${data[f.id]?.trim() || "(sin especificar)"}`)
+      .join("\n");
+
+    void sendMessage(displayText, { kind: form.kind, data });
   }
 
   function handleNewChat() {
@@ -135,7 +151,7 @@ function ChatInner() {
         )}
 
         {messages.map((m) => (
-          <MessageBubble key={m.id} message={m} />
+          <MessageBubble key={m.id} message={m} onSubmitForm={handleFormSubmit} />
         ))}
 
         {loading && (

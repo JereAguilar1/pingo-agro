@@ -1,6 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { respond } from "@/lib/respond";
 import { isAiConfigured } from "@/lib/ai-provider";
+import { ClarificationFormKind, FormSubmission } from "@/lib/types";
+
+const FORM_KINDS: ClarificationFormKind[] = ["phyto", "soil_sampling", "crop_rotation"];
+
+function parseFormSubmission(body: unknown): FormSubmission | undefined {
+  const raw = (body as { form?: unknown })?.form;
+  if (!raw || typeof raw !== "object") return undefined;
+  const kind = (raw as { kind?: unknown }).kind;
+  const data = (raw as { data?: unknown }).data;
+  if (typeof kind !== "string" || !FORM_KINDS.includes(kind as ClarificationFormKind)) return undefined;
+  if (!data || typeof data !== "object") return undefined;
+  const cleanData: Record<string, string> = {};
+  for (const [key, value] of Object.entries(data as Record<string, unknown>)) {
+    if (typeof value === "string") cleanData[key] = value.slice(0, 500);
+  }
+  return { kind: kind as ClarificationFormKind, data: cleanData };
+}
 
 export async function POST(req: NextRequest) {
   let body: unknown;
@@ -25,8 +42,10 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const form = parseFormSubmission(body);
+
   try {
-    const result = await respond(question);
+    const result = await respond(question, form);
     return NextResponse.json({ response: result, aiConfigured: isAiConfigured() });
   } catch (err) {
     console.error("Error procesando la consulta:", err);

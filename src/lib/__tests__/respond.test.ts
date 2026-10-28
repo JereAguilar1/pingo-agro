@@ -52,6 +52,41 @@ describe("respond — información insuficiente", () => {
     expect(r.kind).toBe("insufficient_info");
     expect(r.followUpQuestions?.length).toBeGreaterThan(0);
   });
+
+  it("los tres casos de información insuficiente incluyen un formulario de aclaración", async () => {
+    const phyto = await respond("¿Está autorizado este herbicida para mi cultivo?");
+    expect(phyto.clarificationForm?.kind).toBe("phyto");
+    expect(phyto.clarificationForm?.fields.length).toBeGreaterThan(0);
+
+    const soil = await respond("¿Cómo debería planificar un muestreo de suelo?");
+    expect(soil.clarificationForm?.kind).toBe("soil_sampling");
+
+    const rotation = await respond(
+      "Se aplicó atrazina en un lote previsto para soja. Queremos reorganizar la siembra con girasol. ¿Qué restricciones de rotación tenemos que comprobar?"
+    );
+    expect(rotation.clarificationForm?.kind).toBe("crop_rotation");
+  });
+});
+
+describe("respond — envío de formulario de aclaración", () => {
+  it("responde con el producto identificado sin inventar una autorización", async () => {
+    const r = await respond("", {
+      kind: "phyto",
+      data: { producto: "Roundup Full II", cultivo: "Soja", objetivo: "Sorgo de Alepo" },
+    });
+    expect(r.answer).toContain("Roundup Full II");
+    expect(r.answer.toLowerCase()).not.toMatch(/est[aá] autorizado|registrado y vigente/);
+    expect(r.sources.map((s) => s.sourceCode)).toEqual(expect.arrayContaining(["R01", "R02"]));
+  });
+
+  it("no inventa un intervalo de siembra numérico al recibir los datos de rotación", async () => {
+    const r = await respond("", {
+      kind: "crop_rotation",
+      data: { producto: "Gesaprim 500", cultivoNuevo: "Girasol" },
+    });
+    expect(r.answer).toContain("Gesaprim 500");
+    expect(r.answer).not.toMatch(/\d+\s*(d[ií]as|meses)/i);
+  });
 });
 
 describe("respond — sin evidencia", () => {

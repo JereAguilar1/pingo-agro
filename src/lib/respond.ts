@@ -1,7 +1,30 @@
 import { doseToProduct, nitrogenContent } from "./calculations";
 import { completeWithAi, isAiConfigured } from "./ai-provider";
 import { retrieve } from "./retrieval";
-import { AssistantResponse, SourceCardData } from "./types";
+import { AssistantResponse, FormSubmission, SourceCardData } from "./types";
+
+const CROPS = ["Soja", "Maíz", "Girasol", "Trigo", "Cebada", "Otro"];
+
+const SENASA_SOURCES: SourceCardData[] = [
+  {
+    sourceCode: "R01",
+    institution: "SENASA",
+    title: "Registro Nacional de Terapéutica Vegetal",
+    accessedOn: "2026-10-23",
+    url: "https://www.argentina.gob.ar/senasa/programas-sanitarios/productosveterinarios-fitosanitarios-y-fertilizantes/registro-nacional-de-terapeutica-vegetal",
+    verification: "verified",
+    supports: "Punto de partida para verificar si un producto identificado está inscripto.",
+  },
+  {
+    sourceCode: "R02",
+    institution: "SENASA",
+    title: "Consulta pública del vademécum de productos fitosanitarios",
+    accessedOn: "2026-10-23",
+    url: "https://aps2.senasa.gov.ar/vademecum/app/publico",
+    verification: "verified",
+    supports: "Buscador para localizar el marbete del producto una vez identificado.",
+  },
+];
 
 function parseNumber(raw: string): number {
   return parseFloat(raw.replace(",", "."));
@@ -165,6 +188,16 @@ function handlePhytoInsufficientInfo(): AssistantResponse {
       "¿Formulación y concentración?",
       "¿Cultivo y maleza, plaga o enfermedad objetivo?",
     ],
+    clarificationForm: {
+      kind: "phyto",
+      submitLabel: "Verificar con estos datos",
+      fields: [
+        { id: "producto", label: "Nombre comercial o número de registro", type: "text", placeholder: "Ej. Roundup Full II, o Reg. N° 12345", required: true },
+        { id: "formulacion", label: "Formulación y concentración", type: "text", placeholder: "Ej. SL 48%" },
+        { id: "cultivo", label: "Cultivo", type: "select", options: CROPS, required: true },
+        { id: "objetivo", label: "Maleza, plaga o enfermedad objetivo", type: "text", placeholder: "Ej. Sorgo de Alepo" },
+      ],
+    },
     mode: "demo",
   };
 }
@@ -209,6 +242,17 @@ function handleCropRotationInsufficientInfo(): AssistantResponse {
       "¿Qué antecedentes de aplicaciones previas tiene el lote?",
       "¿Qué cultivo se quiere sembrar ahora (en este caso, girasol) y en qué fecha?",
     ],
+    clarificationForm: {
+      kind: "crop_rotation",
+      submitLabel: "Buscar restricciones con estos datos",
+      fields: [
+        { id: "producto", label: "Nombre comercial del herbicida aplicado", type: "text", placeholder: "Ej. Gesaprim 500", required: true },
+        { id: "formulacionDosis", label: "Formulación y dosis aplicada", type: "text", placeholder: "Ej. SC 50%, 3 l/ha" },
+        { id: "fechaAplicacion", label: "Fecha de aplicación", type: "date" },
+        { id: "cultivoNuevo", label: "Cultivo que se quiere sembrar ahora", type: "select", options: CROPS, required: true },
+        { id: "fechaSiembra", label: "Fecha prevista de siembra", type: "date" },
+      ],
+    },
     mode: "demo",
   };
 }
@@ -247,6 +291,27 @@ function handleSoilSamplingInsufficientInfo(): AssistantResponse {
       "¿Qué cultivo y campaña corresponde?",
       "¿Hay antecedentes o manejo diferencial del lote?",
     ],
+    clarificationForm: {
+      kind: "soil_sampling",
+      submitLabel: "Orientar el muestreo con estos datos",
+      fields: [
+        {
+          id: "objetivo",
+          label: "Objetivo del análisis",
+          type: "select",
+          required: true,
+          options: [
+            "Fertilidad general",
+            "Nutriente puntual (N, P, K u otro)",
+            "Salinidad / sodicidad",
+            "Compactación física",
+            "Otro",
+          ],
+        },
+        { id: "cultivo", label: "Cultivo y campaña", type: "text", placeholder: "Ej. Trigo, campaña 2026/27" },
+        { id: "antecedentes", label: "Antecedentes o manejo diferencial del lote", type: "text", placeholder: "Ej. Zona con rinde históricamente más bajo" },
+      ],
+    },
     mode: "demo",
   };
 }
@@ -370,9 +435,100 @@ function buildRagSystemPrompt(fragments: { sourceCode: string; institution: stri
   ].join("\n");
 }
 
+// ---------- Respuesta a un formulario de aclaración completado ----------
+
+function handlePhytoFormSubmission(data: Record<string, string>): AssistantResponse {
+  const producto = data.producto?.trim() || "(sin especificar)";
+  const cultivo = data.cultivo?.trim();
+  const objetivo = data.objetivo?.trim();
+
+  return {
+    kind: "insufficient_info",
+    answer:
+      `Con "${producto}" identificado, el siguiente paso es buscarlo en el vademécum público de SENASA para confirmar su registro vigente${
+        cultivo ? ` para ${cultivo}` : ""
+      }${objetivo ? ` contra ${objetivo}` : ""}, y revisar el marbete correspondiente. ` +
+      `Surco no consulta ese registro en tiempo real, así que no puede confirmar la autorización por vos: el marbete es la fuente que determina usos, dosis y restricciones permitidas.`,
+    sources: SENASA_SOURCES,
+    warnings: [
+      "No se afirma ninguna autorización: hay que verificarla en la fuente oficial con el producto exacto.",
+    ],
+    mode: "demo",
+  };
+}
+
+function handleSoilSamplingFormSubmission(data: Record<string, string>): AssistantResponse {
+  const objetivo = data.objetivo?.trim() || "el objetivo indicado";
+  const cultivo = data.cultivo?.trim();
+
+  return {
+    kind: "grounded_answer",
+    answer:
+      `Para "${objetivo}"${cultivo ? ` en ${cultivo}` : ""}, el protocolo adecuado se busca en la metodología de muestreo de INTA, que organiza los procedimientos por la propiedad del suelo a evaluar. ` +
+      `Elegí ahí la sección que corresponda a tu objetivo (por ejemplo, disponibilidad de nutrientes, estructura, carbono o agua) antes de definir profundidad y cantidad de submuestras, y derivá las muestras al laboratorio de INTA Balcarce si corresponde a tu zona.`,
+    sources: [
+      {
+        sourceCode: "R04",
+        institution: "INTA",
+        title: "Metodología de muestreo de suelo y ensayos a campo (2.ª edición)",
+        accessedOn: "2026-10-23",
+        url: "https://www.argentina.gob.ar/sites/default/files/2026/02/inta_metod_muestreo_suelo_y_ensayo_a_campo.pdf",
+        verification: "verified",
+        supports: "Contiene el protocolo específico según el objetivo del análisis.",
+      },
+      {
+        sourceCode: "R05",
+        institution: "INTA Balcarce",
+        title: "Laboratorio de Suelo y Material Vegetal — Red de Laboratorios INTA",
+        accessedOn: "2026-10-23",
+        url: "https://www.argentina.gob.ar/inta/redes-de-laboratorios-inta/laboratorio-de-suelo-y-material-vegetal-grupo-relacion-suelo-cultivo-eea-balcarce",
+        verification: "verified",
+        supports: "Laboratorio de referencia en la región de Tandil/Balcarce para procesar las muestras.",
+      },
+    ],
+    warnings: [
+      "No se indica una profundidad ni una cantidad de submuestras concreta: eso depende de la sección del protocolo que elijas para este objetivo.",
+    ],
+    mode: "demo",
+  };
+}
+
+function handleCropRotationFormSubmission(data: Record<string, string>): AssistantResponse {
+  const producto = data.producto?.trim() || "(sin especificar)";
+  const cultivoNuevo = data.cultivoNuevo?.trim() || "el cultivo elegido";
+
+  return {
+    kind: "insufficient_info",
+    answer:
+      `Con "${producto}" identificado, buscalo en el vademécum público de SENASA y revisá su marbete en la sección de restricciones de uso: ahí figura el intervalo de siembra (el tiempo mínimo antes de poder sembrar ${cultivoNuevo} en ese lote) según la formulación y dosis aplicada. ` +
+      `Recordá que esa restricción es distinta del período de carencia hasta cosecha del cultivo tratado. Surco no tiene acceso al marbete en tiempo real, así que el intervalo exacto hay que confirmarlo ahí.`,
+    sources: SENASA_SOURCES,
+    warnings: [
+      "No se propone ningún número de días u meses de intervalo de siembra: ese dato solo lo da el marbete del producto identificado.",
+    ],
+    mode: "demo",
+  };
+}
+
+function handleFormSubmission(submission: FormSubmission): AssistantResponse {
+  switch (submission.kind) {
+    case "phyto":
+      return handlePhytoFormSubmission(submission.data);
+    case "soil_sampling":
+      return handleSoilSamplingFormSubmission(submission.data);
+    case "crop_rotation":
+      return handleCropRotationFormSubmission(submission.data);
+  }
+}
+
 // ---------- Punto de entrada ----------
 
-export async function respond(question: string): Promise<AssistantResponse> {
+export async function respond(
+  question: string,
+  form?: FormSubmission
+): Promise<AssistantResponse> {
+  if (form) return handleFormSubmission(form);
+
   const trimmed = question.trim();
   if (!trimmed) {
     return {
