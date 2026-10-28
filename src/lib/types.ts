@@ -81,6 +81,13 @@ export type ResponseKind =
 
 export type ResponseMode = "demo" | "ai";
 
+export interface UploadedDocument {
+  id: string;
+  title: string;
+  content: string;
+  uploadedAt: string;
+}
+
 export type ClarificationFormKind =
   | "phyto"
   | "soil_sampling"
@@ -97,7 +104,8 @@ export type ClarificationFormKind =
   | "freight_costs"
   | "frost_risk"
   | "application_conditions"
-  | "municipality_regulations";
+  | "municipality_regulations"
+  | "dynamic_context";
 
 export interface ClarificationField {
   id: string;
@@ -112,6 +120,9 @@ export interface ClarificationForm {
   kind: ClarificationFormKind;
   fields: ClarificationField[];
   submitLabel?: string;
+  round?: number;
+  originalQuestion?: string;
+  accumulatedData?: Record<string, string>;
 }
 
 export interface AssistantResponse {
@@ -125,11 +136,15 @@ export interface AssistantResponse {
   mode: ResponseMode;
   pipelineTrace?: PipelineTrace;
   structuredShort?: StructuredShortAnswer;
+  agentsUsed?: ("docs" | "web" | "calc" | "verifier")[];
 }
 
 export interface FormSubmission {
   kind: ClarificationFormKind;
   data: Record<string, string>;
+  round?: number;
+  originalQuestion?: string;
+  accumulatedData?: Record<string, string>;
 }
 
 export interface ChatMessage {

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { respond } from "@/lib/respond";
+import { runOrchestratorAgent } from "@/lib/agents/orchestrator-agent";
 import { isAiConfigured } from "@/lib/ai-provider";
-import { ClarificationFormKind, FormSubmission } from "@/lib/types";
+import { ClarificationFormKind, FormSubmission, UploadedDocument } from "@/lib/types";
 
 const FORM_KINDS: ClarificationFormKind[] = [
   "phyto",
@@ -20,6 +20,7 @@ const FORM_KINDS: ClarificationFormKind[] = [
   "frost_risk",
   "application_conditions",
   "municipality_regulations",
+  "dynamic_context",
 ];
 
 function parseFormSubmission(body: unknown): FormSubmission | undefined {
@@ -29,11 +30,47 @@ function parseFormSubmission(body: unknown): FormSubmission | undefined {
   const data = (raw as { data?: unknown }).data;
   if (typeof kind !== "string" || !FORM_KINDS.includes(kind as ClarificationFormKind)) return undefined;
   if (!data || typeof data !== "object") return undefined;
+
   const cleanData: Record<string, string> = {};
   for (const [key, value] of Object.entries(data as Record<string, unknown>)) {
     if (typeof value === "string") cleanData[key] = value.slice(0, 500);
   }
-  return { kind: kind as ClarificationFormKind, data: cleanData };
+
+  const rawAcc = (raw as { accumulatedData?: unknown }).accumulatedData;
+  const cleanAcc: Record<string, string> = {};
+  if (rawAcc && typeof rawAcc === "object") {
+    for (const [key, value] of Object.entries(rawAcc as Record<string, unknown>)) {
+      if (typeof value === "string") cleanAcc[key] = value.slice(0, 500);
+    }
+  }
+
+  const round = typeof (raw as { round?: unknown }).round === "number" ? (raw as { round: number }).round : undefined;
+  const originalQuestion =
+    typeof (raw as { originalQuestion?: unknown }).originalQuestion === "string"
+      ? (raw as { originalQuestion: string }).originalQuestion.slice(0, 2000)
+      : undefined;
+
+  return {
+    kind: kind as ClarificationFormKind,
+    data: cleanData,
+    round,
+    originalQuestion,
+    accumulatedData: cleanAcc,
+  };
+}
+
+function parseUploadedDocs(body: unknown): UploadedDocument[] {
+  const raw = (body as { uploadedDocs?: unknown })?.uploadedDocs;
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((d) => d && typeof d === "object" && typeof d.title === "string" && typeof d.content === "string")
+    .slice(0, 5)
+    .map((d, i) => ({
+      id: typeof d.id === "string" ? d.id : `doc-${i}`,
+      title: String(d.title).slice(0, 200),
+      content: String(d.content).slice(0, 15000),
+      uploadedAt: typeof d.uploadedAt === "string" ? d.uploadedAt : new Date().toISOString().slice(0, 10),
+    }));
 }
 
 export async function POST(req: NextRequest) {
@@ -45,6 +82,7 @@ export async function POST(req: NextRequest) {
   }
 
   const form = parseFormSubmission(body);
+  const uploadedDocs = parseUploadedDocs(body);
   const question = (body as { question?: unknown })?.question;
   if (!form && (typeof question !== "string" || !question.trim())) {
     return NextResponse.json(
@@ -62,7 +100,11 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const result = await respond(safeQuestion, form);
+    const result = await runOrchestratorAgent({
+      question: safeQuestion,
+      form,
+      uploadedDocs,
+    });
     return NextResponse.json({ response: result, aiConfigured: isAiConfigured() });
   } catch (err) {
     console.error("Error procesando la consulta:", err);

@@ -1,9 +1,16 @@
-import { AssistantResponse, FormSubmission, ProducerLote, SourceCardData } from "./types";
+import {
+  AssistantResponse,
+  FormSubmission,
+  ProducerLote,
+  SourceCardData,
+  UploadedDocument,
+} from "./types";
 import { respond } from "./respond";
 import { getLocalLLMStatus, generateLocalGroundedResponse } from "./local-llm";
 import { LIBRARY, SourceFragment } from "./library";
 import { retrieve } from "./retrieval";
 import { runStep4VerifierAndBuildTrace } from "./pipeline/orchestrator";
+import { runOrchestratorAgent } from "./agents/orchestrator-agent";
 
 export type LocalGeneratorFn = (params: {
   question: string;
@@ -15,6 +22,7 @@ export interface ResolveChatOptions {
   question?: string;
   form?: FormSubmission;
   activeLote?: ProducerLote | null;
+  uploadedDocs?: UploadedDocument[];
   preferOffline?: boolean;
   fetchFn?: typeof fetch;
   localGeneratorFn?: LocalGeneratorFn;
@@ -176,6 +184,7 @@ export async function resolveChatQuery(
     question = "",
     form,
     activeLote,
+    uploadedDocs,
     preferOffline = false,
     fetchFn,
     localGeneratorFn,
@@ -188,10 +197,22 @@ export async function resolveChatQuery(
     (typeof window !== "undefined" && getLocalLLMStatus().status === "ready") ||
     Boolean(localGeneratorFn);
 
+  async function resolveLocally(): Promise<AssistantResponse> {
+    if ((uploadedDocs && uploadedDocs.length > 0) || form?.kind === "dynamic_context" || (form?.round && form.round >= 1)) {
+      return runOrchestratorAgent({
+        question: safeQuestion,
+        form,
+        activeLote,
+        uploadedDocs,
+      });
+    }
+    return respond(safeQuestion, form, activeLote);
+  }
+
   // If user has local SLM active in memory, or if offline is preferred/detected, or activeLote is used:
   // resolve directly via local engine
   if (preferOffline || isBrowserOffline() || !effectiveFetch || hasLocalLLM || Boolean(activeLote)) {
-    const rawMemoryResponse = await respond(safeQuestion, form, activeLote);
+    const rawMemoryResponse = await resolveLocally();
     const enhanced = await enhanceWithLocalLLM(
       rawMemoryResponse,
       safeQuestion,
@@ -206,12 +227,12 @@ export async function resolveChatQuery(
     };
   }
 
-  // Attempt network call
+  // Attempt network call to Online Orchestrator Agent (/api/chat)
   try {
     const res = await effectiveFetch("/api/chat", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ question: safeQuestion, form }),
+      body: JSON.stringify({ question: safeQuestion, form, uploadedDocs }),
     });
 
     if (res.ok) {
@@ -245,8 +266,7 @@ export async function resolveChatQuery(
     }
 
     // Server returned a non-OK status or malformed JSON (e.g. 500, 502, 503)
-    // Fallback to in-memory resolution with local LLM if ready
-    const memoryFallback = await respond(safeQuestion, form, activeLote);
+    const memoryFallback = await resolveLocally();
     const enhanced = await enhanceWithLocalLLM(
       memoryFallback,
       safeQuestion,
@@ -260,9 +280,8 @@ export async function resolveChatQuery(
       aiConfigured: false,
     };
   } catch {
-    // Network failure (no connection, DNS error, timeout, CORS error in mobile container)
-    // Fallback seamlessly to local in-memory respond()
-    const memoryFallback = await respond(safeQuestion, form, activeLote);
+    // Network failure -> Fallback seamlessly to local in-memory resolution
+    const memoryFallback = await resolveLocally();
     const enhanced = await enhanceWithLocalLLM(
       memoryFallback,
       safeQuestion,
