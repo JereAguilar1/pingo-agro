@@ -59,7 +59,7 @@ export function MessageBubble({ message, onSubmitForm }: Props) {
                   : "Modo de demostración: respuesta determinista, sin modelo de IA conectado."
               }
             >
-              {r.mode === "ai" ? "Generado con IA" : "Modo demostración"}
+              {r.mode === "ai" ? "⚡ Generado con IA Local" : "Modo demostración"}
             </span>
           </div>
         )}

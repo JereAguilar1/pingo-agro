@@ -1,7 +1,8 @@
 import { AssistantResponse, FormSubmission, SourceCardData } from "./types";
 import { respond } from "./respond";
 import { getLocalLLMStatus, generateLocalGroundedResponse } from "./local-llm";
-import { LIBRARY } from "./library";
+import { LIBRARY, SourceFragment } from "./library";
+import { retrieve } from "./retrieval";
 
 export type LocalGeneratorFn = (params: {
   question: string;
@@ -40,8 +41,14 @@ async function enhanceWithLocalLLM(
   generator?: LocalGeneratorFn,
   onToken?: (text: string) => void
 ): Promise<AssistantResponse> {
-  // Only enhance grounded answers with sources (preserve calculations & forms deterministically)
-  if (res.kind !== "grounded_answer" || res.sources.length === 0) {
+  // Preserve exact mathematical calculations deterministically
+  if (res.kind === "calculation") {
+    return res;
+  }
+
+  const hasLocal = typeof window !== "undefined" && getLocalLLMStatus().status === "ready";
+
+  if (!generator && !hasLocal) {
     return res;
   }
 
@@ -50,7 +57,12 @@ async function enhanceWithLocalLLM(
     try {
       const generated = await generator({ question, sources: res.sources, onToken });
       if (generated) {
-        return { ...res, answer: generated, mode: "ai" };
+        return {
+          ...res,
+          answer: generated,
+          mode: "ai",
+          kind: res.kind === "no_evidence" ? "general" : res.kind,
+        };
       }
     } catch {
       return res;
@@ -58,11 +70,16 @@ async function enhanceWithLocalLLM(
   }
 
   // 2. If browser environment with WebLLM ready in memory
-  if (typeof window !== "undefined" && getLocalLLMStatus().status === "ready") {
+  if (hasLocal) {
     try {
-      // Map sources back to library snippets
-      const sourceCodes = new Set(res.sources.map((s) => s.sourceCode));
-      const relevantSnippets = LIBRARY.filter((item) => sourceCodes.has(item.sourceCode));
+      let relevantSnippets: SourceFragment[] = [];
+      if (res.sources && res.sources.length > 0) {
+        const sourceCodes = new Set(res.sources.map((s) => s.sourceCode));
+        relevantSnippets = LIBRARY.filter((item) => sourceCodes.has(item.sourceCode));
+      } else {
+        const retrieved = retrieve(question, 3);
+        relevantSnippets = retrieved.map((r) => r.fragment);
+      }
 
       const generated = await generateLocalGroundedResponse({
         question,
@@ -71,7 +88,12 @@ async function enhanceWithLocalLLM(
       });
 
       if (generated) {
-        return { ...res, answer: generated, mode: "ai" };
+        return {
+          ...res,
+          answer: generated,
+          mode: "ai",
+          kind: res.kind === "no_evidence" ? "general" : res.kind,
+        };
       }
     } catch (err) {
       console.debug("Error generating on-device response:", err);
@@ -93,14 +115,19 @@ export async function resolveChatQuery(
   const safeQuestion = question.trim();
   const effectiveFetch = fetchFn ?? (typeof fetch !== "undefined" ? fetch : undefined);
 
-  // If explicitly offline, browser is known offline, or no fetch available, resolve in-memory
-  if (preferOffline || isBrowserOffline() || !effectiveFetch) {
+  const hasLocalLLM =
+    (typeof window !== "undefined" && getLocalLLMStatus().status === "ready") ||
+    Boolean(localGeneratorFn);
+
+  // If user has local SLM active in memory, or if offline is preferred/detected:
+  // resolve directly via local engine
+  if (preferOffline || isBrowserOffline() || !effectiveFetch || hasLocalLLM) {
     const rawMemoryResponse = await respond(safeQuestion, form);
     const enhanced = await enhanceWithLocalLLM(rawMemoryResponse, safeQuestion, localGeneratorFn, onToken);
     return {
       response: enhanced,
       source: "offline",
-      aiConfigured: false,
+      aiConfigured: enhanced.mode === "ai",
     };
   }
 
@@ -118,6 +145,16 @@ export async function resolveChatQuery(
         aiConfigured?: boolean;
       };
       if (data?.response) {
+        // If server answered in demo mode and client has local LLM, enhance it!
+        if (data.response.mode === "demo" && hasLocalLLM) {
+          const enhanced = await enhanceWithLocalLLM(data.response, safeQuestion, localGeneratorFn, onToken);
+          return {
+            response: enhanced,
+            source: "offline",
+            aiConfigured: enhanced.mode === "ai",
+          };
+        }
+
         return {
           response: data.response,
           source: "network",

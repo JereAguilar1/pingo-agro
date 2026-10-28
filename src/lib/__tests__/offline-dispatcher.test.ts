@@ -98,4 +98,20 @@ describe("Offline Client Dispatcher", () => {
     );
     expect(result.response.mode).toBe("ai");
   });
+
+  it("answers meta / conversational queries using local LLM instead of falling back to no_evidence", async () => {
+    const mockLocalGenerator = vi.fn().mockResolvedValue(
+      "Sí, estoy funcionando con el modelo SLM Llama 3.2 1B ejecutándose localmente en tu dispositivo."
+    );
+
+    const result = await resolveChatQuery({
+      question: "se esta usando un slm?",
+      localGeneratorFn: mockLocalGenerator,
+    });
+
+    expect(result.source).toBe("offline");
+    expect(mockLocalGenerator).toHaveBeenCalledTimes(1);
+    expect(result.response.answer).toContain("Llama 3.2 1B");
+    expect(result.response.mode).toBe("ai");
+  });
 });
