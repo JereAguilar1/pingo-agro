@@ -1,0 +1,16 @@
+{
+  "name": "Surco — Asistente Agronómico",
+  "short_name": "Surco",
+  "description": "Asistente de información técnica para ingenieros agrónomos. Agricultura extensiva de Tandil y zona.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d1b13",
+  "theme_color": "#166534",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ]
+}

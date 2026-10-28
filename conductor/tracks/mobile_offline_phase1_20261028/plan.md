@@ -21,11 +21,11 @@
 - [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 3: PWA Scaffolding & Manifest Configuration
-- [ ] Task: Web App Manifest & Service Worker Setup
-  - [ ] Create `public/manifest.json` with Surco agro metadata, theme colors, and icons
-  - [ ] Create lightweight offline service worker `public/sw.js` for app shell caching
-  - [ ] Register service worker in `src/app/layout.tsx`
-- [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
+- [x] Task: Web App Manifest & Service Worker Setup
+  - [x] Create `public/manifest.json` with Surco agro metadata, theme colors, and icons
+  - [x] Create lightweight offline service worker `public/sw.js` for app shell caching
+  - [x] Register service worker in `src/app/layout.tsx`
+- [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 4: Capacitor Setup for Android
 - [ ] Task: Install and Initialize Capacitor
