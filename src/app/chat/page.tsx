@@ -6,7 +6,10 @@ import { FormEvent, Suspense, useEffect, useRef, useState } from "react";
 import { MessageBubble } from "@/components/MessageBubble";
 import { ChatMessage, FormSubmission } from "@/lib/types";
 
-const STORAGE_KEY = "surco-chat-v1";
+// v2: el esquema de AssistantResponse ganó `clarificationForm`; se bumpea la
+// clave para que las conversaciones guardadas antes de esta función (sin
+// formulario) no se muestren como si fueran la versión actual.
+const STORAGE_KEY = "surco-chat-v2";
 
 function loadMessages(): ChatMessage[] {
   if (typeof window === "undefined") return [];
