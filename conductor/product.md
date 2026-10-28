@@ -18,3 +18,4 @@ Ingenieros agrónomos, asesores técnicos y productores agrícolas de Tandil y l
 - Formularios interactivos de clarificación.
 - Respuestas respaldadas con tarjetas de fuentes verificadas (`sources`) y advertencias (`warnings`).
 - Cálculos agronómicos deterministas exactos.
+- Modo Campo y Operación Offline: resolución de consultas y formularios de forma 100% desconectada en memoria del dispositivo (PWA y contenedor Android nativo vía Capacitor).
