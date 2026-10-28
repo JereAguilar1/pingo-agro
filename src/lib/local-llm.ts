@@ -1,7 +1,9 @@
 import type { InitProgressReport, MLCEngineInterface } from "@mlc-ai/web-llm";
 import { SourceFragment } from "./library";
 
-export const DEFAULT_MODEL_ID = "Llama-3.2-1B-Instruct-q4f16_1-MLC";
+export const DEFAULT_MODEL_ID = "Llama-3.2-1B-Instruct-q4f32_1-MLC";
+export const F16_MODEL_ID = "Llama-3.2-1B-Instruct-q4f16_1-MLC";
+export const TINY_MODEL_ID = "TinyLlama-1.1B-Chat-v1.0-q4f32_1-MLC";
 
 export type LocalLLMStatus = "unloaded" | "loading" | "ready" | "error";
 
@@ -14,6 +16,67 @@ export function isWebGPUSupported(nav?: Navigator): boolean {
   const targetNav = nav ?? (typeof navigator !== "undefined" ? navigator : undefined);
   if (!targetNav) return false;
   return "gpu" in targetNav && Boolean((targetNav as unknown as { gpu: unknown }).gpu);
+}
+
+export async function detectWebGPUCapability(): Promise<{
+  supported: boolean;
+  hasF16: boolean;
+  adapterName?: string;
+  errorMessage?: string;
+}> {
+  if (
+    typeof window === "undefined" ||
+    typeof navigator === "undefined" ||
+    !("gpu" in navigator) ||
+    !navigator.gpu
+  ) {
+    return {
+      supported: false,
+      hasF16: false,
+      errorMessage:
+        "Tu navegador o dispositivo no tiene WebGPU disponible.",
+    };
+  }
+
+  try {
+    const gpu = (navigator as unknown as { gpu: { requestAdapter: () => Promise<unknown> } }).gpu;
+    const adapter = (await gpu.requestAdapter()) as {
+      features?: { has: (feat: string) => boolean };
+      info?: { description?: string };
+    } | null;
+    if (!adapter) {
+      return {
+        supported: false,
+        hasF16: false,
+        errorMessage:
+          "El navegador soporta WebGPU pero no pudo conectar con el procesador gráfico (GPU no disponible o desactivada por el sistema).",
+      };
+    }
+
+    const hasF16 = Boolean(adapter.features?.has("shader-f16"));
+    return {
+      supported: true,
+      hasF16,
+      adapterName:
+        (adapter as { info?: { description?: string } }).info?.description ||
+        "Adaptador GPU compatible",
+    };
+  } catch (err) {
+    return {
+      supported: false,
+      hasF16: false,
+      errorMessage:
+        err instanceof Error ? err.message : "Error al solicitar adaptador WebGPU.",
+    };
+  }
+}
+
+export async function getRecommendedModelId(): Promise<string> {
+  const cap = await detectWebGPUCapability();
+  if (cap.supported && cap.hasF16) {
+    return F16_MODEL_ID;
+  }
+  return DEFAULT_MODEL_ID;
 }
 
 export function formatGroundingPrompt(params: {
@@ -58,6 +121,7 @@ Por favor, elaborá una respuesta basada exclusivamente en los fragmentos anteri
 let engineInstance: MLCEngineInterface | null = null;
 let currentStatus: LocalLLMStatus = "unloaded";
 let currentProgress: ProgressCallbackData = { progress: 0, text: "" };
+let currentModelId = DEFAULT_MODEL_ID;
 
 export function getLocalLLMStatus(): {
   status: LocalLLMStatus;
@@ -67,20 +131,24 @@ export function getLocalLLMStatus(): {
   return {
     status: currentStatus,
     progress: currentProgress,
-    modelId: DEFAULT_MODEL_ID,
+    modelId: currentModelId,
   };
 }
 
 export async function initLocalLLM(
   onProgress?: (data: ProgressCallbackData) => void,
-  modelId: string = DEFAULT_MODEL_ID
+  chosenModelId?: string
 ): Promise<boolean> {
   if (typeof window === "undefined") return false;
-  if (!isWebGPUSupported()) {
+
+  const cap = await detectWebGPUCapability();
+  if (!cap.supported) {
     currentStatus = "error";
     currentProgress = {
       progress: 0,
-      text: "WebGPU no está disponible en este navegador o dispositivo.",
+      text:
+        cap.errorMessage ||
+        "WebGPU no está disponible en este dispositivo.",
     };
     onProgress?.(currentProgress);
     return false;
@@ -90,8 +158,17 @@ export async function initLocalLLM(
     return true;
   }
 
+  const modelIdToUse = chosenModelId || (cap.hasF16 ? F16_MODEL_ID : DEFAULT_MODEL_ID);
+  currentModelId = modelIdToUse;
+
   try {
     currentStatus = "loading";
+    currentProgress = {
+      progress: 0.05,
+      text: `Iniciando descarga de ${modelIdToUse}...`,
+    };
+    onProgress?.(currentProgress);
+
     const { CreateMLCEngine } = await import("@mlc-ai/web-llm");
 
     const handleProgress = (report: InitProgressReport) => {
@@ -102,20 +179,36 @@ export async function initLocalLLM(
       onProgress?.(currentProgress);
     };
 
-    engineInstance = await CreateMLCEngine(modelId, {
+    engineInstance = await CreateMLCEngine(modelIdToUse, {
       initProgressCallback: handleProgress,
     });
 
     currentStatus = "ready";
-    currentProgress = { progress: 1, text: "Modelo Llama 3.2 1B listo para inferencia local" };
+    currentProgress = {
+      progress: 1,
+      text: `Modelo listo para inferencia local (${modelIdToUse})`,
+    };
     onProgress?.(currentProgress);
     return true;
   } catch (err) {
     console.error("Error al inicializar WebLLM local:", err);
+
+    // Auto-retry with FP32 if FP16 failed
+    if (modelIdToUse === F16_MODEL_ID) {
+      console.warn("Falló modelo FP16, intentando con variante universal FP32...");
+      currentProgress = {
+        progress: 0.05,
+        text: "Reintentando automáticamente con variante universal FP32...",
+      };
+      onProgress?.(currentProgress);
+      return initLocalLLM(onProgress, DEFAULT_MODEL_ID);
+    }
+
     currentStatus = "error";
+    const detail = err instanceof Error ? err.message : String(err);
     currentProgress = {
       progress: 0,
-      text: "Error al descargar o cargar los pesos del modelo.",
+      text: detail,
     };
     onProgress?.(currentProgress);
     return false;
