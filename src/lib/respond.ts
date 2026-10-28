@@ -194,6 +194,30 @@ function isSoilSamplingPlanningQuery(q: string): boolean {
   return mentionsSampling && !givesObjective && !givesProtocolDetail;
 }
 
+function isWeedManagementQuery(q: string): boolean {
+  const asksWeed = /maleza|malezas/.test(q);
+  const asksStrategy = /estrategia|manejo|complicando|campana y la siguiente|controlar/.test(q);
+  return asksWeed && asksStrategy;
+}
+
+function isPestAndDiseaseQuery(q: string): boolean {
+  const asksPestOrDisease = /plaga|plagas|enfermedad|enfermedades/.test(q);
+  const asksMonitoring = /monitorear|etapa|interpretar lo que observo|sintoma|diagnostico/.test(q);
+  return asksPestOrDisease && asksMonitoring;
+}
+
+function isCultivarSelectionQuery(q: string): boolean {
+  const asksCultivar = /hibrido|hibridos|cultivar|cultivares|candidatos/.test(q);
+  const asksContext = /sembrar|seleccionar|ensayos|zona|condiciones/.test(q);
+  return asksCultivar && asksContext;
+}
+
+function isHarvestLossesQuery(q: string): boolean {
+  const asksLosses = /perdida|perdidas/.test(q);
+  const asksHarvest = /cosecha|plataforma|cola|cabezal/.test(q);
+  return asksLosses && asksHarvest;
+}
+
 function isProductFamilyGenericQuery(q: string): boolean {
   const asksProductInfo =
     /que productos (puedo|podria|se pueden)|principios activos|familias? quimicas?|modos? de accion/.test(
@@ -416,6 +440,139 @@ function handleSoilSamplingInsufficientInfo(): AssistantResponse {
         },
         { id: "cultivo", label: "Cultivo y campaña", type: "text", placeholder: "Ej. Trigo, campaña 2026/27" },
         { id: "antecedentes", label: "Antecedentes o manejo diferencial del lote", type: "text", placeholder: "Ej. Zona con rinde históricamente más bajo" },
+      ],
+    },
+    mode: "demo",
+  };
+}
+
+function handleWeedManagementInsufficientInfo(): AssistantResponse {
+  return {
+    kind: "insufficient_info",
+    answer:
+      "El manejo de una maleza problema en el lote no debe reducirse a la elección aislada de un producto o a incrementar la dosis comercial. " +
+      "Para comparar estrategias sustentables para esta campaña y la siguiente, es indispensable conocer: la especie en cuestión, su estado fenológico (tamaño de la maleza), el cultivo planificado, y los antecedentes de control y fallas previas en el lote. " +
+      "Con esa información se pueden contrastar alternativas de manejo integrado que combinen rotación de modos de acción de herbicidas (R09) con alertas de resistencia registradas por la REM de Aapresid (R08) y prácticas de manejo cultural.",
+    sources: [
+      makeSourceCard("R08", "Red de Manejo de Plagas (Aapresid): alertas de resistencia y biotipos registrados."),
+      makeSourceCard("R09", "Publicación conceptual de modos de acción y familias químicas para rotación anti-resistencia."),
+    ],
+    warnings: [
+      "No se recomienda ningún principio activo ni dosis específica sin conocer la especie y su estado de desarrollo.",
+      "La publicación de modos de acción de la REM es de 2013 y debe ser complementada con los registros y marbetes vigentes de SENASA.",
+    ],
+    followUpQuestions: [
+      "¿Cuál es la especie de maleza que está complicando el lote (ej. Amaranthus, Conyza, Sorgo de Alepo)?",
+      "¿En qué estado fenológico o tamaño se encuentra la maleza?",
+      "¿Para qué cultivo y campaña se planifica el manejo?",
+      "¿Qué tratamientos o modos de acción se aplicaron anteriormente y qué respuesta se observó?",
+    ],
+    clarificationForm: {
+      kind: "weed_management",
+      submitLabel: "Evaluar estrategias con estos datos",
+      fields: [
+        { id: "especie", label: "Especie de maleza", type: "text", placeholder: "Ej. Yuyo colorado (Amaranthus), Rama negra (Conyza)", required: true },
+        { id: "cultivo", label: "Cultivo", type: "select", options: CROPS, required: true },
+        { id: "estadoFenologico", label: "Estado fenológico / tamaño", type: "select", options: ["Plántula / roseta temprana (<10 cm)", "Maleza desarrollada (>15 cm)", "Floración / semillazón", "Previo a la siembra (barbecho)"], required: true },
+        { id: "antecedentes", label: "Antecedentes de control", type: "text", placeholder: "Ej. Falla de control con glifosato o inhibidores de ALS" },
+      ],
+    },
+    mode: "demo",
+  };
+}
+
+function handlePestDiseaseInsufficientInfo(): AssistantResponse {
+  return {
+    kind: "insufficient_info",
+    answer:
+      "Para determinar qué plagas o enfermedades monitorear y cómo interpretar las observaciones a campo es imprescindible precisar el cultivo, su etapa fenológica y las condiciones o síntomas detectados. " +
+      "En agronomía es fundamental diferenciar entre información general de la zona, una hipótesis preliminar de campo y un diagnóstico fitopatológico o entomológico confirmado. No se debe dar por confirmada una plaga ni decidir un tratamiento químico sin un monitoreo representativo con método y umbral económico documentado.",
+    sources: [
+      makeSourceCard("R08", "Red de Manejo de Plagas (REM de Aapresid): seguimiento y umbrales de plagas y enfermedades."),
+    ],
+    warnings: [
+      "No se confirma el diagnóstico de ninguna plaga o patógeno a partir de observaciones aisladas o datos parciales.",
+    ],
+    followUpQuestions: [
+      "¿Qué cultivo y etapa fenológica se está monitoreando?",
+      "¿Qué síntomas o signos específicos se observaron en las plantas?",
+      "¿En qué localidad o ambiente se encuentra el lote?",
+    ],
+    clarificationForm: {
+      kind: "pest_disease_management",
+      submitLabel: "Interpretar monitoreo con estos datos",
+      fields: [
+        { id: "cultivo", label: "Cultivo", type: "select", options: CROPS, required: true },
+        { id: "etapaFenologica", label: "Etapa fenológica", type: "text", placeholder: "Ej. V4-V6, floración (R1-R2), llenado de granos (R5)", required: true },
+        { id: "sintomasObservados", label: "Síntomas o signos observados", type: "text", placeholder: "Ej. Manchas foliares necróticas, defoliación, presencia de chinches" },
+        { id: "ubicacion", label: "Ubicación del lote", type: "text", placeholder: "Ej. Tandil" },
+      ],
+    },
+    mode: "demo",
+  };
+}
+
+function handleCultivarSelectionInsufficientInfo(): AssistantResponse {
+  return {
+    kind: "insufficient_info",
+    answer:
+      "Para seleccionar híbridos o cultivares adaptados a tu zona a partir de redes de ensayos, se necesita identificar el cultivo (maíz, soja, girasol, trigo), la localidad o subregión, la campaña de referencia y el objetivo del lote (potencial de rendimiento, estabilidad ambiental, ciclo de madurez o perfil sanitario). " +
+      "Los resultados de una red experimental deben interpretarse conservando el contexto del ensayo: un híbrido o variedad que lideró un sitio puntual o una campaña con clima excepcional no es automáticamente la mejor opción para las condiciones edáficas y de manejo de tu lote.",
+    sources: [
+      makeSourceCard("R06", "Red de ensayos de maíz del sur de Buenos Aires: comparador regional por sitio y campaña."),
+      makeSourceCard("R07", "RECSO (INTA–ASA): Red Nacional de Evaluación de Cultivares de Soja."),
+      makeSourceCard("R27", "INTA Balcarce: Red Nacional de Cultivares de Girasol."),
+    ],
+    warnings: [
+      "Un ranking aislado en un único ensayo o año no predice el comportamiento en tu lote: se debe evaluar estabilidad multiamiental.",
+    ],
+    followUpQuestions: [
+      "¿Para qué cultivo buscás seleccionar candidatos (maíz, soja, girasol)?",
+      "¿En qué localidad o subregión se ubica el lote?",
+      "¿Qué campaña se toma como referencia?",
+      "¿Cuál es el objetivo principal (máximo potencial, estabilidad en tosca, perfil sanitario)?",
+    ],
+    clarificationForm: {
+      kind: "cultivar_selection",
+      submitLabel: "Consultar ensayos con estos datos",
+      fields: [
+        { id: "cultivo", label: "Cultivo", type: "select", options: ["Maíz", "Soja", "Girasol", "Trigo / Cebada", "Otro"], required: true },
+        { id: "localidad", label: "Localidad / Subregión", type: "text", placeholder: "Ej. Tandil, Balcarce, Necochea", required: true },
+        { id: "campana", label: "Campaña de referencia", type: "text", placeholder: "Ej. 2024/2025 o 2025/2026" },
+        { id: "objetivo", label: "Objetivo y manejo del lote", type: "text", placeholder: "Ej. Fecha temprana vs tardía, suelo somero de tosca, estabilidad" },
+      ],
+    },
+    mode: "demo",
+  };
+}
+
+function handleHarvestLossesInsufficientInfo(): AssistantResponse {
+  return {
+    kind: "insufficient_info",
+    answer:
+      "Para evaluar si las pérdidas de cosecha son elevadas y compararlas con referencias técnicas se debe identificar el cultivo, el método de medición (aros ciegos o bandeja) y las unidades calculadas en kg/ha. " +
+      "Es indispensable diferenciar las pérdidas previas a la cosecha (grano caído naturalmente o desgranado por viento/helada) de las pérdidas atribuibles a la máquina, las cuales a su vez se dividen en pérdidas por plataforma (cabezal) y pérdidas por cola (trilla, separación y limpieza). " +
+      "La nota técnica de INTA (R10) introduce los criterios de planificación de cosecha, pero se requiere un protocolo estandarizado de medición para cada cultivo.",
+    sources: [
+      makeSourceCard("R10", "Nota técnica de INTA sobre planificación de cosecha y análisis de pérdidas por plataforma y por cola."),
+    ],
+    warnings: [
+      "No se puede diagnosticar si una pérdida es admisible sin separar la pérdida previa de precosecha de las pérdidas del cabezal y de la cola.",
+    ],
+    followUpQuestions: [
+      "¿Qué cultivo se está cosechando?",
+      "¿Qué valores de pérdida por plataforma arrojó la medición?",
+      "¿Qué valores de pérdida por cola se registraron?",
+      "¿Se evaluó previamente la pérdida de precosecha en el cultivo en pie?",
+    ],
+    clarificationForm: {
+      kind: "harvest_losses",
+      submitLabel: "Evaluar pérdidas con estos datos",
+      fields: [
+        { id: "cultivo", label: "Cultivo", type: "select", options: CROPS, required: true },
+        { id: "perdidaPlataforma", label: "Pérdida por plataforma", type: "text", placeholder: "Ej. 40 kg/ha o granos/m²" },
+        { id: "perdidaCola", label: "Pérdida por cola", type: "text", placeholder: "Ej. 50 kg/ha" },
+        { id: "precosechaMedida", label: "¿Se midió la pérdida de precosecha?", type: "select", options: ["Sí, medida antes de entrar con la cosechadora", "No fue medida previamente"] },
       ],
     },
     mode: "demo",
@@ -822,6 +979,115 @@ function handleFreightCostsFormSubmission(data: Record<string, string>): Assista
   };
 }
 
+function handleWeedManagementFormSubmission(data: Record<string, string>): AssistantResponse {
+  const especie = data.especie?.trim() || "la maleza identificada";
+  const cultivo = data.cultivo?.trim() || "el cultivo";
+  const estado = data.estadoFenologico?.trim() || "el estado fenológico indicado";
+  const antecedentes = data.antecedentes?.trim() || "sin antecedentes especificados";
+
+  return {
+    kind: "grounded_answer",
+    answer:
+      `Para el manejo de ${especie} en ${cultivo} (estado: ${estado.toLowerCase()}, antecedentes: ${antecedentes.toLowerCase()}), el enfoque agronómico no consiste únicamente en cambiar de producto sino en un programa integrado de doble golpe, rotación estricta de modos de acción y control cultural. ` +
+      `La REM de Aapresid [R08] registra los biotipos con resistencia simple o múltiple confirmada en la región pampeana, permitiendo descartar familias químicas con pérdida de eficacia reportada en la zona. ` +
+      `Para evitar seleccionar resistencias adicionales, es necesario consultar la guía de modos de acción de la REM [R09] para combinar herbicidas con sitios de acción diferentes (como preemergentes residuales con modo de acción alternativo) y verificar en el vademécum de SENASA [R02] que la mezcla y uso estén expresamente aprobados en marbete.`,
+    sources: [
+      makeSourceCard("R08", "REM (Aapresid): alertas de resistencia y biotipos registrados por maleza y zona."),
+      makeSourceCard("R09", "Clasificación de familias químicas y modos de acción de la REM."),
+      makeSourceCard("R02", "Vademécum de SENASA para verificar marbete y usos autorizados."),
+    ],
+    warnings: [
+      "Esta orientación describe criterios técnicos y fuentes de consulta; la prescripción concreta de aplicación debe ser formulada mediante receta agronómica por un profesional habilitado.",
+      "La publicación de modos de acción de la REM es de 2013 y debe contrastarse con registros y marbetes vigentes.",
+    ],
+    mode: "demo",
+  };
+}
+
+function handlePestDiseaseFormSubmission(data: Record<string, string>): AssistantResponse {
+  const cultivo = data.cultivo?.trim() || "el cultivo";
+  const etapa = data.etapaFenologica?.trim() || "la etapa del cultivo";
+  const sintomas = data.sintomasObservados?.trim() || "observaciones a campo";
+  const ubicacion = data.ubicacion?.trim();
+
+  return {
+    kind: "grounded_answer",
+    answer:
+      `En ${cultivo} durante la etapa ${etapa}${ubicacion ? ` en ${ubicacion}` : ""}, las observaciones registradas (${sintomas}) deben procesarse diferenciando estrictamente una hipótesis de campo de un diagnóstico confirmado. ` +
+      `La Red de Manejo de Plagas (REM de Aapresid) [R08] y las guías de monitoreo del INTA ofrecen pautas sobre la dinámica de insectos y patógenos prevalentes en el sur bonaerense, junto con umbrales de daño económico (UDE) validados. ` +
+      `Para insectos, se recomienda muestreo sistemático (paño vertical o conteo directo por metro lineal) en varios puntos del lote; para enfermedades de fin de ciclo o manchas foliares, cuantificar incidencia y severidad foliar antes de considerar una aplicación de fungicida o insecticida registrada en SENASA [R02].`,
+    sources: [
+      makeSourceCard("R08", "REM (Aapresid): relevamiento de plagas e insectos resistentes y guías de monitoreo."),
+      makeSourceCard("R02", "SENASA: buscador público para corroborar productos registrados y marbete del cultivo."),
+    ],
+    warnings: [
+      "No se confirma diagnóstico fitopatológico ni se prescribe tratamiento químico sin una muestra representativa con protocolo de monitoreo.",
+    ],
+    mode: "demo",
+  };
+}
+
+function handleCultivarSelectionFormSubmission(data: Record<string, string>): AssistantResponse {
+  const cultivo = data.cultivo?.trim() || "el cultivo";
+  const localidad = data.localidad?.trim() || "la zona";
+  const campana = data.campana?.trim();
+  const objetivo = data.objetivo?.trim() || "rendimiento y adaptación";
+
+  const isMaiz = /ma[ií]z/i.test(cultivo);
+  const isSoja = /soja/i.test(cultivo);
+  const isGirasol = /girasol/i.test(cultivo);
+
+  const sources: SourceCardData[] = [];
+  if (isMaiz) {
+    sources.push(makeSourceCard("R06", "Red de Ensayos de Maíz del Sur de Buenos Aires: comparación por sitio y manejo."));
+  } else if (isSoja) {
+    sources.push(makeSourceCard("R07", "RECSO (INTA–ASA): Red Nacional de Evaluación de Cultivares de Soja."));
+  } else if (isGirasol) {
+    sources.push(makeSourceCard("R27", "INTA Balcarce: Red Nacional de Cultivares de Girasol."));
+  } else {
+    sources.push(
+      makeSourceCard("R06", "Red de ensayos de maíz del sur bonaerense."),
+      makeSourceCard("R07", "RECSO Soja (INTA–ASA)."),
+      makeSourceCard("R27", "Red Nacional de Girasol (INTA Balcarce).")
+    );
+  }
+
+  return {
+    kind: "grounded_answer",
+    answer:
+      `Para seleccionar candidatos de ${cultivo} en ${localidad}${campana ? ` (campaña ${campana})` : ""} con foco en ${objetivo}, la consulta debe dirigirse a las redes de evaluación comparativa independientes. ` +
+      `En maíz, la Red de Ensayos del Sur de Buenos Aires [R06] compara híbridos por sitio, fecha de siembra y manejo hídrico; en soja, la RECSO (INTA–ASA) [R07] evalúa cultivares por subregión y grupo de madurez; y en girasol, la Red Nacional de Cultivares de INTA Balcarce [R27] aporta datos de rendimiento y contenido de aceite. ` +
+      `Al analizar los informes, priorizá la estabilidad de rendimiento a través de múltiples campañas y sitios con ambientes similares al tuyo (por ejemplo, suelos con tosca o limitaciones de profundidad típicos de Tandil), en lugar de guiarte únicamente por el cultivar ganador del ranking en un ensayo individual.`,
+    sources,
+    warnings: [
+      "Distinguí siempre el ranking de un sitio experimental aislado de la selección final para tu lote y ambiente edáfico.",
+    ],
+    mode: "demo",
+  };
+}
+
+function handleHarvestLossesFormSubmission(data: Record<string, string>): AssistantResponse {
+  const cultivo = data.cultivo?.trim() || "el cultivo";
+  const plataforma = data.perdidaPlataforma?.trim() || "no informada";
+  const cola = data.perdidaCola?.trim() || "no informada";
+  const precosecha = data.precosechaMedida || "no evaluada previamente";
+
+  return {
+    kind: "grounded_answer",
+    answer:
+      `Para evaluar las pérdidas en ${cultivo} (plataforma: ${plataforma}, cola: ${cola}, precosecha: ${precosecha.toLowerCase()}), la referencia técnica de partida es el protocolo de medición y tolerancia de cosecha del INTA [R10]. ` +
+      `Es crucial recordar que las pérdidas totales de máquina surgen de descontar la pérdida de precosecha previa. Si la pérdida de plataforma es la dominante, las causas más frecuentes residen en la velocidad de avance, la altura de corte, las revoluciones y posición del molinete, o el estado de las cuchillas. ` +
+      `Si la pérdida elevada se produce por cola, corresponde revisar la regulación del régimen del cilindro/rotor, la apertura del cóncavo, la regulación de zarandas y el caudal de viento del ventilador según la humedad del grano al momento de trilla.`,
+    sources: [
+      makeSourceCard("R10", "Nota técnica de INTA sobre planificación de cosecha y calibración de pérdidas."),
+    ],
+    warnings: [
+      "Los umbrales admisibles de pérdida varían según cultivo y rinde esperado; se requiere utilizar aros ciegos estandarizados para validar las mediciones.",
+    ],
+    mode: "demo",
+  };
+}
+
 function handleFormSubmission(submission: FormSubmission): AssistantResponse {
   switch (submission.kind) {
     case "phyto":
@@ -832,6 +1098,14 @@ function handleFormSubmission(submission: FormSubmission): AssistantResponse {
       return handleCropRotationFormSubmission(submission.data);
     case "product_family":
       return handleProductFamilyFormSubmission(submission.data);
+    case "weed_management":
+      return handleWeedManagementFormSubmission(submission.data);
+    case "pest_disease_management":
+      return handlePestDiseaseFormSubmission(submission.data);
+    case "cultivar_selection":
+      return handleCultivarSelectionFormSubmission(submission.data);
+    case "harvest_losses":
+      return handleHarvestLossesFormSubmission(submission.data);
     case "rental_rates":
       return handleRentalRatesFormSubmission(submission.data);
     case "machinery_costs":
@@ -870,6 +1144,10 @@ export async function respond(
   if (isCropRotationAfterHerbicideQuery(q)) return handleCropRotationInsufficientInfo();
   if (isProductFamilyGenericQuery(q)) return handleProductFamilyInsufficientInfo();
   if (isPhytoAuthorizationQuery(q)) return handlePhytoInsufficientInfo();
+  if (isWeedManagementQuery(q)) return handleWeedManagementInsufficientInfo();
+  if (isPestAndDiseaseQuery(q)) return handlePestDiseaseInsufficientInfo();
+  if (isCultivarSelectionQuery(q)) return handleCultivarSelectionInsufficientInfo();
+  if (isHarvestLossesQuery(q)) return handleHarvestLossesInsufficientInfo();
   if (isSoilSamplingPlanningQuery(q)) return handleSoilSamplingInsufficientInfo();
   if (isRentalRatesQuery(q)) return handleRentalRatesInsufficientInfo();
   if (isLaborCostQuery(q)) return handleLaborCostInsufficientInfo();

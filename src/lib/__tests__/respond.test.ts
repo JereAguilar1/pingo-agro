@@ -193,3 +193,94 @@ describe("respond — Escenarios Económicos (C13, C14, C15)", () => {
     });
   });
 });
+
+describe("respond — Escenarios de Manejo y Protección (C03, C04, C05, C06, C07)", () => {
+  describe("C03 · Una maleza problema", () => {
+    it("pide especie, estado y antecedentes ante consulta de maleza sin reducir a un producto", async () => {
+      const r = await respond("Tengo una maleza que me está complicando el lote. ¿Qué estrategias de manejo puedo comparar para esta campaña y la siguiente?");
+      expect(r.kind).toBe("insufficient_info");
+      expect(r.clarificationForm?.kind).toBe("weed_management");
+      expect(r.sources.map((s) => s.sourceCode)).toEqual(expect.arrayContaining(["R08", "R09"]));
+      expect(r.answer).not.toMatch(/\b(dosis de \d+|aplica \d+ l\/ha)\b/i);
+    });
+
+    it("orienta el manejo integrado con la REM y rotación de modos de acción al enviar formulario", async () => {
+      const r = await respond("", {
+        kind: "weed_management",
+        data: { especie: "Yuyo colorado (Amaranthus)", cultivo: "Soja", estadoFenologico: "Maleza desarrollada (>15 cm)", antecedentes: "Falla de control con glifosato" },
+      });
+      expect(r.kind).toBe("grounded_answer");
+      expect(r.sources.map((s) => s.sourceCode)).toEqual(expect.arrayContaining(["R08", "R09"]));
+      expect(r.answer).toContain("Amaranthus");
+      expect(r.answer.toLowerCase()).toContain("modos de acción");
+    });
+  });
+
+  describe("C04 · Plagas y enfermedades del cultivo", () => {
+    it("diferencia hipótesis de diagnóstico y pide cultivo, etapa y observaciones", async () => {
+      const r = await respond("¿Qué plagas o enfermedades debería monitorear en este cultivo y etapa? ¿Qué información me ayuda a interpretar lo que observo?");
+      expect(r.kind).toBe("insufficient_info");
+      expect(r.clarificationForm?.kind).toBe("pest_disease_management");
+      expect(r.sources.map((s) => s.sourceCode)).toContain("R08");
+    });
+
+    it("orienta sobre monitoreo, umbrales y diagnóstico sin confirmar plagas aisladas al enviar formulario", async () => {
+      const r = await respond("", {
+        kind: "pest_disease_management",
+        data: { cultivo: "Soja", etapaFenologica: "R3 (inicio de fructificación)", sintomasObservados: "Defoliación leve y chinches observadas", ubicacion: "Tandil" },
+      });
+      expect(r.kind).toBe("grounded_answer");
+      expect(r.sources.map((s) => s.sourceCode)).toContain("R08");
+      expect(r.answer).toContain("Soja");
+      expect(r.answer.toLowerCase()).toContain("diagnóstico");
+    });
+  });
+
+  describe("C05 · Comparar híbridos y cultivares", () => {
+    it("pide cultivo, localidad y objetivo conservando el contexto del ensayo", async () => {
+      const r = await respond("Estoy por sembrar y quiero seleccionar candidatos para mi zona. ¿Qué muestran los ensayos y bajo qué condiciones se obtuvieron esos resultados?");
+      expect(r.kind).toBe("insufficient_info");
+      expect(r.clarificationForm?.kind).toBe("cultivar_selection");
+      expect(r.sources.map((s) => s.sourceCode)).toEqual(expect.arrayContaining(["R06", "R07", "R27"]));
+    });
+
+    it("orienta con la red correspondiente según el cultivo (ej. maíz R06, soja R07) al enviar formulario", async () => {
+      const r = await respond("", {
+        kind: "cultivar_selection",
+        data: { cultivo: "Maíz", localidad: "Tandil", campana: "2025/2026", objetivo: "Potencial y estabilidad" },
+      });
+      expect(r.kind).toBe("grounded_answer");
+      expect(r.sources.map((s) => s.sourceCode)).toContain("R06");
+      expect(r.answer).toContain("Maíz");
+      expect(r.answer).toContain("Tandil");
+    });
+  });
+
+  describe("C06 · Controlar pérdidas de cosecha", () => {
+    it("pide datos y diferencia pérdidas previas (precosecha) de máquina (plataforma y cola)", async () => {
+      const r = await respond("Estoy midiendo pérdidas por plataforma y por cola. ¿Cómo las comparo con guías y estudios para saber si son elevadas?");
+      expect(r.kind).toBe("insufficient_info");
+      expect(r.clarificationForm?.kind).toBe("harvest_losses");
+      expect(r.sources.map((s) => s.sourceCode)).toContain("R10");
+    });
+
+    it("orienta con protocolo INTA de cosecha al enviar formulario", async () => {
+      const r = await respond("", {
+        kind: "harvest_losses",
+        data: { cultivo: "Soja", perdidaPlataforma: "50 kg/ha", perdidaCola: "70 kg/ha", precosechaMedida: "Sí, medida antes de entrar con la cosechadora" },
+      });
+      expect(r.kind).toBe("grounded_answer");
+      expect(r.sources.map((s) => s.sourceCode)).toContain("R10");
+      expect(r.answer).toContain("precosecha");
+    });
+  });
+
+  describe("C07 · Planificar un muestreo de suelo", () => {
+    it("responde a la consulta exacta de C07 pidiendo objetivo y contexto", async () => {
+      const r = await respond("Quiero hacer un muestreo de suelo que sirva para la decisión que tengo que tomar. ¿Cómo debería organizarlo y qué información acompañaría las muestras?");
+      expect(r.kind).toBe("insufficient_info");
+      expect(r.clarificationForm?.kind).toBe("soil_sampling");
+      expect(r.sources.map((s) => s.sourceCode)).toEqual(expect.arrayContaining(["R04", "R05"]));
+    });
+  });
+});
