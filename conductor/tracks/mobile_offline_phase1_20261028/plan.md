@@ -28,15 +28,15 @@
 - [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 4: Capacitor Setup for Android
-- [ ] Task: Install and Initialize Capacitor
-  - [ ] Install `@capacitor/core`, `@capacitor/cli`, and `@capacitor/android`
-  - [ ] Create `capacitor.config.ts` configured for Surco (`com.surco.agro`, webDir `out`)
-  - [ ] Configure Next.js static export script in `package.json` (`build:mobile`)
-  - [ ] Initialize Android native project via `npx cap add android`
-- [ ] Task: Verify Android Project Build & Sync
-  - [ ] Test `npx cap sync android`
-  - [ ] Verify `android/` directory structure and Gradle configs
-- [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
+- [x] Task: Install and Initialize Capacitor
+  - [x] Install `@capacitor/core`, `@capacitor/cli`, and `@capacitor/android`
+  - [x] Create `capacitor.config.ts` configured for Surco (`com.surco.agro`, webDir `out`)
+  - [x] Configure Next.js static export script in `package.json` (`build:mobile`)
+  - [x] Initialize Android native project via `npx cap add android`
+- [x] Task: Verify Android Project Build & Sync
+  - [x] Test `npx cap sync android`
+  - [x] Verify `android/` directory structure and Gradle configs
+- [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 5: End-to-End Verification & Documentation
 - [ ] Task: Full Test Suite and Verification
