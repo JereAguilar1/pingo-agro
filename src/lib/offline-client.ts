@@ -1,8 +1,9 @@
-import { AssistantResponse, FormSubmission, SourceCardData } from "./types";
+import { AssistantResponse, FormSubmission, ProducerLote, SourceCardData } from "./types";
 import { respond } from "./respond";
 import { getLocalLLMStatus, generateLocalGroundedResponse } from "./local-llm";
 import { LIBRARY, SourceFragment } from "./library";
 import { retrieve } from "./retrieval";
+import { runStep4VerifierAndBuildTrace } from "./pipeline/orchestrator";
 
 export type LocalGeneratorFn = (params: {
   question: string;
@@ -13,6 +14,7 @@ export type LocalGeneratorFn = (params: {
 export interface ResolveChatOptions {
   question?: string;
   form?: FormSubmission;
+  activeLote?: ProducerLote | null;
   preferOffline?: boolean;
   fetchFn?: typeof fetch;
   localGeneratorFn?: LocalGeneratorFn;
@@ -39,7 +41,8 @@ async function enhanceWithLocalLLM(
   res: AssistantResponse,
   question: string,
   generator?: LocalGeneratorFn,
-  onToken?: (text: string) => void
+  onToken?: (text: string) => void,
+  activeLote?: ProducerLote | null
 ): Promise<AssistantResponse> {
   // Preserve exact mathematical calculations deterministically
   if (res.kind === "calculation") {
@@ -65,6 +68,8 @@ async function enhanceWithLocalLLM(
           date: r.fragment.date,
           accessedOn: r.fragment.accessedOn,
           section: r.fragment.section,
+          page: r.fragment.page,
+          exactPassage: r.fragment.exactPassage,
           url: r.fragment.url,
           verification: r.fragment.verification,
           supports: r.fragment.text,
@@ -73,13 +78,19 @@ async function enhanceWithLocalLLM(
 
       const generated = await generator({ question, sources: finalSources, onToken });
       if (generated) {
-        return {
+        const drafted: AssistantResponse = {
           ...res,
           answer: generated,
           mode: "ai",
           kind: finalSources.length > 0 ? "grounded_answer" : (res.kind === "no_evidence" ? "general" : res.kind),
           sources: finalSources,
         };
+        return runStep4VerifierAndBuildTrace({
+          question,
+          response: drafted,
+          activeLote,
+          draftEngine: "local_slm",
+        });
       }
     } catch {
       return res;
@@ -115,6 +126,8 @@ async function enhanceWithLocalLLM(
                 date: s.date,
                 accessedOn: s.accessedOn,
                 section: s.section,
+                page: s.page,
+                exactPassage: s.exactPassage,
                 url: s.url,
                 verification: s.verification,
                 supports: s.text,
@@ -127,7 +140,7 @@ async function enhanceWithLocalLLM(
                 .map((s) => s.limitation)
                 .filter((v, i, arr) => Boolean(v) && arr.indexOf(v) === i);
 
-        return {
+        const drafted: AssistantResponse = {
           ...res,
           answer: generated,
           mode: "ai",
@@ -135,6 +148,13 @@ async function enhanceWithLocalLLM(
           sources: finalSources,
           warnings: finalWarnings,
         };
+
+        return runStep4VerifierAndBuildTrace({
+          question,
+          response: drafted,
+          activeLote,
+          draftEngine: "local_slm",
+        });
       }
     } catch (err) {
       console.debug("Error generating on-device response:", err);
@@ -152,7 +172,15 @@ async function enhanceWithLocalLLM(
 export async function resolveChatQuery(
   options: ResolveChatOptions
 ): Promise<ResolveChatResult> {
-  const { question = "", form, preferOffline = false, fetchFn, localGeneratorFn, onToken } = options;
+  const {
+    question = "",
+    form,
+    activeLote,
+    preferOffline = false,
+    fetchFn,
+    localGeneratorFn,
+    onToken,
+  } = options;
   const safeQuestion = question.trim();
   const effectiveFetch = fetchFn ?? (typeof fetch !== "undefined" ? fetch : undefined);
 
@@ -160,11 +188,17 @@ export async function resolveChatQuery(
     (typeof window !== "undefined" && getLocalLLMStatus().status === "ready") ||
     Boolean(localGeneratorFn);
 
-  // If user has local SLM active in memory, or if offline is preferred/detected:
+  // If user has local SLM active in memory, or if offline is preferred/detected, or activeLote is used:
   // resolve directly via local engine
-  if (preferOffline || isBrowserOffline() || !effectiveFetch || hasLocalLLM) {
-    const rawMemoryResponse = await respond(safeQuestion, form);
-    const enhanced = await enhanceWithLocalLLM(rawMemoryResponse, safeQuestion, localGeneratorFn, onToken);
+  if (preferOffline || isBrowserOffline() || !effectiveFetch || hasLocalLLM || Boolean(activeLote)) {
+    const rawMemoryResponse = await respond(safeQuestion, form, activeLote);
+    const enhanced = await enhanceWithLocalLLM(
+      rawMemoryResponse,
+      safeQuestion,
+      localGeneratorFn,
+      onToken,
+      activeLote
+    );
     return {
       response: enhanced,
       source: "offline",
@@ -188,7 +222,13 @@ export async function resolveChatQuery(
       if (data?.response) {
         // If server answered in demo mode and client has local LLM, enhance it!
         if (data.response.mode === "demo" && hasLocalLLM) {
-          const enhanced = await enhanceWithLocalLLM(data.response, safeQuestion, localGeneratorFn, onToken);
+          const enhanced = await enhanceWithLocalLLM(
+            data.response,
+            safeQuestion,
+            localGeneratorFn,
+            onToken,
+            activeLote
+          );
           return {
             response: enhanced,
             source: "offline",
@@ -206,8 +246,14 @@ export async function resolveChatQuery(
 
     // Server returned a non-OK status or malformed JSON (e.g. 500, 502, 503)
     // Fallback to in-memory resolution with local LLM if ready
-    const memoryFallback = await respond(safeQuestion, form);
-    const enhanced = await enhanceWithLocalLLM(memoryFallback, safeQuestion, localGeneratorFn, onToken);
+    const memoryFallback = await respond(safeQuestion, form, activeLote);
+    const enhanced = await enhanceWithLocalLLM(
+      memoryFallback,
+      safeQuestion,
+      localGeneratorFn,
+      onToken,
+      activeLote
+    );
     return {
       response: enhanced,
       source: "offline",
@@ -216,8 +262,14 @@ export async function resolveChatQuery(
   } catch {
     // Network failure (no connection, DNS error, timeout, CORS error in mobile container)
     // Fallback seamlessly to local in-memory respond()
-    const memoryFallback = await respond(safeQuestion, form);
-    const enhanced = await enhanceWithLocalLLM(memoryFallback, safeQuestion, localGeneratorFn, onToken);
+    const memoryFallback = await respond(safeQuestion, form, activeLote);
+    const enhanced = await enhanceWithLocalLLM(
+      memoryFallback,
+      safeQuestion,
+      localGeneratorFn,
+      onToken,
+      activeLote
+    );
     return {
       response: enhanced,
       source: "offline",

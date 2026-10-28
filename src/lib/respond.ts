@@ -2,7 +2,11 @@ import { doseToProduct, nitrogenContent } from "./calculations";
 import { completeWithAi, isAiConfigured } from "./ai-provider";
 import { retrieve } from "./retrieval";
 import { getSourceByCode } from "./library";
-import { AssistantResponse, FormSubmission, SourceCardData } from "./types";
+import { AssistantResponse, FormSubmission, ProducerLote, SourceCardData } from "./types";
+import {
+  runStep4VerifierAndBuildTrace,
+  tryResolveWithMaizeCodeAndLote,
+} from "./pipeline/orchestrator";
 
 const CROPS = ["Soja", "Maíz", "Girasol", "Trigo", "Cebada", "Otro"];
 
@@ -226,7 +230,7 @@ function isNutrientBalanceQuery(q: string): boolean {
 
 function isFertilizationStrategyQuery(q: string): boolean {
   const asksFertilization = /fertiliz|fuentes y dosis|estrategias, fuentes y dosis|estrategia de fertilizacion/.test(q);
-  const asksStrategyContext = /estrategia|analisis de suelo|antecedentes|dosis|conviene evaluar|fuente/.test(q);
+  const asksStrategyContext = /estrategia|analisis de suelo|antecedentes|dosis|conviene evaluar|fuente|objetivo de rinde/.test(q);
   return asksFertilization && asksStrategyContext;
 }
 
@@ -1535,9 +1539,10 @@ function handleFormSubmission(submission: FormSubmission): AssistantResponse {
 
 // ---------- Punto de entrada ----------
 
-export async function respond(
+async function computeRawResponse(
   question: string,
-  form?: FormSubmission
+  form?: FormSubmission,
+  activeLote?: ProducerLote | null
 ): Promise<AssistantResponse> {
   if (form) return handleFormSubmission(form);
 
@@ -1556,6 +1561,10 @@ export async function respond(
 
   const calc = detectCalculation(trimmed);
   if (calc) return handleCalculation(calc);
+
+  // Paso 1 + 2A: Resolución determinista de maíz y cruce con Lote Activo 🔒
+  const maizeResolved = tryResolveWithMaizeCodeAndLote(trimmed, activeLote, form);
+  if (maizeResolved) return maizeResolved;
 
   if (isCustomLibraryQuery(q)) return handleCustomLibraryGeneral();
   if (isCropRotationAfterHerbicideQuery(q)) return handleCropRotationInsufficientInfo();
@@ -1578,4 +1587,18 @@ export async function respond(
   if (isLivePriceQuery(q)) return handleLivePriceInsufficientInfo();
 
   return handleGroundedOrNoEvidence(trimmed);
+}
+
+export async function respond(
+  question: string,
+  form?: FormSubmission,
+  activeLote?: ProducerLote | null
+): Promise<AssistantResponse> {
+  const raw = await computeRawResponse(question, form, activeLote);
+  return runStep4VerifierAndBuildTrace({
+    question,
+    response: raw,
+    activeLote,
+    draftEngine: raw.mode === "ai" ? "cloud_llm" : "deterministic_template",
+  });
 }

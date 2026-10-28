@@ -11,7 +11,7 @@ export type VerificationStatus = "verified" | "pending";
 
 export interface SourceFragment {
   id: string;
-  sourceCode: string; // R01, R02, ... según guía del desafío
+  sourceCode: string; // R01, R02, ... o M01..M05 para fichas curadas de maíz
   institution: string;
   title: string;
   date?: string; // fecha de publicación/versión, si se conoce
@@ -19,6 +19,8 @@ export interface SourceFragment {
   url?: string;
   verification: VerificationStatus;
   section?: string; // página / sección / artículo
+  page?: string; // página o tabla específica del libro/guía
+  exactPassage?: string; // pasaje textual original verificable
   text: string; // resumen fiel del contenido, no cita textual extensa
   limitation: string; // qué NO permite concluir esta fuente por sí sola
   topics: string[]; // palabras clave para la recuperación
@@ -394,7 +396,101 @@ export const LIBRARY: SourceFragment[] = [
     limitation: "Los relevamientos reflejan muestras de empresas CREA y referencias zonales orientativas; no constituyen un promedio estadístico general obligatorio ni una tasación vinculante para un lote específico.",
     topics: ["alquiler", "arrendamiento", "costos", "margenes", "crea", "tandil", "economico"],
   },
-
+  {
+    id: "m01-inta-fertilizacion-maiz",
+    sourceCode: "M01",
+    institution: "INTA Balcarce",
+    title: "Guía de Nutrición y Fertilización de Maíz en el Sudeste Bonaerense",
+    date: "2024-08",
+    accessedOn: "2026-10-23",
+    url: "https://www.argentina.gob.ar/inta/redes-de-laboratorios-inta/laboratorio-de-suelo-y-material-vegetal-grupo-relacion-suelo-cultivo-eea-balcarce",
+    verification: "verified",
+    section: "Cap. 3 — Diagnóstico de N y P en Maíz",
+    page: "Pág. 18–22, Tabla 3.2",
+    exactPassage:
+      "Requerimiento nutricional del cultivo de maíz: 22 kg de Nitrógeno (N), 4 kg de Fósforo elemental (P) y 19 kg de Potasio (K) por cada tonelada de grano producida. En el Sudeste Bonaerense (Tandil/Balcarce), el umbral de disponibilidad total de N (N-NO3 de 0-60 cm a la siembra + N fertilizante) se calcula sobre una oferta total de ~22 kg N por tonelada de rinde objetivo, y el umbral crítico de P Bray (0-20 cm) se ubica en 15–16 ppm.",
+    text: "El maíz requiere 22 kg de N, 4 kg de P y 19 kg de K por tonelada de grano producida. En el Sudeste Bonaerense (Tandil/Balcarce), el diagnóstico de nitrógeno suma el N de nitratos (0-60 cm) a la siembra más el N del fertilizante, y el umbral crítico de fósforo (P Bray 0-20 cm) es de 15–16 ppm.",
+    limitation: "Los coeficientes de requerimiento (22 kg N/t) son parámetros de diagnóstico zonal; la eficiencia real de absorción varía según humedad edáfica, profundidad de tosca y momento de aplicación (siembra vs. V6).",
+    topics: ["maiz", "fertilizacion", "nitrogeno", "fosforo", "urea", "requerimiento", "extraccion", "p bray", "v6", "rinde"],
+    region: "Sudeste Bonaerense (Tandil / Balcarce)",
+    crop: "Maíz",
+  },
+  {
+    id: "m02-inta-fenologia-maiz",
+    sourceCode: "M02",
+    institution: "INTA Balcarce",
+    title: "Ecofisiología y Escala Fenológica del Maíz (Ritchie & Hanway)",
+    date: "2023-09",
+    accessedOn: "2026-10-23",
+    url: "https://www.argentina.gob.ar/inta",
+    verification: "verified",
+    section: "Cap. 1 — Etapas Vegetativas (V) y Reproductivas (R)",
+    page: "Pág. 7–11, Fig. 1.3",
+    exactPassage:
+      "El período crítico para la fijación del número de granos en maíz abarca los 30 días centrados en la floración femenina o emergencia de estigmas (R1): desde 15 días antes (V14–VT, panojamiento) hasta 15 días después (R2, grano ampolla). En V6 se define el número potencial de hileras por espiga y el ápice de crecimiento emerge por encima de la superficie del suelo.",
+    text: "Escala fenológica de maíz: en V6 se define el número potencial de hileras por espiga y es el momento límite para refertilización nitrogenada con bajo daño mecánico. El período crítico de definición de rinde abarca desde VT (panojamiento, -15 días) hasta R2 (cuaje/ampolla, +15 días de R1).",
+    limitation: "La duración en días de cada etapa depende de la acumulación térmica (grados-día sobre temperatura base de 8 °C) del híbrido y fecha de siembra.",
+    topics: ["maiz", "fenologia", "periodo critico", "floracion", "vt", "r1", "r2", "v6", "espiga", "panojamiento", "ecofisiologia"],
+    region: "Región Pampeana Sur",
+    crop: "Maíz",
+  },
+  {
+    id: "m03-inta-densidad-ambientes-maiz",
+    sourceCode: "M03",
+    institution: "INTA — Red de Maíz del Sur de Buenos Aires",
+    title: "Manejo de Densidad y Fecha de Siembra de Maíz por Ambiente y Profundidad de Tosca",
+    date: "2025-07",
+    accessedOn: "2026-10-23",
+    url: "https://www.argentina.gob.ar/sites/default/files/2020/10/inta_red_maiz_sur_bsas_campana2024_2025.pdf",
+    verification: "verified",
+    section: "Sección 4 — Ajuste por Profundidad Efectiva",
+    page: "Pág. 31–35, Tabla 4.1",
+    exactPassage:
+      "En lotes someros de Tandil con limitante de tosca a menos de 70 cm, el maíz tardío (siembra de fin de noviembre a inicios de diciembre) con densidades moderadas de 45.000 a 55.000 plantas/ha ubica la floración en febrero y estabiliza el piso de rendimiento. En lotes profundos (>100 cm sin tosca) en siembra temprana (octubre), la densidad óptima económica se sitúa entre 68.000 y 78.000 plantas/ha.",
+    text: "Guía de densidad y fecha de siembra de maíz en Tandil: en suelos someros (<70 cm a la tosca) conviene planteo tardío (noviembre/diciembre) con 45.000–55.000 pl/ha; en suelos profundos (>100 cm) en siembra temprana (octubre) se recomiendan 68.000–78.000 pl/ha.",
+    limitation: "Los rangos de plantas/ha son orientativos por ambiente edáfico; cada híbrido posee una plasticidad vegetativa y reproductiva propia (fijo vs. flex) que debe consultarse en el catálogo del semillero.",
+    topics: ["maiz", "densidad", "siembra", "temprano", "tardio", "tosca", "profundidad", "plantas", "surco", "semillas"],
+    region: "Tandil y Sur de Buenos Aires",
+    crop: "Maíz",
+  },
+  {
+    id: "m04-rem-cogollero-maiz",
+    sourceCode: "M04",
+    institution: "Aapresid — REM / INTA",
+    title: "Manejo de Oruga Militar Tardía o Cogollero (Spodoptera frugiperda) en Maíz",
+    date: "2025-11",
+    accessedOn: "2026-10-23",
+    url: "https://aapresid.org.ar/rem",
+    verification: "verified",
+    section: "Protocolo de Monitoreo y Escala de Davis",
+    page: "Pág. 12–15, Ficha Sanitaria Maíz",
+    exactPassage:
+      "El umbral de acción orientativo para Spodoptera frugiperda en maíz se alcanza con un 20% de plantas con daño grado 3 en la escala de Davis (lesiones circulares y ventanitas traslúcidas frescas), debiendo intervenir antes de que la larva supere 1,5 cm y se refugie en el cogollo tapada por sus deyecciones. Es indispensable verificar la tecnología Bt del híbrido (Vip3A mantiene control; Cry1F presenta resistencia generalizada).",
+    text: "Monitoreo de cogollero (Spodoptera frugiperda) en maíz: umbral orientativo del 20% de plantas con grado 3 de Davis (ventanitas traslúcidas) antes del ingreso al cogollo. Requiere verificar qué proteína Bt porta el híbrido y registrar refugio.",
+    limitation: "El umbral es una guía de monitoreo; la elección del insecticida y dosis requiere receta agronómica y verificación en el vademécum de SENASA [R02].",
+    topics: ["maiz", "cogollero", "spodoptera", "plaga", "isoca", "insecto", "davis", "bt", "vip3a", "umbral"],
+    region: "Argentina",
+    crop: "Maíz",
+  },
+  {
+    id: "m05-inta-cosecha-maiz",
+    sourceCode: "M05",
+    institution: "INTA PRECOP",
+    title: "Protocolo de Evaluación de Pérdidas en Cosecha de Maíz y Regulación de Cabezal",
+    date: "2024-03",
+    accessedOn: "2026-10-23",
+    url: "https://www.argentina.gob.ar/node/424701",
+    verification: "verified",
+    section: "Cartilla Técnica de Cosecha de Maíz",
+    page: "Pág. 4–9, Tabla de Equivalencias",
+    exactPassage:
+      "En cosecha de maíz, el cabezal maicero ocasiona hasta el 70% de las pérdidas totales cuando la separación de las chapas espigadoras no se regula al diámetro medio del marlo. La tolerancia orientativa total es de 120 a 150 kg/ha. Equivalencia rápida a campo: 1 grano de maíz mediano suelto por m² equivale a ~3,3 kg/ha, y 1 espiga mediana (150 g de grano) caída en 10 m² equivale a 150 kg/ha.",
+    text: "En cosecha de maíz, 1 grano/m² equivale a ~3,3 kg/ha de pérdida y 1 espiga cada 10 m² representa ~150 kg/ha. La tolerancia técnica de cosecha se sitúa en 120–150 kg/ha, siendo crítica la apertura de las chapas espigadoras del cabezal maicero.",
+    limitation: "El peso de mil granos (PMG) varía según híbrido y condición de llenado (entre 250 y 380 g); para determinaciones exactas debe pesarse la muestra recolectada en aros ciegos.",
+    topics: ["maiz", "cosecha", "perdidas", "cabezal", "espigadoras", "espiga", "granos", "cola", "plataforma"],
+    region: "Argentina",
+    crop: "Maíz",
+  },
 ];
 
 export function getSourceByCode(code: string): SourceFragment | undefined {

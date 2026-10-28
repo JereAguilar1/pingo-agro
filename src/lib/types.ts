@@ -8,9 +8,68 @@ export interface SourceCardData {
   date?: string;
   accessedOn?: string;
   section?: string;
+  page?: string;
+  exactPassage?: string;
   url?: string;
   verification: VerificationStatus;
   supports: string; // qué afirmación respalda este fragmento en esta respuesta puntual
+}
+
+export interface ProducerLote {
+  id: string;
+  name: string;
+  hectares: number;
+  crop: string;
+  hybrid: string;
+  plantingDate: string;
+  phenology: string;
+  targetYieldTonHa: number;
+  soilNitrateKgHa: number;
+  soilPhosphorusPpm: number;
+  toscaDepthCm: number;
+  rowSpacingCm: number;
+  previousCrop: string;
+  municipality: string;
+  sensitiveZoneDistanceM?: number;
+}
+
+export interface PipelineTrace {
+  step1Understand: {
+    queryType: "calculation" | "rule_table" | "rag_search" | "hybrid" | "insufficient_data";
+    detectedCrop: string;
+    usedLoteName?: string;
+    missingData: string[];
+    planSummary: string;
+  };
+  step2Resolve: {
+    codeExecuted: boolean;
+    codeSummary?: string;
+    ragFragmentsCount: number;
+    ragSources: string[];
+  };
+  step3Draft: {
+    engine: "local_slm" | "cloud_llm" | "deterministic_template";
+    drafted: boolean;
+    summary: string;
+  };
+  step4Verify: {
+    passed: boolean;
+    citationHoldsData: boolean;
+    isVigent: boolean;
+    abstained: boolean;
+    abstentionReason?: string;
+    verificationSummary: string;
+  };
+}
+
+export interface StructuredShortAnswer {
+  fuenteSummary: string; // 📄 Fuente
+  calculoSummary?: string; // 🧮 Cálculo
+  interpretacionSummary: string; // 💡 Interpretación
+  abstentionBlock?: {
+    neededData: string; // ⛔ "sin respaldo: necesito X"
+    reason: string;
+  };
 }
 
 export type ResponseKind =
@@ -64,6 +123,8 @@ export interface AssistantResponse {
   followUpQuestions?: string[];
   clarificationForm?: ClarificationForm;
   mode: ResponseMode;
+  pipelineTrace?: PipelineTrace;
+  structuredShort?: StructuredShortAnswer;
 }
 
 export interface FormSubmission {
@@ -78,4 +139,11 @@ export interface ChatMessage {
   response?: AssistantResponse;
   createdAt: number;
   formAnswered?: boolean;
+  inputModality?: "chat" | "voice" | "photo";
+  photoAttachment?: {
+    name: string;
+    dataUrl?: string;
+    note?: string;
+  };
+  loteName?: string;
 }
