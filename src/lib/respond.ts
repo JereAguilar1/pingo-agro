@@ -218,6 +218,18 @@ function isHarvestLossesQuery(q: string): boolean {
   return asksLosses && asksHarvest;
 }
 
+function isNutrientBalanceQuery(q: string): boolean {
+  const asksBalance = /balance/.test(q);
+  const asksNutrient = /nutriente|nutrientes|nitrogeno|fosforo|fertilizante|secuencia|cultivo/.test(q);
+  return asksBalance && asksNutrient;
+}
+
+function isFertilizationStrategyQuery(q: string): boolean {
+  const asksFertilization = /fertiliz|fuentes y dosis|estrategias, fuentes y dosis|estrategia de fertilizacion/.test(q);
+  const asksStrategyContext = /estrategia|analisis de suelo|antecedentes|dosis|conviene evaluar|fuente/.test(q);
+  return asksFertilization && asksStrategyContext;
+}
+
 function isProductFamilyGenericQuery(q: string): boolean {
   const asksProductInfo =
     /que productos (puedo|podria|se pueden)|principios activos|familias? quimicas?|modos? de accion/.test(
@@ -573,6 +585,73 @@ function handleHarvestLossesInsufficientInfo(): AssistantResponse {
         { id: "perdidaPlataforma", label: "Pérdida por plataforma", type: "text", placeholder: "Ej. 40 kg/ha o granos/m²" },
         { id: "perdidaCola", label: "Pérdida por cola", type: "text", placeholder: "Ej. 50 kg/ha" },
         { id: "precosechaMedida", label: "¿Se midió la pérdida de precosecha?", type: "select", options: ["Sí, medida antes de entrar con la cosechadora", "No fue medida previamente"] },
+      ],
+    },
+    mode: "demo",
+  };
+}
+
+function handleFertilizationStrategyInsufficientInfo(): AssistantResponse {
+  return {
+    kind: "insufficient_info",
+    answer:
+      "Para comparar estrategias, fuentes y dosis de fertilizante en un lote no se puede recetar una dosis cerrada genérica ni inventar valores faltantes. " +
+      "Se requiere integrar: el cultivo planificado, el rendimiento objetivo esperado según ambiente, los resultados del análisis de suelo (nitratos en 0-20 y 20-40 cm, fósforo Bray 1, materia orgánica) y los antecedentes del lote (cultivo antecesor, rastrojo y aportes previos). " +
+      "A partir de allí se contrastan los requerimientos con las curvas regionales de calibración de INTA Balcarce (R05) y la dinámica de transformación de las fuentes como la urea (R03), siguiendo métodos de muestreo representativos (R04).",
+    sources: [
+      makeSourceCard("R03", "Dinámica del nitrógeno en la urea y procesos de transformación en el suelo hacia formas absorbibles."),
+      makeSourceCard("R04", "Metodología de muestreo de suelo y ensayos a campo de INTA para estratificación de nutrientes."),
+      makeSourceCard("R05", "Laboratorio de Suelo de INTA Balcarce y redes de calibración de fertilización regional."),
+    ],
+    warnings: [
+      "No se afirma ninguna dosis comercial de fertilizante sin contar con el análisis de suelo y las curvas de respuesta del cultivo para la zona.",
+    ],
+    followUpQuestions: [
+      "¿Para qué cultivo y qué rendimiento objetivo se proyecta la fertilización?",
+      "¿Qué valores de análisis de suelo se obtuvieron (N-NO3, P Bray, MO)?",
+      "¿Cuáles son los antecedentes del lote y el cultivo antecesor?",
+    ],
+    clarificationForm: {
+      kind: "fertilization_strategy",
+      submitLabel: "Evaluar fertilización con estos datos",
+      fields: [
+        { id: "cultivo", label: "Cultivo", type: "select", options: CROPS, required: true },
+        { id: "rindeObjetivo", label: "Rendimiento objetivo", type: "text", placeholder: "Ej. 9 tn/ha de maíz o 4.5 tn/ha de trigo", required: true },
+        { id: "analisisSuelo", label: "Resultados de análisis de suelo", type: "text", placeholder: "Ej. N-NO3: 15 ppm (0-20 cm), P Bray: 8 ppm, MO: 3.5%" },
+        { id: "antecedentes", label: "Antecedentes y manejo previo", type: "text", placeholder: "Ej. Soja de primera, antecesor trigo, sin abonos" },
+      ],
+    },
+    mode: "demo",
+  };
+}
+
+function handleNutrientBalanceInsufficientInfo(): AssistantResponse {
+  return {
+    kind: "insufficient_info",
+    answer:
+      "El cálculo de un balance completo de nutrientes (entradas por fertilización, fijación biológica simbiótica, deposición atmosférica y salidas por grano cosechado, rastrojo y pérdidas) no está implementado como herramienta de cálculo determinista en este prototipo. " +
+      "Surco dispone de cálculos deterministas específicos para la concentración de N y dosis de producto (como urea a partir de R03), pero no simula balances integrales con modelos no verificados. " +
+      "Para orientar la estimación conceptual y ver cómo se estructuran las entradas y salidas de la secuencia, indicá el cultivo o rotación, los rendimientos y los fertilizantes aportados.",
+    sources: [
+      makeSourceCard("R03", "Concentración de nitrógeno en fertilizantes y transformaciones edáficas (INTA)."),
+    ],
+    warnings: [
+      "Un balance de nutrientes completo no está implementado en este MVP: no se simulan cifras de balance neto para evitar alucinaciones numéricas.",
+    ],
+    followUpQuestions: [
+      "¿Qué cultivo o secuencia agrícola se quiere analizar?",
+      "¿Qué rendimiento se obtuvo o proyecta cosechar?",
+      "¿Qué fertilizantes y dosis se aplicaron?",
+      "¿Qué límites del balance se desean considerar?",
+    ],
+    clarificationForm: {
+      kind: "nutrient_balance",
+      submitLabel: "Analizar balance con estos datos",
+      fields: [
+        { id: "secuenciaCultivos", label: "Cultivo o secuencia", type: "text", placeholder: "Ej. Trigo / Soja 2da o Maíz continuo", required: true },
+        { id: "rendimientoObtenido", label: "Rendimiento estimado / obtenido", type: "text", placeholder: "Ej. Trigo 4 tn/ha, Soja 2.5 tn/ha" },
+        { id: "fertilizantesAplicados", label: "Fertilizantes aplicados y dosis", type: "text", placeholder: "Ej. 100 kg/ha urea, 80 kg/ha MAP" },
+        { id: "entradasSalidas", label: "Límites del balance", type: "select", options: ["Solo extracción por grano cosechado vs fertilizante", "Balance completo con rastrojo, fijación biológica y pérdidas"] },
       ],
     },
     mode: "demo",
@@ -1088,6 +1167,53 @@ function handleHarvestLossesFormSubmission(data: Record<string, string>): Assist
   };
 }
 
+function handleFertilizationStrategyFormSubmission(data: Record<string, string>): AssistantResponse {
+  const cultivo = data.cultivo?.trim() || "el cultivo";
+  const rinde = data.rindeObjetivo?.trim() || "el rinde objetivo previsto";
+  const analisis = data.analisisSuelo?.trim() || "los análisis disponibles";
+  const antecedentes = data.antecedentes?.trim() || "sin antecedentes adicionales";
+
+  return {
+    kind: "grounded_answer",
+    answer:
+      `Para ${cultivo} con un rinde objetivo de ${rinde} en base a los análisis aportados (${analisis}, antecesor: ${antecedentes}), la determinación de la fertilización debe apoyarse en las curvas de respuesta y modelos de diagnóstico regional del INTA Balcarce [R05]. ` +
+      `En nitrógeno, el criterio validado para el sur bonaerense utiliza umbrales de N disponible a la siembra (N suelo medido a 0-60 cm más N fertilizante) por tonelada de grano objetivo, considerando la concentración y eficiencia de fuentes como urea [R03]. ` +
+      `En fósforo, se compara el valor de P Bray con el nivel crítico del cultivo (generalmente entre 12 y 16 ppm según cultivo y tipo de suelo) para definir si la estrategia es de suficiencia o de enriquecimiento/mantenimiento. ` +
+      `Para afinar la dosis definitiva se recomienda contrastar con ensayos locales de fertilización y ajustar según humedad inicial del perfil.`,
+    sources: [
+      makeSourceCard("R03", "Dinámica del nitrógeno en la urea y procesos edáficos de disponibilidad."),
+      makeSourceCard("R05", "INTA Balcarce: calibración agronómica regional de fertilidad y requerimientos."),
+    ],
+    warnings: [
+      "Esta respuesta proporciona el marco conceptual de diagnóstico de INTA; la dosis final de aplicación debe ser avalada por el ingeniero agrónomo responsable del lote.",
+    ],
+    mode: "demo",
+  };
+}
+
+function handleNutrientBalanceFormSubmission(data: Record<string, string>): AssistantResponse {
+  const secuencia = data.secuenciaCultivos?.trim() || "la secuencia";
+  const rinde = data.rendimientoObtenido?.trim() || "rendimientos no especificados";
+  const fertilizantes = data.fertilizantesAplicados?.trim() || "aportes informados";
+  const limites = data.entradasSalidas?.trim() || "los límites analizados";
+
+  return {
+    kind: "grounded_answer",
+    answer:
+      `Para la secuencia ${secuencia} con rendimientos de ${rinde} y fertilización de ${fertilizantes} (${limites.toLowerCase()}), recordamos que Surco no calcula automáticamente un balance integral de nutrientes en este prototipo para evitar estimaciones no contrastadas. ` +
+      `Desde el punto de vista conceptual y metodológico respaldado por INTA [R03], se debe distinguir claramente entre: ` +
+      `1) La demanda total de nutrientes para construir biomasa; 2) La extracción o exportación neta que sale del lote en los granos cosechados; y 3) La reposición efectiva mediante fertilizantes. ` +
+      `Para calcular el balance de nitrógeno podés usar las conversiones exactas de urea disponibles en Surco (46% N) y contrastar las toneladas cosechadas con los índices de cosecha de nutrientes publicados por INTA para cada especie.`,
+    sources: [
+      makeSourceCard("R03", "Transformación del nitrógeno de la urea y concentración elemental de nutrientes (INTA)."),
+    ],
+    warnings: [
+      "Este cálculo no simula balances de masa complejos ni coeficientes de fijación de nitrógeno: remitite a las tablas de extracción oficiales de INTA para los índices por tonelada.",
+    ],
+    mode: "demo",
+  };
+}
+
 function handleFormSubmission(submission: FormSubmission): AssistantResponse {
   switch (submission.kind) {
     case "phyto":
@@ -1106,6 +1232,10 @@ function handleFormSubmission(submission: FormSubmission): AssistantResponse {
       return handleCultivarSelectionFormSubmission(submission.data);
     case "harvest_losses":
       return handleHarvestLossesFormSubmission(submission.data);
+    case "fertilization_strategy":
+      return handleFertilizationStrategyFormSubmission(submission.data);
+    case "nutrient_balance":
+      return handleNutrientBalanceFormSubmission(submission.data);
     case "rental_rates":
       return handleRentalRatesFormSubmission(submission.data);
     case "machinery_costs":
@@ -1148,6 +1278,8 @@ export async function respond(
   if (isPestAndDiseaseQuery(q)) return handlePestDiseaseInsufficientInfo();
   if (isCultivarSelectionQuery(q)) return handleCultivarSelectionInsufficientInfo();
   if (isHarvestLossesQuery(q)) return handleHarvestLossesInsufficientInfo();
+  if (isNutrientBalanceQuery(q)) return handleNutrientBalanceInsufficientInfo();
+  if (isFertilizationStrategyQuery(q)) return handleFertilizationStrategyInsufficientInfo();
   if (isSoilSamplingPlanningQuery(q)) return handleSoilSamplingInsufficientInfo();
   if (isRentalRatesQuery(q)) return handleRentalRatesInsufficientInfo();
   if (isLaborCostQuery(q)) return handleLaborCostInsufficientInfo();

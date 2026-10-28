@@ -284,3 +284,49 @@ describe("respond — Escenarios de Manejo y Protección (C03, C04, C05, C06, C0
     });
   });
 });
+
+describe("respond — Escenarios de Nutrición y Suelo (C08, C09)", () => {
+  describe("C08 · Comparar estrategias y dosis de fertilización", () => {
+    it("pide cultivo, rinde objetivo y análisis sin inventar dosis cerrada", async () => {
+      const r = await respond("Con estos análisis de suelo y antecedentes del lote, ¿qué estrategias, fuentes y dosis de fertilizante conviene evaluar para el cultivo?");
+      expect(r.kind).toBe("insufficient_info");
+      expect(r.clarificationForm?.kind).toBe("fertilization_strategy");
+      expect(r.sources.map((s) => s.sourceCode)).toEqual(expect.arrayContaining(["R03", "R04", "R05"]));
+      // No inventa una dosis fija arbitraria
+      expect(r.answer).not.toMatch(/\b(aplicar \d+ kg\/ha|dosis recomendada: \d+)\b/i);
+    });
+
+    it("orienta con curvas y umbrales INTA al enviar formulario de fertilización", async () => {
+      const r = await respond("", {
+        kind: "fertilization_strategy",
+        data: { cultivo: "Maíz", rindeObjetivo: "9 tn/ha", analisisSuelo: "N-NO3 18 ppm, P 9 ppm, MO 3.2%", antecedentes: "Soja de primera" },
+      });
+      expect(r.kind).toBe("grounded_answer");
+      expect(r.sources.map((s) => s.sourceCode)).toEqual(expect.arrayContaining(["R03", "R05"]));
+      expect(r.answer).toContain("Maíz");
+      expect(r.answer).toContain("Balcarce");
+      expect(r.answer).not.toMatch(/\b(la dosis exacta es \d+ kg\/ha)\b/i);
+    });
+  });
+
+  describe("C09 · Hacer un balance de nutrientes", () => {
+    it("aclara explícitamente que un balance completo no está implementado en este MVP", async () => {
+      const r = await respond("¿Podés ayudarme a calcular el balance de nutrientes de este cultivo o secuencia y mostrar cómo llegaste al resultado?");
+      expect(r.kind).toBe("insufficient_info");
+      expect(r.clarificationForm?.kind).toBe("nutrient_balance");
+      expect(r.sources.map((s) => s.sourceCode)).toContain("R03");
+      expect(r.answer.toLowerCase()).toContain("no está implementado");
+    });
+
+    it("orienta sobre entradas y salidas y cálculos deterministas de urea al enviar formulario", async () => {
+      const r = await respond("", {
+        kind: "nutrient_balance",
+        data: { secuenciaCultivos: "Trigo / Soja 2da", rendimientoObtenido: "Trigo 4 tn/ha, Soja 2.5 tn/ha", fertilizantesAplicados: "100 kg/ha urea", entradasSalidas: "Solo extracción por grano cosechado vs fertilizante" },
+      });
+      expect(r.kind).toBe("grounded_answer");
+      expect(r.sources.map((s) => s.sourceCode)).toContain("R03");
+      expect(r.answer).toContain("Trigo");
+      expect(r.answer.toLowerCase()).toContain("balance");
+    });
+  });
+});
