@@ -130,3 +130,66 @@ describe("respond — respuesta con fuentes reales", () => {
     expect(r.sources.every((s) => s.verification === "verified")).toBe(true);
   });
 });
+
+describe("respond — Escenarios Económicos (C13, C14, C15)", () => {
+  describe("C13 · Alquileres rurales", () => {
+    it("pide datos y advierte que no hay promedio zonal confiable sin inventar valores", async () => {
+      const r = await respond("¿Qué referencias de alquiler hay para campos comparables al mío? ¿Hay información suficiente para hablar de un promedio zonal?");
+      expect(r.kind).toBe("insufficient_info");
+      expect(r.clarificationForm?.kind).toBe("rental_rates");
+      expect(r.sources.map((s) => s.sourceCode)).toContain("R25");
+      // No inventa cifras de alquiler ($/ha o qq/ha)
+      expect(r.answer).not.toMatch(/\$\s*\d+|\b\d+\s*qq\b/i);
+    });
+
+    it("orienta la consulta de alquileres con el formulario enviado sin inventar precios", async () => {
+      const r = await respond("", {
+        kind: "rental_rates",
+        data: { campana: "2026/2027", aptitud: "Agrícola pura", ubicacion: "Tandil", modalidad: "Quintales fijos (soja)" },
+      });
+      expect(r.kind).toBe("grounded_answer");
+      expect(r.sources.map((s) => s.sourceCode)).toContain("R25");
+      expect(r.answer).toContain("Tandil");
+      expect(r.answer).not.toMatch(/\$\s*\d+|\b\d+\s*qq\b/i);
+    });
+  });
+
+  describe("C14 · Costos de labores", () => {
+    it("pide datos de la labor y diferencia referencia orientativa de presupuesto", async () => {
+      const r = await respond("¿Cuánto cuesta esta labor y qué incluye el valor que me presupuestaron?");
+      expect(r.kind).toBe("insufficient_info");
+      expect(r.clarificationForm?.kind).toBe("machinery_costs");
+      expect(r.sources.map((s) => s.sourceCode)).toContain("R22");
+    });
+
+    it("orienta con FACMA ante envío de formulario de labores", async () => {
+      const r = await respond("", {
+        kind: "machinery_costs",
+        data: { labor: "Siembra directa", superficie: "150 ha", combustible: "Incluido por contratista", ubicacion: "Tandil" },
+      });
+      expect(r.kind).toBe("grounded_answer");
+      expect(r.sources.map((s) => s.sourceCode)).toContain("R22");
+      expect(r.answer).toContain("Siembra directa");
+      expect(r.answer).toContain("FACMA");
+    });
+  });
+
+  describe("C15 · Costos de flete", () => {
+    it("pide origen, destino y carga citando FATRAC sin confirmar cotizaciones aisladas", async () => {
+      const r = await respond("¿Cómo estimo y comparo el costo de transportar la producción desde mi campo hasta ese destino?");
+      expect(r.kind).toBe("insufficient_info");
+      expect(r.clarificationForm?.kind).toBe("freight_costs");
+      expect(r.sources.map((s) => s.sourceCode)).toContain("R23");
+    });
+
+    it("orienta con FATRAC ante envío de formulario de flete", async () => {
+      const r = await respond("", {
+        kind: "freight_costs",
+        data: { origen: "Tandil", destino: "Puerto Necochea (Quequén)", distanciaKm: "180", tipoCarga: "Cereal / Oleaginosa a granel" },
+      });
+      expect(r.kind).toBe("grounded_answer");
+      expect(r.sources.map((s) => s.sourceCode)).toContain("R23");
+      expect(r.answer).toContain("Quequén");
+    });
+  });
+});

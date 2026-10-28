@@ -1,6 +1,7 @@
 import { doseToProduct, nitrogenContent } from "./calculations";
 import { completeWithAi, isAiConfigured } from "./ai-provider";
 import { retrieve } from "./retrieval";
+import { getSourceByCode } from "./library";
 import { AssistantResponse, FormSubmission, SourceCardData } from "./types";
 
 const CROPS = ["Soja", "Maíz", "Girasol", "Trigo", "Cebada", "Otro"];
@@ -58,6 +59,22 @@ const NORMATIVA_SOURCE: SourceCardData = {
 };
 
 const PROBLEM_TYPES = ["Maleza", "Plaga (insecto)", "Enfermedad", "Otro"];
+
+function makeSourceCard(code: string, supports: string): SourceCardData {
+  const f = getSourceByCode(code);
+  if (!f) throw new Error(`Fuente no encontrada en library: ${code}`);
+  return {
+    sourceCode: f.sourceCode,
+    institution: f.institution,
+    title: f.title,
+    date: f.date,
+    accessedOn: f.accessedOn,
+    section: f.section,
+    url: f.url,
+    verification: f.verification,
+    supports,
+  };
+}
 
 function parseNumber(raw: string): number {
   return parseFloat(raw.replace(",", "."));
@@ -189,11 +206,27 @@ function isProductFamilyGenericQuery(q: string): boolean {
 
 function isLivePriceQuery(q: string): boolean {
   const asksPrice = /precio|cotizacion|cuanto (vale|cuesta|pagan)|oferta/.test(q);
-  const aboutMarket = /cereal|soja|maiz|trigo|grano|flete|alquiler|arrendamiento|dolar|tonelada/.test(
-    q
-  );
+  const aboutMarket = /cereal|soja|maiz|trigo|girasol|cebada|grano|dolar|tonelada/.test(q);
   const asksCurrent = /actual|hoy|ahora|esta semana|este mes/.test(q) || !/historico|pasado/.test(q);
   return asksPrice && aboutMarket && asksCurrent;
+}
+
+function isRentalRatesQuery(q: string): boolean {
+  const asksRental = /alquiler|arrendar|arrendamiento|alquilar/.test(q);
+  const asksContext = /referencia|promedio|zonal|comparable|campo|lote|cuanto (esta|se paga|vale)|hectarea|soja/.test(q);
+  return asksRental && asksContext;
+}
+
+function isLaborCostQuery(q: string): boolean {
+  const asksLabor = /labor|labores|siembra|cosecha|pulverizacion|fertilizacion al voleo|contratista|facma/.test(q);
+  const asksCost = /cuanto cuesta|costo|presupuesto|presupuestaron|tarifa|precio/.test(q);
+  return asksLabor && asksCost;
+}
+
+function isFreightCostQuery(q: string): boolean {
+  const asksFreight = /flete|transportar|transporte de cargas|transporte de la produccion|fatrac|camion/.test(q);
+  const asksCost = /costo|tarifa|precio|estimar|comparar|cuanto (sale|cuesta|cobran)|viaje|destino/.test(q);
+  return asksFreight && asksCost;
 }
 
 function handlePhytoInsufficientInfo(): AssistantResponse {
@@ -420,6 +453,112 @@ function handleLivePriceInsufficientInfo(): AssistantResponse {
   };
 }
 
+function handleRentalRatesInsufficientInfo(): AssistantResponse {
+  return {
+    kind: "insufficient_info",
+    answer:
+      "Surco no dispone de una serie representativa de alquileres rurales ni publica promedios zonales para Tandil y la región. " +
+      "Los valores de arrendamiento varían ampliamente según la aptitud del lote (agrícola pura, mixta o ganadera), la campaña, el tipo de contrato (quintales fijos, porcentaje o monto en dinero) y los antecedentes de manejo. " +
+      "Para evaluar referencias comparables, completá los datos del lote para orientar la consulta hacia publicaciones de grupos CREA de la zona o fuentes profesionales locales.",
+    sources: [
+      makeSourceCard(
+        "R25",
+        "Referencia institucional de CREA para consultar relevamientos y metodologías de márgenes agrícolas zonales."
+      ),
+    ],
+    warnings: [
+      "No se proporciona ningún valor en $/ha ni quintales fijos por hectárea: Surco no cuenta con una muestra representativa de alquileres para validar un promedio zonal.",
+    ],
+    followUpQuestions: [
+      "¿Para qué campaña agrícola buscás la referencia?",
+      "¿Qué aptitud tiene el campo (agrícola, mixto o ganadero)?",
+      "¿En qué localidad o subzona se encuentra el lote?",
+      "¿Qué modalidad de pago se está evaluando (quintales de soja, porcentaje o dinero)?",
+    ],
+    clarificationForm: {
+      kind: "rental_rates",
+      submitLabel: "Consultar referencias con estos datos",
+      fields: [
+        { id: "campana", label: "Campaña agrícola", type: "text", placeholder: "Ej. 2026/2027", required: true },
+        { id: "aptitud", label: "Aptitud del campo", type: "select", options: ["Agrícola pura", "Mixta", "Ganadera"], required: true },
+        { id: "ubicacion", label: "Localidad / Zona", type: "text", placeholder: "Ej. Tandil (Gardey / La Pastora)" },
+        { id: "modalidad", label: "Modalidad de pago", type: "select", options: ["Quintales fijos (soja)", "Porcentaje a cosecha", "Pesos / Dólares fijos"] },
+      ],
+    },
+    mode: "demo",
+  };
+}
+
+function handleLaborCostInsufficientInfo(): AssistantResponse {
+  return {
+    kind: "insufficient_info",
+    answer:
+      "Para evaluar el costo de una labor agrícola y determinar qué incluye el valor presupuestado, se requiere especificar el tipo de labor, la escala (superficie), la ubicación y las condiciones del combustible. " +
+      "La Federación Argentina de Contratistas de Maquinaria Agrícola (FACMA) publica tarifas orientativas de referencia, pero un presupuesto efectivo depende de los acuerdos entre las partes y de la logística de la labor.",
+    sources: [
+      makeSourceCard(
+        "R22",
+        "Precios orientativos de labores agrícolas publicados por FACMA (referencia de contratistas)."
+      ),
+    ],
+    warnings: [
+      "Una tabla orientativa no constituye una cotización cerrada: el costo final varía según tamaño del lote, provisión de gasoil y estado del suelo.",
+    ],
+    followUpQuestions: [
+      "¿Qué labor específica necesitás evaluar (siembra, pulverización, cosecha, fertilización)?",
+      "¿Cuál es la superficie aproximada a trabajar?",
+      "¿El combustible está a cargo del contratista o del productor?",
+      "¿En qué localidad o zona se realizará el trabajo?",
+    ],
+    clarificationForm: {
+      kind: "machinery_costs",
+      submitLabel: "Evaluar labor con estos datos",
+      fields: [
+        { id: "labor", label: "Tipo de labor", type: "select", options: ["Siembra directa", "Pulverización terrestre", "Cosecha de granos", "Fertilización al voleo", "Otra labor"], required: true },
+        { id: "superficie", label: "Superficie a trabajar (ha)", type: "text", placeholder: "Ej. 120 ha", required: true },
+        { id: "combustible", label: "Gasoil / Combustible", type: "select", options: ["Incluido por contratista", "A cargo del productor", "A convenir"], required: true },
+        { id: "ubicacion", label: "Ubicación del lote", type: "text", placeholder: "Ej. Tandil" },
+      ],
+    },
+    mode: "demo",
+  };
+}
+
+function handleFreightCostInsufficientInfo(): AssistantResponse {
+  return {
+    kind: "insufficient_info",
+    answer:
+      "Para estimar y comparar el costo de transporte de la producción se necesita identificar el origen, destino, distancia en kilómetros y tipo de carga. " +
+      "La Federación Argentina de Transportadores de Cargas (FATRAC) publica tablas orientativas de tarifas de flete agrícola por kilómetro, pero la cotización efectiva depende de adicionales como estadías, caminos de tierra y disponibilidad en época de cosecha.",
+    sources: [
+      makeSourceCard(
+        "R23",
+        "Tarifas orientativas de transporte automotor de cargas de FATRAC."
+      ),
+    ],
+    warnings: [
+      "Una tabla orientativa no garantiza que un transportista acepte el viaje por ese valor: hay que confirmar disponibilidad y adicionales con el fletero.",
+    ],
+    followUpQuestions: [
+      "¿Cuál es el lugar de origen (campo o localidad)?",
+      "¿Cuál es el destino (puerto de Quequén, Bahía Blanca, acopio local)?",
+      "¿Distancia estimada en kilómetros?",
+      "¿Qué tipo de grano o producto se transporta?",
+    ],
+    clarificationForm: {
+      kind: "freight_costs",
+      submitLabel: "Consultar tarifa con estos datos",
+      fields: [
+        { id: "origen", label: "Origen (campo o localidad)", type: "text", placeholder: "Ej. Tandil", required: true },
+        { id: "destino", label: "Destino", type: "select", options: ["Puerto Necochea (Quequén)", "Puerto Bahía Blanca", "Acopio local / Planta Tandil", "Otro destino"], required: true },
+        { id: "distanciaKm", label: "Distancia estimada (km)", type: "text", placeholder: "Ej. 180 km" },
+        { id: "tipoCarga", label: "Tipo de carga", type: "select", options: ["Cereal / Oleaginosa a granel", "Semilla / Fertilizante embolsado", "Otro"] },
+      ],
+    },
+    mode: "demo",
+  };
+}
+
 // ---------- Respuesta basada en evidencia recuperada ----------
 
 async function handleGroundedOrNoEvidence(question: string): Promise<AssistantResponse> {
@@ -608,6 +747,81 @@ function handleProductFamilyFormSubmission(data: Record<string, string>): Assist
   };
 }
 
+function handleRentalRatesFormSubmission(data: Record<string, string>): AssistantResponse {
+  const campana = data.campana || "la campaña solicitada";
+  const aptitud = data.aptitud || "el campo";
+  const ubicacion = data.ubicacion?.trim() || "Tandil y zona";
+  const modalidad = data.modalidad || "la modalidad indicada";
+
+  return {
+    kind: "grounded_answer",
+    answer:
+      `Para ${aptitud.toLowerCase()} en ${ubicacion} durante ${campana} bajo ${modalidad.toLowerCase()}, no es posible afirmar un promedio zonal de alquiler sin incurrir en estimaciones no representativas. ` +
+      `Las referencias disponibles corresponden a relevamientos zonales de grupos CREA [R25], que reflejan condiciones y márgenes de empresas asociadas pero no constituyen una cotización vinculante para todos los lotes. ` +
+      `El paso técnico recomendado es contrastar el margen bruto proyectado del cultivo con presupuestos de inmobiliarias rurales locales y contratos de referencia registrados por ingenieros agrónomos de la zona.`,
+    sources: [
+      makeSourceCard(
+        "R25",
+        "Relevamientos económicos y márgenes agrícolas orientativos de CREA para la región pampeana sur."
+      ),
+    ],
+    warnings: [
+      "Surco no publica valores numéricos de alquiler: cualquier cifra aislada de oferta debe contrastarse en el mercado local.",
+    ],
+    mode: "demo",
+  };
+}
+
+function handleMachineryCostsFormSubmission(data: Record<string, string>): AssistantResponse {
+  const labor = data.labor || "la labor";
+  const superficie = data.superficie || "la superficie indicada";
+  const combustible = data.combustible || "condiciones a convenir";
+  const ubicacion = data.ubicacion?.trim() || "la zona";
+
+  return {
+    kind: "grounded_answer",
+    answer:
+      `Para ${labor} en ${ubicacion} sobre ${superficie} con combustible ${combustible.toLowerCase()}, la referencia institucional de base es la tabla de precios orientativos de FACMA [R22]. ` +
+      `Al comparar un presupuesto con la guía de FACMA es fundamental verificar: si el precio cotizado contempla el gasoil (o precio base de combustible pactado), el ancho de labor y tipo de dosificador o botalón, el traslado de maquinaria hasta el campo y las penalizaciones por demora o condiciones de piso. ` +
+      `La tarifa de FACMA sirve como guía orientativa de costos directos, pero la tarifa real debe ser acordada contractualmente con el contratista interviniente.`,
+    sources: [
+      makeSourceCard(
+        "R22",
+        "FACMA — Guía orientativa de tarifas de labores agrícolas y estructura de costos de maquinaria."
+      ),
+    ],
+    warnings: [
+      "Los valores orientativos de FACMA no obligan al prestador ni reemplazan el presupuesto formal por escrito.",
+    ],
+    mode: "demo",
+  };
+}
+
+function handleFreightCostsFormSubmission(data: Record<string, string>): AssistantResponse {
+  const origen = data.origen || "origen";
+  const destino = data.destino || "destino";
+  const distancia = data.distanciaKm ? `${data.distanciaKm} km` : "la distancia estimada";
+  const carga = data.tipoCarga || "carga general";
+
+  return {
+    kind: "grounded_answer",
+    answer:
+      `Para el transporte de ${carga.toLowerCase()} desde ${origen} hasta ${destino} (aprox. ${distancia}), la referencia tarifaria oficial u orientativa de partida es el cuadro de tarifas de FATRAC [R23]. ` +
+      `Para estimar y comparar el costo efectivo del viaje tené en cuenta: la tarifa por tonelada/kilómetro de la escala de distancia correspondiente, los kilómetros adicionales por tramos de tierra, el tiempo libre de espera en balanza y las tarifas de estadía en puerto o planta de acopio. ` +
+      `La tabla de FATRAC permite calcular un costo orientativo de referencia, pero la confirmación del flete requiere la cotización directa del transportista o centro de transporte local.`,
+    sources: [
+      makeSourceCard(
+        "R23",
+        "FATRAC — Tarifas orientativas de referencia por distancia para el transporte automotor de cargas."
+      ),
+    ],
+    warnings: [
+      "La tarifa orientativa no incluye posibles cargos por estadía prolongada, desvíos ni condiciones especiales de descarga en terminales portuarias.",
+    ],
+    mode: "demo",
+  };
+}
+
 function handleFormSubmission(submission: FormSubmission): AssistantResponse {
   switch (submission.kind) {
     case "phyto":
@@ -618,6 +832,14 @@ function handleFormSubmission(submission: FormSubmission): AssistantResponse {
       return handleCropRotationFormSubmission(submission.data);
     case "product_family":
       return handleProductFamilyFormSubmission(submission.data);
+    case "rental_rates":
+      return handleRentalRatesFormSubmission(submission.data);
+    case "machinery_costs":
+      return handleMachineryCostsFormSubmission(submission.data);
+    case "freight_costs":
+      return handleFreightCostsFormSubmission(submission.data);
+    default:
+      throw new Error(`Tipo de formulario no soportado: ${(submission as { kind: string }).kind}`);
   }
 }
 
@@ -649,6 +871,9 @@ export async function respond(
   if (isProductFamilyGenericQuery(q)) return handleProductFamilyInsufficientInfo();
   if (isPhytoAuthorizationQuery(q)) return handlePhytoInsufficientInfo();
   if (isSoilSamplingPlanningQuery(q)) return handleSoilSamplingInsufficientInfo();
+  if (isRentalRatesQuery(q)) return handleRentalRatesInsufficientInfo();
+  if (isLaborCostQuery(q)) return handleLaborCostInsufficientInfo();
+  if (isFreightCostQuery(q)) return handleFreightCostInsufficientInfo();
   if (isLivePriceQuery(q)) return handleLivePriceInsufficientInfo();
 
   return handleGroundedOrNoEvidence(trimmed);
