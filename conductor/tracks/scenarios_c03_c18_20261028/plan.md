@@ -36,13 +36,13 @@
 - [x] Task: Phase 3 Verification & Checkpoint (Refer to workflow.md) (7b56293)
 
 ## Phase 4: Nutrition & Soil Scenarios (C08, C09)
-- [ ] Task: Write failing unit tests for C08 and C09
-  - [ ] Tests for C08 (Estrategias y dosis de fertilización - R03/R05)
-  - [ ] Tests for C09 (Balance de nutrientes - delimitación clara de lo no implementado vs cálculos urea R03)
-- [ ] Task: Implement C08 and C09 in `src/lib/respond.ts`
-  - [ ] Implement detectors `isFertilizationStrategyQuery`, `isNutrientBalanceQuery`
-  - [ ] Handlers stating non-simulated deterministic boundaries and forms
-  - [ ] Form submission handlers in `handleFormSubmission()`
+- [x] Task: Write failing unit tests for C08 and C09 (d6406be)
+  - [x] Tests for C08 (Estrategias y dosis de fertilización - R03/R05)
+  - [x] Tests for C09 (Balance de nutrientes - delimitación clara de lo no implementado vs cálculos urea R03)
+- [x] Task: Implement C08 and C09 in `src/lib/respond.ts` (d6406be)
+  - [x] Implement detectors `isFertilizationStrategyQuery`, `isNutrientBalanceQuery`
+  - [x] Handlers stating non-simulated deterministic boundaries and forms
+  - [x] Form submission handlers in `handleFormSubmission()`
 - [ ] Task: Phase 4 Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 5: Weather, Application Conditions & Regulatory Scenarios (C16, C17, C10, C11, C18)
