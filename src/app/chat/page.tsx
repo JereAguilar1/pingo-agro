@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useEffect, useRef, useState } from "react";
 import { MessageBubble } from "@/components/MessageBubble";
 import { ChatMessage, FormSubmission } from "@/lib/types";
+import { resolveChatQuery } from "@/lib/offline-client";
 
 // v2: el esquema de AssistantResponse ganó `clarificationForm`; se bumpea la
 // clave para que las conversaciones guardadas antes de esta función (sin
@@ -72,30 +73,18 @@ function ChatInner() {
     setError(null);
 
     try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ question: q, form }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data?.error ?? "Ocurrió un error inesperado.");
-        setLoading(false);
-        return;
-      }
+      const result = await resolveChatQuery({ question: q, form });
 
       const assistantMsg: ChatMessage = {
         id: crypto.randomUUID(),
         role: "assistant",
-        content: data.response.answer,
-        response: data.response,
+        content: result.response.answer,
+        response: result.response,
         createdAt: Date.now(),
       };
       setMessages((prev) => [...prev, assistantMsg]);
     } catch {
-      setError("No se pudo conectar con el servidor. Revisá tu conexión e intentá de nuevo.");
+      setError("Ocurrió un error inesperado al procesar la consulta.");
     } finally {
       setLoading(false);
     }

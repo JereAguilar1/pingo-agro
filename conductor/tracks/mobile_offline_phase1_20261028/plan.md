@@ -1,15 +1,15 @@
 # Implementation Plan: Surco Móvil Offline y Ejecución en Memoria (Fase 1)
 
 ## Phase 1: Client-Side Offline Dispatcher & Engine (TDD)
-- [ ] Task: Write unit tests for client-side offline dispatcher
-  - [ ] Create test suite in `src/lib/__tests__/offline-dispatcher.test.ts`
-  - [ ] Test transparent fallback from network failure to in-memory `respond()`
-  - [ ] Test form submissions handling in offline mode
-- [ ] Task: Implement Client-Side Resolution Pipeline
-  - [ ] Extract and export offline execution resolver in `src/lib/offline-client.ts`
-  - [ ] Integrate offline resolver with `src/app/chat/page.tsx`
-  - [ ] Verify seamless fallback when fetch fails or navigator is offline
-- [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
+- [x] Task: Write unit tests for client-side offline dispatcher
+  - [x] Create test suite in `src/lib/__tests__/offline-dispatcher.test.ts`
+  - [x] Test transparent fallback from network failure to in-memory `respond()`
+  - [x] Test form submissions handling in offline mode
+- [x] Task: Implement Client-Side Resolution Pipeline
+  - [x] Extract and export offline execution resolver in `src/lib/offline-client.ts`
+  - [x] Integrate offline resolver with `src/app/chat/page.tsx`
+  - [x] Verify seamless fallback when fetch fails or navigator is offline
+- [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 2: Connectivity Indicator & UI Polish (TDD)
 - [ ] Task: Write tests for Connectivity Hook and Badge
