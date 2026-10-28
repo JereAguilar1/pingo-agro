@@ -57,13 +57,13 @@
   - [x] Wire up in `respond()` in strict precedence order to prevent overlaps
 - [x] Task: Phase 5 Verification & Checkpoint (Refer to workflow.md) (abef68e)
 
-## Phase 6: End-to-End Verification, Documentation & Production Deployment
-- [ ] Task: Quality Gates and Local Build Verification
-  - [ ] Run full test suite (`npm test`), lint (`npm run lint`), build (`npm run build`)
-  - [ ] Verify local API server with `curl` for each scenario and form submission
-- [ ] Task: Production Deployment & Verification
-  - [ ] Deploy prebuilt production build to Vercel (`npx vercel build --prod && npx vercel deploy --prebuilt --prod`)
-  - [ ] Verify live endpoints on `https://surco-agro.vercel.app/api/chat` with `curl`
-- [ ] Task: Documentation & Changelog Update
-  - [ ] Update `README.md` "Qué quedó implementado" section with full C01–C18 breakdown
-- [ ] Task: Phase 6 Verification & Checkpoint (Refer to workflow.md)
+## Phase 6: End-to-End Verification, Documentation & Production Deployment [checkpoint: 935729a]
+- [x] Task: Quality Gates and Local Build Verification (935729a)
+  - [x] Run full test suite (`npm test`), lint (`npm run lint`), build (`npm run build`)
+  - [x] Verify local API server with `curl` for each scenario and form submission
+- [x] Task: Production Deployment & Verification (935729a)
+  - [x] Deploy prebuilt production build to Vercel (`npx vercel build --prod && npx vercel deploy --prebuilt --prod`)
+  - [x] Verify live endpoints on `https://surco-agro.vercel.app/api/chat` with `curl`
+- [x] Task: Documentation & Changelog Update (935729a)
+  - [x] Update `README.md` "Qué quedó implementado" section with full C01–C18 breakdown
+- [x] Task: Phase 6 Verification & Checkpoint (Refer to workflow.md) (935729a)
