@@ -1,13 +1,13 @@
 # Implementation Plan: Implementación de Escenarios C03–C18 en Surco
 
 ## Phase 1: Foundation & Library Expansion
-- [ ] Task: Expand `src/lib/library.ts` with verified sources (R12, R13, R19, R24, R25)
-  - [ ] Add R12 (Ley Prov. 10.699) and R13 (Decreto 499/1991)
-  - [ ] Add R19 (INTA Sistema de monitoreo remoto de pulverizaciones)
-  - [ ] Add R24 (CASAFE Guía de productos fitosanitarios) and R25 (CREA)
-- [ ] Task: Update Form Types and API Whitelist
-  - [ ] Add new form kinds to `ClarificationFormKind` in `src/lib/types.ts`
-  - [ ] Update `FORM_KINDS` whitelist in `src/app/api/chat/route.ts`
+- [x] Task: Expand `src/lib/library.ts` with verified sources (R12, R13, R19, R24, R25) (1fa8b5d)
+  - [x] Add R12 (Ley Prov. 10.699) and R13 (Decreto 499/1991)
+  - [x] Add R19 (INTA Sistema de monitoreo remoto de pulverizaciones)
+  - [x] Add R24 (CASAFE Guía de productos fitosanitarios) and R25 (CREA)
+- [x] Task: Update Form Types and API Whitelist (1fa8b5d)
+  - [x] Add new form kinds to `ClarificationFormKind` in `src/lib/types.ts`
+  - [x] Update `FORM_KINDS` whitelist in `src/app/api/chat/route.ts`
 - [ ] Task: Phase 1 Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 2: Economic Scenarios (C13, C14, C15)
