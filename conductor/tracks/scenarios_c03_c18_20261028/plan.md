@@ -23,16 +23,16 @@
 - [x] Task: Phase 2 Verification & Checkpoint (Refer to workflow.md) (b8f0180)
 
 ## Phase 3: Crop Management & Protection Scenarios (C03, C04, C05, C06, C07)
-- [ ] Task: Write failing unit tests for C03, C04, C05, C06, C07
-  - [ ] Tests for C03 (Malezas problema - REM R08/R09)
-  - [ ] Tests for C04 (Plagas y enfermedades)
-  - [ ] Tests for C05 (Híbridos y cultivares - R06/R07/R27)
-  - [ ] Tests for C06 (Pérdidas de cosecha - R10)
-  - [ ] Tests for C07 (Muestreo de suelo review/alignment)
-- [ ] Task: Implement C03, C04, C05, C06, C07 in `src/lib/respond.ts`
-  - [ ] Implement detectors and insufficient info handlers with interactive forms
-  - [ ] Implement form submission handlers with source citations and diagnostic boundaries
-  - [ ] Wire up detectors in `respond()` and kinds in `handleFormSubmission()`
+- [x] Task: Write failing unit tests for C03, C04, C05, C06, C07 (7b56293)
+  - [x] Tests for C03 (Malezas problema - REM R08/R09)
+  - [x] Tests for C04 (Plagas y enfermedades)
+  - [x] Tests for C05 (Híbridos y cultivares - R06/R07/R27)
+  - [x] Tests for C06 (Pérdidas de cosecha - R10)
+  - [x] Tests for C07 (Muestreo de suelo review/alignment)
+- [x] Task: Implement C03, C04, C05, C06, C07 in `src/lib/respond.ts` (7b56293)
+  - [x] Implement detectors and insufficient info handlers with interactive forms
+  - [x] Implement form submission handlers with source citations and diagnostic boundaries
+  - [x] Wire up detectors in `respond()` and kinds in `handleFormSubmission()`
 - [ ] Task: Phase 3 Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 4: Nutrition & Soil Scenarios (C08, C09)
