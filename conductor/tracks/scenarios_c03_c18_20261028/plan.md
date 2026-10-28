@@ -35,7 +35,7 @@
   - [x] Wire up detectors in `respond()` and kinds in `handleFormSubmission()`
 - [x] Task: Phase 3 Verification & Checkpoint (Refer to workflow.md) (7b56293)
 
-## Phase 4: Nutrition & Soil Scenarios (C08, C09)
+## Phase 4: Nutrition & Soil Scenarios (C08, C09) [checkpoint: d6406be]
 - [x] Task: Write failing unit tests for C08 and C09 (d6406be)
   - [x] Tests for C08 (Estrategias y dosis de fertilización - R03/R05)
   - [x] Tests for C09 (Balance de nutrientes - delimitación clara de lo no implementado vs cálculos urea R03)
@@ -43,7 +43,7 @@
   - [x] Implement detectors `isFertilizationStrategyQuery`, `isNutrientBalanceQuery`
   - [x] Handlers stating non-simulated deterministic boundaries and forms
   - [x] Form submission handlers in `handleFormSubmission()`
-- [ ] Task: Phase 4 Verification & Checkpoint (Refer to workflow.md)
+- [x] Task: Phase 4 Verification & Checkpoint (Refer to workflow.md) (d6406be)
 
 ## Phase 5: Weather, Application Conditions & Regulatory Scenarios (C16, C17, C10, C11, C18)
 - [ ] Task: Write failing unit tests for C16, C17, C10, C11, C18
