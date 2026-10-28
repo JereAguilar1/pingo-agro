@@ -44,25 +44,25 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Cuerpo de la solicitud inválido." }, { status: 400 });
   }
 
+  const form = parseFormSubmission(body);
   const question = (body as { question?: unknown })?.question;
-  if (typeof question !== "string" || !question.trim()) {
+  if (!form && (typeof question !== "string" || !question.trim())) {
     return NextResponse.json(
       { error: "Falta el campo 'question' (texto no vacío)." },
       { status: 400 }
     );
   }
 
-  if (question.length > 4000) {
+  const safeQuestion = typeof question === "string" ? question : "";
+  if (safeQuestion.length > 4000) {
     return NextResponse.json(
       { error: "La consulta es demasiado larga (máximo 4000 caracteres)." },
       { status: 400 }
     );
   }
 
-  const form = parseFormSubmission(body);
-
   try {
-    const result = await respond(question, form);
+    const result = await respond(safeQuestion, form);
     return NextResponse.json({ response: result, aiConfigured: isAiConfigured() });
   } catch (err) {
     console.error("Error procesando la consulta:", err);

@@ -13,38 +13,40 @@ explícitamente cuándo la evidencia disponible no alcanza para concluir.
 ## Qué quedó implementado
 
 - **Chat de punta a punta**: landing con consultas sugeridas → `/chat`
-  → ruta de servidor `POST /api/chat` → respuesta renderizada con fuentes.
-- **Dos cálculos agronómicos deterministas** (no dependen del modelo de IA):
+  → ruta de servidor `POST /api/chat` → respuesta renderizada con fuentes y formularios interactivos.
+- **Cálculos agronómicos deterministas** (no dependen del modelo de IA):
   - Contenido de nitrógeno de un fertilizante (`src/lib/calculations.ts`:`nitrogenContent`).
-  - Conversión de dosis de N/ha a cantidad de producto para una superficie
-    (`doseToProduct`).
-- **Biblioteca documental inicial** (`src/lib/library.ts`): ~22 fragmentos
+  - Conversión de dosis de N/ha a cantidad de producto para una superficie (`doseToProduct`).
+- **Biblioteca documental verificada** (`src/lib/library.ts`): 27 fragmentos
   curados a partir de fuentes públicas reales y verificadas (INTA, SENASA,
-  Aapresid/REM, normativa provincial y de Tandil, SMN, bolsas de cereales),
-  cada uno con institución, título, fecha, URL verificada, sección y su
-  **límite** explícito (qué no permite concluir esa fuente por sí sola).
-- **Recuperación documental** por coincidencia de palabras clave
-  (`src/lib/retrieval.ts`), con una interfaz pensada para poder migrar después
-  a un índice semántico/vectorial sin tocar el resto del sistema.
-- **Reconocimiento de información insuficiente** para tres casos obligatorios:
-  - Fitosanitario sin producto identificado → pide nombre comercial/registro,
-    formulación, cultivo y uso previsto.
-  - Muestreo de suelo sin objetivo/contexto → pide objetivo, cultivo y
-    antecedentes del lote.
-  - Precios actuales de cereales/insumos → nunca inventa una cifra; indica que
-    no hay conexión en tiempo real y dónde consultarla.
-  - Preguntas sin evidencia en la biblioteca → lo declara explícitamente y pide
-    más contexto o el documento pertinente, sin inventar fuentes.
-- **Modo de demostración vs. modo con IA**, claramente diferenciados en la UI
-  (etiqueta "Modo demostración" / "Generado con IA"). Si `ANTHROPIC_API_KEY`
-  está configurada, las respuestas basadas en evidencia se redactan con Claude
-  a partir de los fragmentos recuperados (RAG); si no, se arma una respuesta
-  determinista con esos mismos fragmentos. Nunca se presenta una respuesta de
-  demostración como si viniera de un modelo conectado.
-- **Persistencia de la conversación** en `localStorage` del navegador durante
-  la sesión (no hay backend de persistencia: ver limitaciones).
-- **UI responsive** (escritorio y móvil) con identidad visual propia: fondo
-  marfil, verde oscuro, tarjetas de fuente plegables, advertencias discretas.
+  Aapresid/REM, normativa provincial Ley 10.699 y Decreto 499/1991, normativa de Tandil
+  Ordenanza 17.404/2021 y decretos reglamentarios/suspensiones judiciales, SMN, FACMA,
+  FATRAC, CREA, CASAFE, bolsas de cereales), cada uno con institución, título, fecha,
+  URL verificada, sección y su **límite** explícito (qué no permite concluir esa fuente por sí sola).
+- **Cobertura integral de los 18 escenarios del desafío (C01 a C18)**:
+  - **C01 · Rotación de cultivos tras herbicida**: detecta herbicidas residuales aplicados, exige marbete y formulación antes de definir intervalos de siembra (`crop_rotation` form; R01, R02).
+  - **C02 · Productos y familias para un cultivo**: diferencia familia química de modo de acción y exige el registro oficial (`product_family` form; R08, R09, R01, R02).
+  - **C03 · Una maleza problema**: programa integrado con biotipos resistentes y rotación estricta de modos de acción (`weed_management` form; R08, R09, R02).
+  - **C04 · Plagas y enfermedades del cultivo**: distingue hipótesis de campo de diagnóstico fitopatológico confirmado con umbrales de daño económico (`pest_disease_management` form; R08, R02).
+  - **C05 · Comparar híbridos y cultivares**: preserva el contexto de ensayo (sitio, campaña, tosca) diferenciando un ranking puntual de la estabilidad multiamiental (`cultivar_selection` form; R06 maíz, R07 soja, R27 girasol).
+  - **C06 · Controlar pérdidas de cosecha**: desagrega pérdidas previas de precosecha vs pérdidas de máquina (cabezal y cola) y calibración (`harvest_losses` form; R10 INTA).
+  - **C07 · Planificar un muestreo de suelo**: requiere objetivo del análisis y lote antes de definir protocolo y laboratorio (`soil_sampling` form; R04, R05).
+  - **C08 · Comparar estrategias y dosis de fertilización**: diagnóstico por umbrales y modelos regionales sin inventar dosis comerciales fijas (`fertilization_strategy` form; R03, R04, R05).
+  - **C09 · Hacer un balance de nutrientes**: delimita con rigor lo no implementado en el MVP (balances de masa integrales) de las conversiones exactas de urea (R03) y extracción neta (`nutrient_balance` form).
+  - **C10 · Encontrar e interpretar normativa aplicable**: lectura conjunta de Tandil (R11 a R16) y declaración explícita de falta de cobertura para otros municipios bonaerenses (R12, R13; `municipality_regulations` form).
+  - **C11 · Conocer novedades en insumos**: declara ausencia de feed en tiempo real y enseña a contrastar marketing comercial con ensayos independientes y SENASA (R01, R06-R08, R24).
+  - **C12 · Precios de venta de cereales**: declara falta de cotización en tiempo real y orienta a pizarras de BCR (R20) y Bahía Blanca (R21).
+  - **C13 · Alquileres rurales de la zona**: declara que no existen promedios zonales representativos ni inventa $/ha, orientando a grupos CREA (`rental_rates` form; R25).
+  - **C14 · Costos de labores**: diferencia tarifas orientativas de contratistas de presupuestos efectivos (`machinery_costs` form; R22 FACMA).
+  - **C15 · Costos de flete**: orienta tarifas por distancia y tonelada sin confirmar cotizaciones individuales del viaje (`freight_costs` form; R23 FATRAC).
+  - **C16 · Riesgo de heladas**: distingue pronósticos meteorológicos preventivos (SMN R26, Agromet R17) de mapas satelitales post-evento (R18; `frost_risk` form).
+  - **C17 · Condiciones para una aplicación**: prohíbe autorizaciones automáticas por variables climáticas simples; exige marbete (R01/R02), normativa de Tandil (R14-R16), medición in situ con termoanemómetro y telemetría de deriva (`application_conditions` form; R19 INTA).
+  - **C18 · Consultar una biblioteca propia**: respuesta general y transparente explicando que la carga de PDFs locales está fuera de alcance del MVP y sugiriendo pegar fragmentos directamente.
+- **Formularios interactivos tipados** (`ClarificationForm.tsx`): 12 formularios interactivos según el escenario, validados en el servidor con whitelist de tipos.
+- **Recuperación documental** por coincidencia de palabras clave (`src/lib/retrieval.ts`).
+- **Modo de demostración vs. modo con IA**, claramente diferenciados en la UI.
+- **Persistencia de la conversación** en `localStorage` del navegador durante la sesión.
+- **UI responsive** (escritorio y móvil) con identidad visual propia: fondo marfil, verde oscuro, tarjetas de fuente plegables, advertencias discretas.
 
 ### Fuera de alcance en este MVP
 
