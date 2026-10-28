@@ -93,6 +93,19 @@ function handleCalculation(calc: DoseCalc | ContentCalc): AssistantResponse {
 
 // ---------- Reconocimiento de información insuficiente ----------
 
+function isCropRotationAfterHerbicideQuery(q: string): boolean {
+  const herbicideNames =
+    "herbicida|atrazina|glifosato|2,4-d|2,4 d|dicamba|imazetapir|acetoclor|metsulfuron|flurocloridona|clopiralid";
+  const mentionsHerbicideApplied = new RegExp(
+    `(aplic\\w+)[^.]*(${herbicideNames})|(${herbicideNames})[^.]*(aplic\\w+)`
+  ).test(q);
+  const asksAboutChangingCrop =
+    /rotaci|reorganizar la siembra|cambiar (el )?cultivo|resiembra|re ?sembrar|sembrar (otro|otra)|intervalo de siembra|restriccion(es)?.*(siembra|rotacion|cultivo)|que restricciones/.test(
+      q
+    );
+  return mentionsHerbicideApplied && asksAboutChangingCrop;
+}
+
 function isPhytoAuthorizationQuery(q: string): boolean {
   const hasProductTopic = /herbicida|fitosanitario|agroquimico|plaguicida/.test(q);
   const asksAuthorization = /autorizad|registrad|permitid|puedo usar|puedo aplicar/.test(q);
@@ -151,6 +164,50 @@ function handlePhytoInsufficientInfo(): AssistantResponse {
       "¿Nombre comercial o número de registro del producto?",
       "¿Formulación y concentración?",
       "¿Cultivo y maleza, plaga o enfermedad objetivo?",
+    ],
+    mode: "demo",
+  };
+}
+
+function handleCropRotationInsufficientInfo(): AssistantResponse {
+  return {
+    kind: "insufficient_info",
+    answer:
+      "Para evaluar qué restricciones de rotación aplican después de un herbicida ya aplicado, primero hay que identificar el producto con precisión: " +
+      "no existe un intervalo de siembra único ni validado en abstracto para 'atrazina' o 'un herbicida' en general — depende del producto comercial, su formulación y dosis exacta. " +
+      "Con esos datos se busca el marbete correspondiente, que es el que establece el intervalo de siembra (el tiempo que debe pasar antes de sembrar un cultivo distinto, por el residuo del herbicida en el suelo) para cada cultivo siguiente. " +
+      "Esa restricción es distinta del período de carencia, que es el tiempo que debe pasar entre la aplicación y la cosecha del cultivo tratado, no entre la aplicación y la siembra de otro cultivo.",
+    sources: [
+      {
+        sourceCode: "R01",
+        institution: "SENASA",
+        title: "Registro Nacional de Terapéutica Vegetal",
+        accessedOn: "2026-10-23",
+        url: "https://www.argentina.gob.ar/senasa/programas-sanitarios/productosveterinarios-fitosanitarios-y-fertilizantes/registro-nacional-de-terapeutica-vegetal",
+        verification: "verified",
+        supports:
+          "Punto de partida para identificar el producto exacto aplicado y acceder a su registro antes de buscar el marbete.",
+      },
+      {
+        sourceCode: "R02",
+        institution: "SENASA",
+        title: "Consulta pública del vademécum de productos fitosanitarios",
+        accessedOn: "2026-10-23",
+        url: "https://aps2.senasa.gov.ar/vademecum/app/publico",
+        verification: "verified",
+        supports:
+          "Buscador para localizar el marbete del producto identificado, donde consta el intervalo de siembra para el cultivo siguiente.",
+      },
+    ],
+    warnings: [
+      "No se propone ningún intervalo de siembra sin identificar el producto, la formulación y la dosis aplicada: hacerlo sería inventar un dato de seguridad.",
+      "El intervalo de siembra (restricción de rotación) no debe confundirse con el período de carencia hasta la cosecha: son dos restricciones distintas del mismo producto.",
+    ],
+    followUpQuestions: [
+      "¿Nombre comercial, formulación y número de registro del producto aplicado?",
+      "¿Dosis y fecha exacta de la aplicación?",
+      "¿Qué antecedentes de aplicaciones previas tiene el lote?",
+      "¿Qué cultivo se quiere sembrar ahora (en este caso, girasol) y en qué fecha?",
     ],
     mode: "demo",
   };
@@ -332,6 +389,7 @@ export async function respond(question: string): Promise<AssistantResponse> {
   const calc = detectCalculation(trimmed);
   if (calc) return handleCalculation(calc);
 
+  if (isCropRotationAfterHerbicideQuery(q)) return handleCropRotationInsufficientInfo();
   if (isPhytoAuthorizationQuery(q)) return handlePhytoInsufficientInfo();
   if (isSoilSamplingPlanningQuery(q)) return handleSoilSamplingInsufficientInfo();
   if (isLivePriceQuery(q)) return handleLivePriceInsufficientInfo();
