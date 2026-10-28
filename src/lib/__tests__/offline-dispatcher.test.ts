@@ -79,4 +79,23 @@ describe("Offline Client Dispatcher", () => {
     expect(result.response.kind).toBe("grounded_answer");
     expect(result.response.sources.map((s) => s.sourceCode)).toContain("R08");
   });
+
+  it("enhances grounded responses with local LLM generator when available", async () => {
+    const mockLocalGenerator = vi.fn().mockResolvedValue(
+      "Respuesta local generada por Llama 3.2 1B basada en los fragmentos."
+    );
+
+    const result = await resolveChatQuery({
+      question: "Qué dice la REM sobre Conyza y glifosato",
+      preferOffline: true,
+      localGeneratorFn: mockLocalGenerator,
+    });
+
+    expect(result.source).toBe("offline");
+    expect(mockLocalGenerator).toHaveBeenCalledTimes(1);
+    expect(result.response.answer).toBe(
+      "Respuesta local generada por Llama 3.2 1B basada en los fragmentos."
+    );
+    expect(result.response.mode).toBe("ai");
+  });
 });

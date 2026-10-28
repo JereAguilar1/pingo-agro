@@ -12,11 +12,11 @@
 - [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 2: RAG Pipeline Integration & Anti-Hallucination Guardrails
-- [ ] Task: Integrate local LLM in `src/lib/offline-client.ts`
-  - [ ] Fallback logic: C01-C18 deterministic -> Local LLM (if loaded) -> library snippet fallback
-  - [ ] Construct zero-hallucination prompt formatting in `src/lib/prompts.ts`
-  - [ ] Add post-generation source verification
-- [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
+- [x] Task: Integrate local LLM in `src/lib/offline-client.ts`
+  - [x] Fallback logic: C01-C18 deterministic -> Local LLM (if loaded) -> library snippet fallback
+  - [x] Construct zero-hallucination prompt formatting in `src/lib/prompts.ts`
+  - [x] Add post-generation source verification
+- [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 3: UI Model Manager & Streaming
 - [ ] Task: Build Model Manager Modal & Progress Bar
