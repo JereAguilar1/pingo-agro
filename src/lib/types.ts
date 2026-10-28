@@ -26,7 +26,19 @@ export type ClarificationFormKind =
   | "phyto"
   | "soil_sampling"
   | "crop_rotation"
-  | "product_family";
+  | "product_family"
+  | "weed_management"
+  | "pest_disease_management"
+  | "cultivar_selection"
+  | "harvest_losses"
+  | "fertilization_strategy"
+  | "nutrient_balance"
+  | "rental_rates"
+  | "machinery_costs"
+  | "freight_costs"
+  | "frost_risk"
+  | "application_conditions"
+  | "municipality_regulations";
 
 export interface ClarificationField {
   id: string;
