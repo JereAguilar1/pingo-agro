@@ -55,13 +55,30 @@ async function enhanceWithLocalLLM(
   // 1. If explicit generator provided (e.g. in tests)
   if (generator) {
     try {
-      const generated = await generator({ question, sources: res.sources, onToken });
+      let finalSources = res.sources;
+      if (!finalSources || finalSources.length === 0) {
+        const retrieved = retrieve(question, 4);
+        finalSources = retrieved.map((r) => ({
+          sourceCode: r.fragment.sourceCode,
+          institution: r.fragment.institution,
+          title: r.fragment.title,
+          date: r.fragment.date,
+          accessedOn: r.fragment.accessedOn,
+          section: r.fragment.section,
+          url: r.fragment.url,
+          verification: r.fragment.verification,
+          supports: r.fragment.text,
+        }));
+      }
+
+      const generated = await generator({ question, sources: finalSources, onToken });
       if (generated) {
         return {
           ...res,
           answer: generated,
           mode: "ai",
-          kind: res.kind === "no_evidence" ? "general" : res.kind,
+          kind: finalSources.length > 0 ? "grounded_answer" : (res.kind === "no_evidence" ? "general" : res.kind),
+          sources: finalSources,
         };
       }
     } catch {
@@ -77,7 +94,7 @@ async function enhanceWithLocalLLM(
         const sourceCodes = new Set(res.sources.map((s) => s.sourceCode));
         relevantSnippets = LIBRARY.filter((item) => sourceCodes.has(item.sourceCode));
       } else {
-        const retrieved = retrieve(question, 3);
+        const retrieved = retrieve(question, 4);
         relevantSnippets = retrieved.map((r) => r.fragment);
       }
 
@@ -88,11 +105,35 @@ async function enhanceWithLocalLLM(
       });
 
       if (generated) {
+        const finalSources =
+          res.sources && res.sources.length > 0
+            ? res.sources
+            : relevantSnippets.map((s) => ({
+                sourceCode: s.sourceCode,
+                institution: s.institution,
+                title: s.title,
+                date: s.date,
+                accessedOn: s.accessedOn,
+                section: s.section,
+                url: s.url,
+                verification: s.verification,
+                supports: s.text,
+              }));
+
+        const finalWarnings =
+          res.warnings && res.warnings.length > 0
+            ? res.warnings
+            : relevantSnippets
+                .map((s) => s.limitation)
+                .filter((v, i, arr) => Boolean(v) && arr.indexOf(v) === i);
+
         return {
           ...res,
           answer: generated,
           mode: "ai",
-          kind: res.kind === "no_evidence" ? "general" : res.kind,
+          kind: finalSources.length > 0 ? "grounded_answer" : (res.kind === "no_evidence" ? "general" : res.kind),
+          sources: finalSources,
+          warnings: finalWarnings,
         };
       }
     } catch (err) {
