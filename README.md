@@ -123,28 +123,36 @@ Vercel antes de la presentación.
 
 ## Estado de la publicación en Vercel
 
-El build de producción (`npm run build`) pasa sin errores y el proyecto no
-depende de sistema de archivos persistente ni de infraestructura externa
-obligatoria, por lo que es desplegable en Vercel tal cual.
+**Publicada y verificada:** https://surco-agro.vercel.app
 
-**La publicación real en Vercel no se completó desde este entorno** porque
-requiere autenticación interactiva (`vercel login`) o integración con una
-cuenta de GitHub/Vercel del usuario, credenciales que no están disponibles en
-esta sesión. Pasos mínimos para completarla:
+Se desplegó con la CLI de Vercel usando la cuenta ya autenticada en este
+entorno (proyecto `jeremias13/surco-agro`). Verificado tras el deploy:
+
+- `GET /` y `GET /chat` responden 200.
+- `GET /api/health` responde `{"status":"ok", ...}`.
+- `POST /api/chat` calcula correctamente el caso de urea en producción.
+
+Nota técnica: el primer intento de deploy devolvía 404 en todas las rutas
+porque el proyecto se había creado sin el framework "Next.js" asociado
+explícitamente, lo que hacía que Vercel lo tratara como sitio estático
+(`@vercel/static-build`) en lugar de generar las funciones serverless. Se
+corrigió fijando `framework: "nextjs"` en la configuración del proyecto y
+quitando las flags experimentales `cacheComponents` / `partialPrefetching`
+de `next.config.ts` (no soportadas de forma estable en este momento), lo que
+restauró la generación correcta de funciones y rutas.
+
+Si se quiere redesplegar desde otra cuenta o repositorio:
 
 ```bash
 npm install -g vercel   # o usar npx vercel
 vercel login            # requiere navegador/cuenta del usuario
-vercel                  # deploy de preview
+vercel link             # o importar el repo en vercel.com/new
 vercel --prod           # deploy de producción
 ```
 
-O, más simple para la demo: importar el repositorio en
-https://vercel.com/new conectando la cuenta de GitHub del usuario. Framework
-Next.js se detecta automáticamente; no se requiere configurar ninguna
-variable de entorno para que funcione en modo demostración. Si se quiere
-habilitar IA real, cargar `ANTHROPIC_API_KEY` en Project Settings → Environment
-Variables antes del deploy.
+No se requiere configurar ninguna variable de entorno para que funcione en
+modo demostración. Si se quiere habilitar IA real, cargar `ANTHROPIC_API_KEY`
+en Project Settings → Environment Variables antes del deploy.
 
 ## Limitaciones conocidas
 
