@@ -1,15 +1,15 @@
 # Implementation Plan: Motor LLM On-Device Local y RAG Anti-Alucinaciones (Fase 2)
 
 ## Phase 1: Local LLM Engine & WebGPU Support Layer (TDD)
-- [ ] Task: Unit tests for local engine manager and WebGPU detection
-  - [ ] Create test suite in `src/lib/__tests__/local-llm.test.ts`
-  - [ ] Test WebGPU availability check and fallback states
-  - [ ] Test prompt grounding and context formatting
-- [ ] Task: Implement Local LLM Service (`src/lib/local-llm.ts`)
-  - [ ] Install `@mlc-ai/web-llm` dependency
-  - [ ] Implement `initLocalLLM`, `isWebGPUSupported`, and generation runner
-  - [ ] Implement progress callback handler for model weight download
-- [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
+- [x] Task: Unit tests for local engine manager and WebGPU detection
+  - [x] Create test suite in `src/lib/__tests__/local-llm.test.ts`
+  - [x] Test WebGPU availability check and fallback states
+  - [x] Test prompt grounding and context formatting
+- [x] Task: Implement Local LLM Service (`src/lib/local-llm.ts`)
+  - [x] Install `@mlc-ai/web-llm` dependency
+  - [x] Implement `initLocalLLM`, `isWebGPUSupported`, and generation runner
+  - [x] Implement progress callback handler for model weight download
+- [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 2: RAG Pipeline Integration & Anti-Hallucination Guardrails
 - [ ] Task: Integrate local LLM in `src/lib/offline-client.ts`
