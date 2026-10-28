@@ -191,9 +191,32 @@ function ChatInner() {
 
       <main className="flex-1 w-full max-w-3xl mx-auto px-4 sm:px-6 py-6 flex flex-col gap-4">
         {messages.length === 0 && !loading && (
-          <p className="text-center text-sm mt-10" style={{ color: "var(--surco-ink-soft)" }}>
-            Escribí tu primera consulta agronómica para esta sesión.
-          </p>
+          <div className="space-y-4 my-4">
+            <p className="text-center text-sm" style={{ color: "var(--surco-ink-soft)" }}>
+              Escribí tu primera consulta agronómica para esta sesión.
+            </p>
+            <div className="rounded-2xl border p-3.5 sm:p-4 bg-stone-50/80 dark:bg-stone-900/60 border-stone-200 dark:border-stone-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-left">
+              <div className="flex items-start gap-2.5">
+                <span className="text-xl">⚡</span>
+                <div>
+                  <h3 className="text-xs font-semibold text-stone-900 dark:text-stone-100">
+                    Modo Campo: IA Local sin señal celular
+                  </h3>
+                  <p className="text-xs text-stone-600 dark:text-stone-400 mt-0.5">
+                    Podés descargar el modelo Llama 3.2 1B (~850 MB) para redactar consultas 100% offline a costo $0.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowModelManager(true)}
+                className="shrink-0 w-full sm:w-auto px-3.5 py-2 rounded-xl text-xs font-semibold text-white transition-opacity hover:opacity-90 cursor-pointer shadow-xs text-center"
+                style={{ background: "var(--surco-green)" }}
+              >
+                Configurar IA Offline
+              </button>
+            </div>
+          </div>
         )}
 
         {messages.map((m) => (
