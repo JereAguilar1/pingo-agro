@@ -45,7 +45,7 @@
   - [x] Form submission handlers in `handleFormSubmission()`
 - [x] Task: Phase 4 Verification & Checkpoint (Refer to workflow.md) (d6406be)
 
-## Phase 5: Weather, Application Conditions & Regulatory Scenarios (C16, C17, C10, C11, C18)
+## Phase 5: Weather, Application Conditions & Regulatory Scenarios (C16, C17, C10, C11, C18) [checkpoint: abef68e]
 - [x] Task: Write failing unit tests for C16, C17, C10, C11, C18 (abef68e)
   - [x] Tests for C16 (Heladas - R17/R26 vs R18)
   - [x] Tests for C17 (Condiciones de aplicación - prohibición de autorización automática, marbetes y R19)
@@ -55,7 +55,7 @@
 - [x] Task: Implement C16, C17, C10, C11, C18 in `src/lib/respond.ts` (abef68e)
   - [x] Implement detectors and structured handlers
   - [x] Wire up in `respond()` in strict precedence order to prevent overlaps
-- [ ] Task: Phase 5 Verification & Checkpoint (Refer to workflow.md)
+- [x] Task: Phase 5 Verification & Checkpoint (Refer to workflow.md) (abef68e)
 
 ## Phase 6: End-to-End Verification, Documentation & Production Deployment
 - [ ] Task: Quality Gates and Local Build Verification
