@@ -22,7 +22,7 @@
   - [x] Integrate into `respond()` and `handleFormSubmission()`
 - [x] Task: Phase 2 Verification & Checkpoint (Refer to workflow.md) (b8f0180)
 
-## Phase 3: Crop Management & Protection Scenarios (C03, C04, C05, C06, C07)
+## Phase 3: Crop Management & Protection Scenarios (C03, C04, C05, C06, C07) [checkpoint: 7b56293]
 - [x] Task: Write failing unit tests for C03, C04, C05, C06, C07 (7b56293)
   - [x] Tests for C03 (Malezas problema - REM R08/R09)
   - [x] Tests for C04 (Plagas y enfermedades)
@@ -33,7 +33,7 @@
   - [x] Implement detectors and insufficient info handlers with interactive forms
   - [x] Implement form submission handlers with source citations and diagnostic boundaries
   - [x] Wire up detectors in `respond()` and kinds in `handleFormSubmission()`
-- [ ] Task: Phase 3 Verification & Checkpoint (Refer to workflow.md)
+- [x] Task: Phase 3 Verification & Checkpoint (Refer to workflow.md) (7b56293)
 
 ## Phase 4: Nutrition & Soil Scenarios (C08, C09)
 - [ ] Task: Write failing unit tests for C08 and C09
