@@ -230,6 +230,35 @@ function isFertilizationStrategyQuery(q: string): boolean {
   return asksFertilization && asksStrategyContext;
 }
 
+function isFrostRiskQuery(q: string): boolean {
+  const asksFrost = /helada|heladas/.test(q);
+  const asksRiskOrForecast = /riesgo|pronostico|temperatura|informacion necesito|cultivo/.test(q);
+  return asksFrost && asksRiskOrForecast;
+}
+
+function isApplicationConditionsQuery(q: string): boolean {
+  const asksConditions = /tiempo previsto|ventana|condiciones|comprobar antes de empezar|momento de aplicar|puedo pulverizar/.test(q);
+  const asksApplication = /aplicacion|pulverizacion|pulverizar|aplicar/.test(q);
+  return asksConditions && asksApplication;
+}
+
+function isCustomLibraryQuery(q: string): boolean {
+  return /papers|planillas|mis lotes|consultar mi propia biblioteca|documentos propios|cargar pdf|subir pdf|cargar archivos/.test(q);
+}
+
+function isInputNoveltiesQuery(q: string): boolean {
+  const asksNovelties = /novedad|novedades|actualizado|nuevos productos|nuevas semillas/.test(q);
+  const asksInputs = /insumos|semillas|fertilizantes|fitosanitarios/.test(q);
+  return asksNovelties && asksInputs;
+}
+
+function isRegulationsQuery(q: string): boolean {
+  const asksRegulations = /leyes|decretos|ordenanzas|normativa/.test(q);
+  const asksContext = /fitosanitarios|agroquimicos|lote|aplicacion|revisar/.test(q);
+  const mentionsTandilExplicitly = /tandil/.test(q);
+  return asksRegulations && asksContext && !mentionsTandilExplicitly;
+}
+
 function isProductFamilyGenericQuery(q: string): boolean {
   const asksProductInfo =
     /que productos (puedo|podria|se pueden)|principios activos|familias? quimicas?|modos? de accion/.test(
@@ -654,6 +683,159 @@ function handleNutrientBalanceInsufficientInfo(): AssistantResponse {
         { id: "entradasSalidas", label: "Límites del balance", type: "select", options: ["Solo extracción por grano cosechado vs fertilizante", "Balance completo con rastrojo, fijación biológica y pérdidas"] },
       ],
     },
+    mode: "demo",
+  };
+}
+
+function handleFrostRiskInsufficientInfo(): AssistantResponse {
+  return {
+    kind: "insufficient_info",
+    answer:
+      "Para evaluar el riesgo de heladas y su impacto agronómico en el cultivo se debe definir la ubicación del lote (topografía baja o alta), el cultivo, su estado fenológico y el horizonte temporal del análisis. " +
+      "Es fundamental distinguir metodológicamente entre: " +
+      "1) El pronóstico meteorológico oficial a corto y mediano plazo (SMN [R26] e informe Agromet semanal de INTA [R17]); " +
+      "2) La medición in situ de temperatura en el lote con abrigo meteorológico o sensor a la altura del canopeo; y " +
+      "3) El monitoreo satelital de temperaturas de superficie de INTA (R18), que registra eventos ya ocurridos pero no constituye un pronóstico preventivo.",
+    sources: [
+      makeSourceCard("R17", "INTA Agromet Semanal: evolución agrometeorológica y pronósticos de heladas zonales."),
+      makeSourceCard("R18", "Información agroclimática de INTA sobre heladas a partir de temperatura superficial satelital."),
+      makeSourceCard("R26", "Servicio Meteorológico Nacional: pronósticos oficiales y alertas meteorológicas."),
+    ],
+    warnings: [
+      "Una observación satelital de heladas pasadas (R18) no anticipa un evento futuro; la susceptibilidad al daño depende críticamente de la etapa fenológica del cultivo.",
+    ],
+    followUpQuestions: [
+      "¿En qué localidad y posición topográfica está el lote?",
+      "¿Qué cultivo y estado fenológico presenta?",
+      "¿Para qué ventana de días o fecha de pronóstico se evalúa el riesgo?",
+    ],
+    clarificationForm: {
+      kind: "frost_risk",
+      submitLabel: "Evaluar riesgo con estos datos",
+      fields: [
+        { id: "ubicacion", label: "Ubicación y relieve", type: "text", placeholder: "Ej. Tandil (zona baja / cuenca)", required: true },
+        { id: "cultivo", label: "Cultivo", type: "select", options: CROPS, required: true },
+        { id: "etapaFenologica", label: "Etapa fenológica", type: "text", placeholder: "Ej. Espigazón en trigo, o emergencia de maíz" },
+        { id: "fechaInteres", label: "Fecha u horizonte de interés", type: "text", placeholder: "Ej. Próximas 48-72 horas" },
+      ],
+    },
+    mode: "demo",
+  };
+}
+
+function handleApplicationConditionsInsufficientInfo(): AssistantResponse {
+  return {
+    kind: "insufficient_info",
+    answer:
+      "La determinación de una ventana para pulverizar fitosanitarios no puede reducirse a una autorización automática basada únicamente en tres variables meteorológicas (viento, temperatura y humedad). " +
+      "Antes de iniciar cualquier aplicación y durante toda la labor se debe verificar: " +
+      "1) El marbete oficial del producto inscripto en SENASA (R01, R02), que fija las restricciones de deriva, tamaño de gota y coadyuvantes admitidos; " +
+      "2) La normativa municipal de Tandil (Ordenanza 17.404/2021 [R14] y suspensiones judiciales [R16]) y provincial (Ley 10.699 y Decreto 499/1991), que definen zonas de exclusión y distancias de amortiguamiento; " +
+      "3) El pronóstico regional de INTA Agromet (R17) para anticipar frentes de tormenta o inversiones térmicas; y " +
+      "4) La medición efectiva in situ en el lote con termoanemómetro al inicio y durante el trabajo, apoyándose en metodologías de monitoreo de deriva como las desarrolladas por INTA (R19).",
+    sources: [
+      makeSourceCard("R01", "SENASA: Registro Nacional para confirmar inscripción y clase toxicológica."),
+      makeSourceCard("R02", "SENASA vademécum: consulta de marbete con restricciones específicas de aplicación."),
+      makeSourceCard("R14", "Ordenanza 17.404/2021 de Tandil: distancias mínimas y zonas de amortiguamiento."),
+      makeSourceCard("R17", "INTA Agromet: variables climáticas y pronóstico regional."),
+      makeSourceCard("R19", "INTA: tecnologías y monitoreo continuo de pulverizaciones y deriva."),
+    ],
+    warnings: [
+      "Surco nunca autoriza de forma automática una aplicación: la decisión técnica y legal corresponde al profesional actuante bajo receta agronómica.",
+      "Las condiciones deben medirse en el lote a la altura de las pastillas: el pronóstico general nunca sustituye la medición in situ.",
+    ],
+    followUpQuestions: [
+      "¿Qué producto fitosanitario se aplicará (nombre comercial o registro SENASA)?",
+      "¿Qué cultivo y adversidad se tratará?",
+      "¿Cuáles son las condiciones meteorológicas previstas (viento, humedad, temperatura)?",
+      "¿Qué entorno tiene el lote (distancia a viviendas, escuelas o cursos de agua)?",
+    ],
+    clarificationForm: {
+      kind: "application_conditions",
+      submitLabel: "Evaluar aplicación con estos datos",
+      fields: [
+        { id: "producto", label: "Producto fitosanitario", type: "text", placeholder: "Ej. Roundup Full II", required: true },
+        { id: "cultivo", label: "Cultivo", type: "select", options: CROPS, required: true },
+        { id: "condicionesPrevistas", label: "Condiciones meteorológicas previstas", type: "text", placeholder: "Ej. Viento 12 km/h, Humedad 60%, Temp 20°C" },
+        { id: "entornoLote", label: "Entorno del lote", type: "select", options: ["Lote agrícola extensivo estándar", "Cercano a zona urbana / periurbana", "Cercano a escuela rural o curso de agua"], required: true },
+      ],
+    },
+    mode: "demo",
+  };
+}
+
+function handleMunicipalityRegulationsInsufficientInfo(): AssistantResponse {
+  return {
+    kind: "insufficient_info",
+    answer:
+      "La biblioteca de normativa municipal de Surco en este prototipo está concentrada específicamente en el Partido de Tandil (Ordenanza 17.404/2021 [R14], Decreto 1800/2022 [R15] y suspensiones judiciales vigentes [R16]), articulada con la Ley Provincial 10.699 [R12] y Decreto 499/1991 [R13]. " +
+      "Si tu lote se ubica en otro municipio de la Provincia de Buenos Aires (como Azul, Balcarce, Necochea, Olavarría), rige la normativa marco provincial pero Surco no dispone de la ordenanza municipal local correspondiente. " +
+      "Para orientar la consulta, indicá el municipio donde se encuentra el lote y el tipo de aplicación que se pretende realizar.",
+    sources: [
+      makeSourceCard("R11", "Buscador de normativa nacional sobre fitosanitarios."),
+      makeSourceCard("R12", "Ley Provincial 10.699 de protección y sanidad vegetal bonaerense."),
+      makeSourceCard("R13", "Decreto Reglamentario 499/1991 de la Ley 10.699 de agroquímicos."),
+      makeSourceCard("R14", "Ordenanza 17.404/2021 de la Municipalidad de Tandil."),
+    ],
+    warnings: [
+      "Surco solo cuenta con cobertura documental municipal completa para Tandil; para otros distritos no se simulan normativas locales inexistentes.",
+    ],
+    followUpQuestions: [
+      "¿En qué municipio o partido se encuentra el lote?",
+      "¿Qué tipo de aplicación se proyecta (terrestre o aérea)?",
+      "¿A qué distancia se encuentra de áreas urbanas, escuelas rurales o cursos de agua?",
+    ],
+    clarificationForm: {
+      kind: "municipality_regulations",
+      submitLabel: "Consultar normativa con estos datos",
+      fields: [
+        { id: "municipio", label: "Municipio / Partido", type: "text", placeholder: "Ej. Tandil, Azul, Balcarce, Necochea", required: true },
+        { id: "tipoAplicacion", label: "Tipo de aplicación", type: "select", options: ["Terrestre", "Aérea", "Periurbana"] },
+        { id: "distanciaZonaSensible", label: "Distancia a zonas sensibles", type: "text", placeholder: "Ej. A 200 m de casco urbano o escuela" },
+      ],
+    },
+    mode: "demo",
+  };
+}
+
+function handleInputNoveltiesInsufficientInfo(): AssistantResponse {
+  return {
+    kind: "insufficient_info",
+    answer:
+      "Surco no cuenta con una conexión en tiempo real a lanzamientos comerciales ni a bases de novedades de insumos agropecuarios. " +
+      "Para evaluar novedades sobre semillas, fertilizantes o fitosanitarios en tu zona, la recomendación técnica es contrastar siempre la información en dos niveles: " +
+      "1) Lo comunicado por las empresas o cámaras del sector (como las fichas técnicas y guías de CASAFE [R24]), que presentan características comerciales del producto; frente a " +
+      "2) La evidencia independiente generada en redes de ensayos de la región pampeana (Red de maíz [R06], RECSO soja [R07], REM de Aapresid [R08]) y la inscripción oficial vigente en el Registro Nacional de SENASA (R01). " +
+      "Nunca adoptes una novedad basándote únicamente en folletos comerciales sin comprobar su registro oficial y ensayos independientes en ambientes comparables.",
+    sources: [
+      makeSourceCard("R01", "Registro Nacional de SENASA: para verificar que el producto o cultivar cuente con registro formal."),
+      makeSourceCard("R06", "Red de ensayos de maíz del sur de Buenos Aires para comparar nuevos híbridos en la zona."),
+      makeSourceCard("R07", "RECSO Soja: evaluación independiente de cultivares."),
+      makeSourceCard("R08", "REM (Aapresid): seguimiento independiente de biotipos y resistencia en fitosanitarios."),
+      makeSourceCard("R24", "CASAFE: guía técnica institucional de productos de la industria fitosanitaria."),
+    ],
+    warnings: [
+      "No se dispone de feed en tiempo real de novedades: la información comercial debe contrastarse con registros oficiales y ensayos independientes.",
+    ],
+    followUpQuestions: [
+      "¿Sobre qué tipo de insumo (semilla, fertilizante o fitosanitario) buscás referencias?",
+      "¿Para qué cultivo y zona geográfica?",
+    ],
+    mode: "demo",
+  };
+}
+
+function handleCustomLibraryGeneral(): AssistantResponse {
+  return {
+    kind: "general",
+    answer:
+      "La función de cargar y procesar documentos propios (archivos PDF, planillas de campo, análisis de suelo o ensayos privados) está fuera de alcance en este prototipo MVP de Surco. " +
+      "Para este prototipo, toda la evidencia proviene de la biblioteca documental curada y verificada versionada en el repositorio. " +
+      "Mientras tanto, podés copiar y pegar el fragmento o los datos textuales de tu ensayo o análisis directamente en el chat para que podamos analizarlos en conjunto con las fuentes oficiales disponibles.",
+    sources: [],
+    warnings: [
+      "No es posible subir archivos locales en este MVP: pegá los datos relevantes como texto en el mensaje.",
+    ],
     mode: "demo",
   };
 }
@@ -1214,6 +1396,104 @@ function handleNutrientBalanceFormSubmission(data: Record<string, string>): Assi
   };
 }
 
+function handleFrostRiskFormSubmission(data: Record<string, string>): AssistantResponse {
+  const ubicacion = data.ubicacion?.trim() || "la zona";
+  const cultivo = data.cultivo?.trim() || "el cultivo";
+  const etapa = data.etapaFenologica?.trim() || "etapa vegetativa/reproductiva";
+  const fecha = data.fechaInteres?.trim() || "las próximas horas";
+
+  return {
+    kind: "grounded_answer",
+    answer:
+      `Para evaluar el riesgo de heladas en ${ubicacion} para ${cultivo} en ${etapa} (${fecha}), la determinación técnica requiere cruzar el pronóstico agrometeorológico con la susceptibilidad fenológica. ` +
+      `Consultá el pronóstico del SMN [R26] para chequear alertas de temperatura bajo cero y viento en calma, y el informe Agromet Semanal de INTA [R17] para tendencias agrometeorológicas regionales. ` +
+      `Si el cultivo se encuentra en etapas reproductivas críticas (como floración o llenado inicial), umbrales térmicos cercanos a 0°C a nivel de abrigo meteorológico pueden generar temperaturas bajo cero a ras del suelo y provocar daño irreversible en espigas o vainas. ` +
+      `Recordá que los mapas satelitales de heladas del INTA [R18] son útiles para verificar la intensidad espacial de eventos térmicos ya ocurridos, pero la prevención exige monitoreo termométrico directo en el lote.`,
+    sources: [
+      makeSourceCard("R17", "INTA Agromet: informes agrometeorológicos y balance de agua y temperatura."),
+      makeSourceCard("R18", "INTA Heladas: mapas de temperatura superficial para seguimiento post-evento."),
+      makeSourceCard("R26", "SMN: fuente oficial de pronóstico numérico y alertas tempranas en Argentina."),
+    ],
+    warnings: [
+      "No se confirma ni descarta una helada puntual sin el pronóstico local oficial del día y la medición in situ de temperatura.",
+    ],
+    mode: "demo",
+  };
+}
+
+function handleApplicationConditionsFormSubmission(data: Record<string, string>): AssistantResponse {
+  const producto = data.producto?.trim() || "el producto";
+  const cultivo = data.cultivo?.trim() || "el cultivo";
+  const condiciones = data.condicionesPrevistas?.trim() || "las condiciones indicadas";
+  const entorno = data.entornoLote || "el lote";
+
+  return {
+    kind: "grounded_answer",
+    answer:
+      `Para la aplicación de ${producto} en ${cultivo} bajo ${condiciones} en ${entorno.toLowerCase()}, no se debe dar una autorización automática. ` +
+      `Primero es imperativo revisar el marbete de ${producto} en el vademécum de SENASA [R02] para verificar el tamaño de gota sugerido, velocidad de viento máxima admitida y adyuvantes recomendados. ` +
+      `Segundo, comprobar la normativa local de Tandil [R14, R16] y provincial [R12, R13]: si el lote se encuentra próximo a escuelas rurales, cursos de agua o zonas periurbanas, rigen distancias mínimas de amortiguamiento y receta agronómica obligatoria. ` +
+      `Tercero, durante la labor es obligatorio realizar mediciones continuas in situ con termoanemómetro para constatar viento (generalmente entre 5 y 15 km/h, evitando tanto ráfagas excesivas como calma total por riesgo de inversión térmica) y Delta T (entre 2 y 8), incorporando pautas de monitoreo y telemetría de deriva como las del INTA [R19].`,
+    sources: [
+      makeSourceCard("R02", "SENASA: marbete oficial y restricciones de pulverización."),
+      makeSourceCard("R14", "Ordenanza Tandil 17.404/2021: zonas de amortiguamiento y protección ambiental."),
+      makeSourceCard("R19", "INTA: monitoreo remoto y control de deriva en pulverizaciones agrícolas."),
+    ],
+    warnings: [
+      "No existe ventana de aplicación válida si no se verifica el marbete y la normativa de distancias vigente en Tandil.",
+      "La medición con termoanemómetro debe realizarse en el lote a la altura del botalón antes y durante la labor.",
+    ],
+    mode: "demo",
+  };
+}
+
+function handleMunicipalityRegulationsFormSubmission(data: Record<string, string>): AssistantResponse {
+  const municipio = data.municipio?.trim() || "";
+  const tipo = data.tipoAplicacion || "terrestre";
+  const distancia = data.distanciaZonaSensible?.trim() || "no especificada";
+
+  const isTandil = /tandil/i.test(municipio);
+
+  if (isTandil) {
+    return {
+      kind: "grounded_answer",
+      answer:
+        `Para aplicaciones en el Partido de Tandil (${tipo.toLowerCase()}, distancia a zonas sensibles: ${distancia}), la normativa aplicable exige una lectura conjunta de varias normas escalonadas en el tiempo: ` +
+        `1) A nivel provincial, la Ley 10.699 [R12] y el Decreto Reglamentario 499/1991 [R13] exigen receta agronómica obligatoria suscripta por un ingeniero agrónomo matriculado y habilitación del equipo de aplicación; ` +
+        `2) A nivel municipal, la Ordenanza 17.404/2021 [R14] y el Decreto Reglamentario 1800/2022 [R15] establecen las zonas de amortiguamiento y condiciones de pulverización; ` +
+        `3) Es indispensable considerar el Decreto 423/2026 [R16], que notificó la suspensión judicial precautoria temporal del artículo 8 de la ordenanza. ` +
+        `Por lo tanto, no alcanza con leer una sola norma histórica: hay que contrastar los artículos con las medidas cautelares y reglamentaciones vigentes.`,
+      sources: [
+        makeSourceCard("R12", "Ley Provincial 10.699: marco regulatorio bonaerense de agroquímicos."),
+        makeSourceCard("R13", "Decreto Reglamentario 499/1991: receta agronómica y equipos."),
+        makeSourceCard("R14", "Ordenanza Tandil 17.404/2021: regulación municipal de fitosanitarios."),
+        makeSourceCard("R15", "Decreto Tandil 1800/2022: reglamentación de la Ordenanza 17.404."),
+        makeSourceCard("R16", "Decreto Tandil 423/2026: suspensión cautelar judicial del art. 8."),
+      ],
+      warnings: [
+        "Las disposiciones judiciales y decretos modificatorios pueden alterar artículos puntuales: verificar el estado vigente con la Dirección de Medio Ambiente de Tandil.",
+      ],
+      mode: "demo",
+    };
+  }
+
+  return {
+    kind: "grounded_answer",
+    answer:
+      `La biblioteca documental de Surco en este prototipo solo cubre la normativa municipal del Partido de Tandil; no dispone de las ordenanzas locales vigentes para ${municipio}. ` +
+      `En todo el territorio de la Provincia de Buenos Aires rige la Ley Provincial 10.699 [R12] y su Decreto Reglamentario 499/1991 [R13], que obligan a contar con receta agronómica y operarios habilitados. ` +
+      `Para conocer las restricciones puntuales, distancias de amortiguamiento y zonas de exclusión en ${municipio}, debés consultar directamente el digesto municipal o el área de producción/medio ambiente de ese municipio.`,
+    sources: [
+      makeSourceCard("R12", "Ley Provincial 10.699 de la Provincia de Buenos Aires."),
+      makeSourceCard("R13", "Decreto Reglamentario 499/1991 bonaerense."),
+    ],
+    warnings: [
+      `No se detalla la ordenanza municipal de ${municipio}: Surco declara explícitamente la falta de cobertura local para evitar inventar restricciones no verificadas.`,
+    ],
+    mode: "demo",
+  };
+}
+
 function handleFormSubmission(submission: FormSubmission): AssistantResponse {
   switch (submission.kind) {
     case "phyto":
@@ -1242,6 +1522,12 @@ function handleFormSubmission(submission: FormSubmission): AssistantResponse {
       return handleMachineryCostsFormSubmission(submission.data);
     case "freight_costs":
       return handleFreightCostsFormSubmission(submission.data);
+    case "frost_risk":
+      return handleFrostRiskFormSubmission(submission.data);
+    case "application_conditions":
+      return handleApplicationConditionsFormSubmission(submission.data);
+    case "municipality_regulations":
+      return handleMunicipalityRegulationsFormSubmission(submission.data);
     default:
       throw new Error(`Tipo de formulario no soportado: ${(submission as { kind: string }).kind}`);
   }
@@ -1271,9 +1557,12 @@ export async function respond(
   const calc = detectCalculation(trimmed);
   if (calc) return handleCalculation(calc);
 
+  if (isCustomLibraryQuery(q)) return handleCustomLibraryGeneral();
   if (isCropRotationAfterHerbicideQuery(q)) return handleCropRotationInsufficientInfo();
   if (isProductFamilyGenericQuery(q)) return handleProductFamilyInsufficientInfo();
   if (isPhytoAuthorizationQuery(q)) return handlePhytoInsufficientInfo();
+  if (isApplicationConditionsQuery(q)) return handleApplicationConditionsInsufficientInfo();
+  if (isFrostRiskQuery(q)) return handleFrostRiskInsufficientInfo();
   if (isWeedManagementQuery(q)) return handleWeedManagementInsufficientInfo();
   if (isPestAndDiseaseQuery(q)) return handlePestDiseaseInsufficientInfo();
   if (isCultivarSelectionQuery(q)) return handleCultivarSelectionInsufficientInfo();
@@ -1281,6 +1570,8 @@ export async function respond(
   if (isNutrientBalanceQuery(q)) return handleNutrientBalanceInsufficientInfo();
   if (isFertilizationStrategyQuery(q)) return handleFertilizationStrategyInsufficientInfo();
   if (isSoilSamplingPlanningQuery(q)) return handleSoilSamplingInsufficientInfo();
+  if (isRegulationsQuery(q)) return handleMunicipalityRegulationsInsufficientInfo();
+  if (isInputNoveltiesQuery(q)) return handleInputNoveltiesInsufficientInfo();
   if (isRentalRatesQuery(q)) return handleRentalRatesInsufficientInfo();
   if (isLaborCostQuery(q)) return handleLaborCostInsufficientInfo();
   if (isFreightCostQuery(q)) return handleFreightCostInsufficientInfo();

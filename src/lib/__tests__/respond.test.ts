@@ -330,3 +330,97 @@ describe("respond — Escenarios de Nutrición y Suelo (C08, C09)", () => {
     });
   });
 });
+
+describe("respond — Escenarios de Clima, Aplicaciones y Regulatorio (C16, C17, C10, C11, C18)", () => {
+  describe("C16 · Riesgo de heladas", () => {
+    it("distingue pronóstico meteorológico de monitoreo satelital de eventos ya ocurridos", async () => {
+      const r = await respond("¿Hay riesgo de heladas en la zona de mi lote y qué información necesito para evaluar su importancia para el cultivo?");
+      expect(r.kind).toBe("insufficient_info");
+      expect(r.clarificationForm?.kind).toBe("frost_risk");
+      expect(r.sources.map((s) => s.sourceCode)).toEqual(expect.arrayContaining(["R17", "R18", "R26"]));
+      expect(r.answer.toLowerCase()).toContain("satelital");
+    });
+
+    it("orienta con SMN e INTA al enviar formulario de heladas", async () => {
+      const r = await respond("", {
+        kind: "frost_risk",
+        data: { ubicacion: "Tandil", cultivo: "Trigo", etapaFenologica: "Espigazón", fechaInteres: "Próximas 48 horas" },
+      });
+      expect(r.kind).toBe("grounded_answer");
+      expect(r.sources.map((s) => s.sourceCode)).toEqual(expect.arrayContaining(["R17", "R18", "R26"]));
+      expect(r.answer).toContain("Tandil");
+      expect(r.answer).toContain("Trigo");
+    });
+  });
+
+  describe("C17 · Condiciones para una aplicación", () => {
+    it("nunca otorga autorización automática por 3 variables climáticas y exige marbete y normativa", async () => {
+      const r = await respond("Según el tiempo previsto, ¿qué ventana podría evaluar para una aplicación y qué tendría que comprobar antes de empezar y durante el trabajo?");
+      expect(r.kind).toBe("insufficient_info");
+      expect(r.clarificationForm?.kind).toBe("application_conditions");
+      expect(r.sources.map((s) => s.sourceCode)).toEqual(expect.arrayContaining(["R01", "R02", "R14", "R17", "R19"]));
+      // Prohibición estricta de autorización automática
+      expect(r.answer.toLowerCase()).not.toMatch(/\b(pod[eé]s aplicar|la ventana es buena|est[aá] autorizad[ao])\b/i);
+    });
+
+    it("guía la verificación in situ, telemetría y marbete al enviar formulario de aplicación", async () => {
+      const r = await respond("", {
+        kind: "application_conditions",
+        data: { producto: "Roundup Full II", cultivo: "Soja", condicionesPrevistas: "Viento 12 km/h, Humedad 60%, Temp 20°C", entornoLote: "Cercano a escuela rural o curso de agua" },
+      });
+      expect(r.kind).toBe("grounded_answer");
+      expect(r.sources.map((s) => s.sourceCode)).toEqual(expect.arrayContaining(["R02", "R19"]));
+      expect(r.answer).toContain("Roundup Full II");
+      expect(r.answer.toLowerCase()).toContain("in situ");
+    });
+  });
+
+  describe("C10 · Normativa aplicable y municipios fuera de Tandil", () => {
+    it("pide municipio y advierte cobertura específica de Tandil ante consulta genérica de normativa", async () => {
+      const r = await respond("¿Qué leyes, decretos y ordenanzas tengo que revisar para el uso de fitosanitarios en este lote? ¿Cómo se relacionan y qué artículos corresponden a mi consulta?");
+      expect(r.kind).toBe("insufficient_info");
+      expect(r.clarificationForm?.kind).toBe("municipality_regulations");
+      expect(r.sources.map((s) => s.sourceCode)).toEqual(expect.arrayContaining(["R11", "R12", "R13", "R14"]));
+    });
+
+    it("explica lectura conjunta de Tandil (R11 a R16) si el municipio es Tandil", async () => {
+      const r = await respond("", {
+        kind: "municipality_regulations",
+        data: { municipio: "Tandil", tipoAplicacion: "Terrestre", distanciaZonaSensible: "200 m" },
+      });
+      expect(r.kind).toBe("grounded_answer");
+      expect(r.sources.map((s) => s.sourceCode)).toEqual(expect.arrayContaining(["R12", "R13", "R14", "R15", "R16"]));
+      expect(r.answer).toContain("17.404");
+    });
+
+    it("declara explícitamente falta de cobertura local si el municipio es distinto a Tandil", async () => {
+      const r = await respond("", {
+        kind: "municipality_regulations",
+        data: { municipio: "Balcarce", tipoAplicacion: "Terrestre" },
+      });
+      expect(r.kind).toBe("grounded_answer");
+      expect(r.sources.map((s) => s.sourceCode)).toEqual(expect.arrayContaining(["R12", "R13"]));
+      expect(r.answer.toLowerCase()).toContain("solo cubre");
+      expect(r.answer).toContain("Balcarce");
+    });
+  });
+
+  describe("C11 · Conocer novedades en insumos", () => {
+    it("declara que no hay feed en tiempo real y distingue anuncios de empresas de ensayos independientes", async () => {
+      const r = await respond("Quiero estar actualizado sobre semillas, fertilizantes y fitosanitarios nuevos. ¿Qué novedades son pertinentes para mi zona y qué información respalda lo que ofrecen?");
+      expect(r.kind).toBe("insufficient_info");
+      expect(r.sources.map((s) => s.sourceCode)).toEqual(expect.arrayContaining(["R01", "R06", "R08", "R24"]));
+      expect(r.answer.toLowerCase()).toContain("tiempo real");
+      expect(r.answer.toLowerCase()).toContain("independiente");
+    });
+  });
+
+  describe("C18 · Consultar una biblioteca propia", () => {
+    it("informa honestamente que la carga de documentos propios está fuera del MVP y sugiere pegar texto", async () => {
+      const r = await respond("Tengo papers, ensayos, análisis y planillas de mis lotes. ¿Cómo puedo consultarlos junto con estudios de la zona, comparar resultados y volver al dato original?");
+      expect(r.kind).toBe("general");
+      expect(r.answer.toLowerCase()).toContain("fuera de alcance");
+      expect(r.answer.toLowerCase()).toContain("pegar");
+    });
+  });
+});
