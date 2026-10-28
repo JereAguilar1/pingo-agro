@@ -26,6 +26,39 @@ const SENASA_SOURCES: SourceCardData[] = [
   },
 ];
 
+const REM_SOURCES: SourceCardData[] = [
+  {
+    sourceCode: "R08",
+    institution: "Aapresid",
+    title: "REM — Red de Manejo de Plagas (malezas, insectos y enfermedades resistentes)",
+    accessedOn: "2026-10-23",
+    url: "https://aapresid.org.ar/rem",
+    verification: "verified",
+    supports: "Entradas sobre malezas, plagas y enfermedades, y seguimiento de resistencias por problema.",
+  },
+  {
+    sourceCode: "R09",
+    institution: "Aapresid — REM",
+    title: "Modos de acción herbicida (publicación 2013)",
+    accessedOn: "2026-10-23",
+    url: "https://www.aapresid.org.ar/es/novedades/68d1ba18379fe5caf64926fd",
+    verification: "verified",
+    supports: "Marco conceptual para distinguir familia química de modo de acción (de 2013: contrastar con registros vigentes).",
+  },
+];
+
+const NORMATIVA_SOURCE: SourceCardData = {
+  sourceCode: "R11",
+  institution: "Argentina.gob.ar",
+  title: "Buscador de normativa nacional (leyes, decretos y resoluciones)",
+  accessedOn: "2026-10-23",
+  url: "https://www.argentina.gob.ar/normativa",
+  verification: "verified",
+  supports: "Para verificar si hay restricciones provinciales o municipales adicionales según la ubicación del lote (en Tandil: Ordenanza 17.404/2021 y sus reglamentaciones).",
+};
+
+const PROBLEM_TYPES = ["Maleza", "Plaga (insecto)", "Enfermedad", "Otro"];
+
 function parseNumber(raw: string): number {
   return parseFloat(raw.replace(",", "."));
 }
@@ -144,6 +177,16 @@ function isSoilSamplingPlanningQuery(q: string): boolean {
   return mentionsSampling && !givesObjective && !givesProtocolDetail;
 }
 
+function isProductFamilyGenericQuery(q: string): boolean {
+  const asksProductInfo =
+    /que productos (puedo|podria|se pueden)|principios activos|familias? quimicas?|modos? de accion/.test(
+      q
+    );
+  const genericPlaceholder =
+    /este cultivo|este problema|mi cultivo|mi problema|un cultivo|un problema/.test(q);
+  return asksProductInfo && genericPlaceholder;
+}
+
 function isLivePriceQuery(q: string): boolean {
   const asksPrice = /precio|cotizacion|cuanto (vale|cuesta|pagan)|oferta/.test(q);
   const aboutMarket = /cereal|soja|maiz|trigo|grano|flete|alquiler|arrendamiento|dolar|tonelada/.test(
@@ -251,6 +294,36 @@ function handleCropRotationInsufficientInfo(): AssistantResponse {
         { id: "fechaAplicacion", label: "Fecha de aplicación", type: "date" },
         { id: "cultivoNuevo", label: "Cultivo que se quiere sembrar ahora", type: "select", options: CROPS, required: true },
         { id: "fechaSiembra", label: "Fecha prevista de siembra", type: "date" },
+      ],
+    },
+    mode: "demo",
+  };
+}
+
+function handleProductFamilyInsufficientInfo(): AssistantResponse {
+  return {
+    kind: "insufficient_info",
+    answer:
+      "Una lista de principios activos no resuelve esta consulta por sí sola: para relacionar cultivo, problema y uso registrado necesito identificar primero el cultivo y el problema puntual (maleza, plaga o enfermedad, con especie si la conocés). " +
+      "Con eso puedo orientar la búsqueda distinguiendo familia química (grupo de principios activos con estructura similar) de modo de acción (cómo actúa sobre el organismo objetivo, relevante para manejar resistencias), pero el producto final, su formulación y sus restricciones de uso solo se confirman en el registro y el marbete — no alcanza con nombrar un principio activo.",
+    sources: [...REM_SOURCES, ...SENASA_SOURCES],
+    warnings: [
+      "La cobertura de esta biblioteca es parcial: REM (Aapresid) aporta antecedentes de manejo y resistencias, pero no reemplaza una búsqueda exhaustiva en el registro oficial para el cultivo y problema exactos.",
+      "Si el lote está en Tandil u otro municipio, puede haber restricciones adicionales de aplicación en la normativa local, además del registro nacional.",
+    ],
+    followUpQuestions: [
+      "¿Qué cultivo es?",
+      "¿Qué tipo de problema (maleza, plaga o enfermedad) y, si la conocés, qué especie?",
+      "¿En qué ubicación está el lote, para revisar normativa local si corresponde?",
+    ],
+    clarificationForm: {
+      kind: "product_family",
+      submitLabel: "Orientar la búsqueda con estos datos",
+      fields: [
+        { id: "cultivo", label: "Cultivo", type: "select", options: CROPS, required: true },
+        { id: "tipoProblema", label: "Tipo de problema", type: "select", options: PROBLEM_TYPES, required: true },
+        { id: "especie", label: "Especie (maleza, plaga o enfermedad), si la conocés", type: "text", placeholder: "Ej. Sorgo de Alepo, Chinche, Roya" },
+        { id: "ubicacion", label: "Ubicación del lote", type: "text", placeholder: "Ej. Tandil" },
       ],
     },
     mode: "demo",
@@ -510,6 +583,31 @@ function handleCropRotationFormSubmission(data: Record<string, string>): Assista
   };
 }
 
+function handleProductFamilyFormSubmission(data: Record<string, string>): AssistantResponse {
+  const cultivo = data.cultivo?.trim() || "el cultivo indicado";
+  const tipoProblema = data.tipoProblema?.trim() || "el problema indicado";
+  const especie = data.especie?.trim();
+  const ubicacion = data.ubicacion?.trim();
+
+  const sources = [...REM_SOURCES, ...SENASA_SOURCES];
+  if (ubicacion && /tandil/i.test(ubicacion)) sources.push(NORMATIVA_SOURCE);
+
+  return {
+    kind: "grounded_answer",
+    answer:
+      `Para ${tipoProblema.toLowerCase()}${especie ? ` (${especie})` : ""} en ${cultivo}, conviene buscar en dos lugares distintos y no confundirlos: ` +
+      `la REM de Aapresid [R08] para antecedentes de manejo y resistencias conocidas en esa combinación cultivo-problema, y el vademécum de SENASA [R02] para la lista de productos efectivamente registrados para ese uso, con su formulación y restricciones. ` +
+      `Al revisar resultados, distinguí familia química (grupo de principios activos con estructura similar) de modo de acción (cómo actúa el producto, clave para rotar y evitar resistencias) — la publicación de modos de acción de la REM [R09] ayuda a esa distinción, aunque es de 2013 y conviene contrastarla con el registro vigente.` +
+      (ubicacion ? ` Si el lote está en ${ubicacion}, revisá también si hay restricciones municipales de aplicación además del registro nacional.` : ""),
+    sources,
+    warnings: [
+      "Esta respuesta orienta dónde y cómo buscar; no es una lista cerrada de productos autorizados para tu caso, que depende del registro vigente al momento de la consulta.",
+      "La publicación de modos de acción de la REM es de 2013: usala como marco conceptual, no como fuente de vigencia de registros.",
+    ],
+    mode: "demo",
+  };
+}
+
 function handleFormSubmission(submission: FormSubmission): AssistantResponse {
   switch (submission.kind) {
     case "phyto":
@@ -518,6 +616,8 @@ function handleFormSubmission(submission: FormSubmission): AssistantResponse {
       return handleSoilSamplingFormSubmission(submission.data);
     case "crop_rotation":
       return handleCropRotationFormSubmission(submission.data);
+    case "product_family":
+      return handleProductFamilyFormSubmission(submission.data);
   }
 }
 
@@ -546,6 +646,7 @@ export async function respond(
   if (calc) return handleCalculation(calc);
 
   if (isCropRotationAfterHerbicideQuery(q)) return handleCropRotationInsufficientInfo();
+  if (isProductFamilyGenericQuery(q)) return handleProductFamilyInsufficientInfo();
   if (isPhytoAuthorizationQuery(q)) return handlePhytoInsufficientInfo();
   if (isSoilSamplingPlanningQuery(q)) return handleSoilSamplingInsufficientInfo();
   if (isLivePriceQuery(q)) return handleLivePriceInsufficientInfo();

@@ -66,6 +66,18 @@ describe("respond — información insuficiente", () => {
     );
     expect(rotation.clarificationForm?.kind).toBe("crop_rotation");
   });
+
+  it("C02 — pide cultivo y problema antes de listar productos/familias/modos de acción", async () => {
+    const r = await respond(
+      "¿Qué productos puedo utilizar para este cultivo y este problema? ¿Qué principios activos, familias químicas y modos de acción tienen?"
+    );
+    expect(r.kind).toBe("insufficient_info");
+    expect(r.clarificationForm?.kind).toBe("product_family");
+    expect(r.sources.map((s) => s.sourceCode)).toEqual(
+      expect.arrayContaining(["R01", "R02", "R08", "R09"])
+    );
+    expect(r.followUpQuestions?.length).toBeGreaterThan(0);
+  });
 });
 
 describe("respond — envío de formulario de aclaración", () => {
@@ -86,6 +98,19 @@ describe("respond — envío de formulario de aclaración", () => {
     });
     expect(r.answer).toContain("Gesaprim 500");
     expect(r.answer).not.toMatch(/\d+\s*(d[ií]as|meses)/i);
+  });
+
+  it("orienta la búsqueda de productos/familias sin listar activos inventados", async () => {
+    const r = await respond("", {
+      kind: "product_family",
+      data: { cultivo: "Soja", tipoProblema: "Maleza", especie: "Sorgo de Alepo", ubicacion: "Tandil" },
+    });
+    expect(r.answer).toContain("Soja");
+    expect(r.answer.toLowerCase()).toContain("familia química");
+    expect(r.answer.toLowerCase()).toContain("modo de acción");
+    expect(r.sources.map((s) => s.sourceCode)).toEqual(
+      expect.arrayContaining(["R08", "R09", "R01", "R02", "R11"])
+    );
   });
 });
 

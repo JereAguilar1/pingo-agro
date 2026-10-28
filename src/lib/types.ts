@@ -22,7 +22,11 @@ export type ResponseKind =
 
 export type ResponseMode = "demo" | "ai";
 
-export type ClarificationFormKind = "phyto" | "soil_sampling" | "crop_rotation";
+export type ClarificationFormKind =
+  | "phyto"
+  | "soil_sampling"
+  | "crop_rotation"
+  | "product_family";
 
 export interface ClarificationField {
   id: string;

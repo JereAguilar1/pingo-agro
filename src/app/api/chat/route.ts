@@ -3,7 +3,12 @@ import { respond } from "@/lib/respond";
 import { isAiConfigured } from "@/lib/ai-provider";
 import { ClarificationFormKind, FormSubmission } from "@/lib/types";
 
-const FORM_KINDS: ClarificationFormKind[] = ["phyto", "soil_sampling", "crop_rotation"];
+const FORM_KINDS: ClarificationFormKind[] = [
+  "phyto",
+  "soil_sampling",
+  "crop_rotation",
+  "product_family",
+];
 
 function parseFormSubmission(body: unknown): FormSubmission | undefined {
   const raw = (body as { form?: unknown })?.form;
