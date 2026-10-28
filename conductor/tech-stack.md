@@ -13,3 +13,8 @@
 - **Query Resolution:** Deterministic pattern detection and handler pipeline in `src/lib/respond.ts`.
 - **Retrieval Engine:** Keyword-based lexical search in `src/lib/retrieval.ts`.
 - **AI Integration:** Server-side optional Anthropic provider (`src/lib/ai-provider.ts`) for RAG synthesis when API key is present; fallback to deterministic demo responses.
+
+## Mobile & Offline Platform
+- **Mobile Container:** Capacitor 8 (`@capacitor/core`, `@capacitor/android`, `@capacitor/cli`)
+- **PWA Support:** Web App Manifest (`public/manifest.json`) and Cache-first Service Worker (`public/sw.js`)
+- **Offline Dispatcher:** Resilient client-side in-memory resolver (`src/lib/offline-client.ts`) and connectivity status hook (`src/hooks/useNetworkStatus.ts`)

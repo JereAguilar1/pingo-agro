@@ -46,6 +46,7 @@ explícitamente cuándo la evidencia disponible no alcanza para concluir.
 - **Recuperación documental** por coincidencia de palabras clave (`src/lib/retrieval.ts`).
 - **Modo de demostración vs. modo con IA**, claramente diferenciados en la UI.
 - **Persistencia de la conversación** en `localStorage` del navegador durante la sesión.
+- **Modo Campo (100% Offline)**: Desacople en el cliente (`src/lib/offline-client.ts`) con resolución determinista en memoria ante pérdida de señal en el lote, badge de estado en el encabezado, PWA (`manifest.json` + `sw.js`) y contenedor móvil nativo con Capacitor para Android (`android/`).
 - **UI responsive** (escritorio y móvil) con identidad visual propia: fondo marfil, verde oscuro, tarjetas de fuente plegables, advertencias discretas.
 
 ### Fuera de alcance en este MVP
@@ -122,6 +123,16 @@ uso general disponible en el entorno (las variables presentes son internas de
 la app de escritorio, no una clave de API utilizable). La demo de mañana corre
 en **modo de demostración** salvo que se configure una clave propia en
 Vercel antes de la presentación.
+
+## Modo Offline (Modo Campo) y Aplicación Móvil
+
+Surco incorpora arquitectura **Offline-First** para operar sin cobertura de red en el lote:
+- **Desacople en el cliente (`src/lib/offline-client.ts`)**: Ante desconexión o fallo del servidor, el chat resuelve consultas y formularios directamente en memoria local en < 10 ms.
+- **Indicador de conectividad**: Badge en el encabezado (`En línea` / `Modo Campo (Offline)`).
+- **PWA (Progressive Web App)**: Manifiesto `public/manifest.json` y Service Worker `public/sw.js` para instalación web directa.
+- **Contenedor Móvil Nativo (Capacitor para Android)**:
+  - `npm run build:mobile`: exporta la app estática y sincroniza con el proyecto Android nativo (`android/`).
+  - `npx cap open android`: abre el proyecto en Android Studio para compilar y generar el APK (`.apk`).
 
 ## Estado de la publicación en Vercel
 

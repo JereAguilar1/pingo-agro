@@ -39,10 +39,10 @@
 - [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 5: End-to-End Verification & Documentation
-- [ ] Task: Full Test Suite and Verification
-  - [ ] Run all Vitest unit tests (`npm test`)
-  - [ ] Test Next.js build (`npm run build`)
-  - [ ] Verify offline simulation in local browser
-- [ ] Task: Documentation Update
-  - [ ] Update `README.md` and `tech-stack.md` documenting offline capability, PWA and Android Capacitor commands
-- [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
+- [x] Task: Full Test Suite and Verification
+  - [x] Run all Vitest unit tests (`npm test`)
+  - [x] Test Next.js build (`npm run build`)
+  - [x] Verify offline simulation in local browser
+- [x] Task: Documentation Update
+  - [x] Update `README.md` and `tech-stack.md` documenting offline capability, PWA and Android Capacitor commands
+- [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
