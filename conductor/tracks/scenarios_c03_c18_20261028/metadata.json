@@ -1,7 +1,7 @@
 {
   "track_id": "scenarios_c03_c18_20261028",
   "type": "feature",
-  "status": "new",
+  "status": "in_progress",
   "created_at": "2026-10-28T11:25:35-03:00",
   "updated_at": "2026-10-28T11:25:35-03:00",
   "description": "Implementar los escenarios C03–C18 de Surco (detectores deterministas, biblioteca documental R12, R13, R19, R24, R25, formularios interactivos y tests)"
