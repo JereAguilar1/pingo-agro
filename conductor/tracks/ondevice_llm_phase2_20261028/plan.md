@@ -1,0 +1,33 @@
+# Implementation Plan: Motor LLM On-Device Local y RAG Anti-Alucinaciones (Fase 2)
+
+## Phase 1: Local LLM Engine & WebGPU Support Layer (TDD)
+- [ ] Task: Unit tests for local engine manager and WebGPU detection
+  - [ ] Create test suite in `src/lib/__tests__/local-llm.test.ts`
+  - [ ] Test WebGPU availability check and fallback states
+  - [ ] Test prompt grounding and context formatting
+- [ ] Task: Implement Local LLM Service (`src/lib/local-llm.ts`)
+  - [ ] Install `@mlc-ai/web-llm` dependency
+  - [ ] Implement `initLocalLLM`, `isWebGPUSupported`, and generation runner
+  - [ ] Implement progress callback handler for model weight download
+- [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
+
+## Phase 2: RAG Pipeline Integration & Anti-Hallucination Guardrails
+- [ ] Task: Integrate local LLM in `src/lib/offline-client.ts`
+  - [ ] Fallback logic: C01-C18 deterministic -> Local LLM (if loaded) -> library snippet fallback
+  - [ ] Construct zero-hallucination prompt formatting in `src/lib/prompts.ts`
+  - [ ] Add post-generation source verification
+- [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
+
+## Phase 3: UI Model Manager & Streaming
+- [ ] Task: Build Model Manager Modal & Progress Bar
+  - [ ] Create `src/components/ModelManager.tsx` with download button, progress % and delete cache
+  - [ ] Add Model status button/indicator to the chat header next to `NetworkBadge`
+  - [ ] Connect streaming tokens to `ChatMessage` in `src/app/chat/page.tsx`
+- [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
+
+## Phase 4: Verification, Build & Deployment
+- [ ] Task: Full test suite, Next.js build and mobile sync
+  - [ ] Run all Vitest unit tests (`npm test`)
+  - [ ] Run `npm run build` and `npm run build:mobile`
+  - [ ] Deploy update to Vercel production
+- [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
