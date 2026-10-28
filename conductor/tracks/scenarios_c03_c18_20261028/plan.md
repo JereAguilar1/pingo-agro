@@ -11,15 +11,15 @@
 - [x] Task: Phase 1 Verification & Checkpoint (Refer to workflow.md) (1fa8b5d)
 
 ## Phase 2: Economic Scenarios (C13, C14, C15)
-- [ ] Task: Write failing unit tests for C13, C14, C15
-  - [ ] Tests for C13 (Alquileres rurales) query detection, form generation, and form submission
-  - [ ] Tests for C14 (Costos de labores FACMA) query detection, form generation, and submission
-  - [ ] Tests for C15 (Costos de flete FATRAC) query detection, form generation, and submission
-- [ ] Task: Implement C13, C14, C15 in `src/lib/respond.ts`
-  - [ ] Detectors `isRentalRatesQuery`, `isLaborCostQuery`, `isFreightCostQuery`
-  - [ ] Handlers with clarification forms and honest boundary declarations
-  - [ ] Form submission handlers returning grounded next-step actions
-  - [ ] Integrate into `respond()` and `handleFormSubmission()`
+- [x] Task: Write failing unit tests for C13, C14, C15 (b8f0180)
+  - [x] Tests for C13 (Alquileres rurales) query detection, form generation, and form submission
+  - [x] Tests for C14 (Costos de labores FACMA) query detection, form generation, and submission
+  - [x] Tests for C15 (Costos de flete FATRAC) query detection, form generation, and submission
+- [x] Task: Implement C13, C14, C15 in `src/lib/respond.ts` (b8f0180)
+  - [x] Detectors `isRentalRatesQuery`, `isLaborCostQuery`, `isFreightCostQuery`
+  - [x] Handlers with clarification forms and honest boundary declarations
+  - [x] Form submission handlers returning grounded next-step actions
+  - [x] Integrate into `respond()` and `handleFormSubmission()`
 - [ ] Task: Phase 2 Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 3: Crop Management & Protection Scenarios (C03, C04, C05, C06, C07)
