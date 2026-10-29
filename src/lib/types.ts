@@ -66,6 +66,10 @@ export interface ProducerLote {
   previousApplications?: LoteApplicationRecord[];
   detectedPestsAndWeeds?: string[];
   notes?: string;
+  // Fotos de referencia subidas por el productor (ej. análisis de suelo en
+  // papel, cuaderno de campo). Se guardan como respaldo consultable, no se
+  // analizan automáticamente en este MVP.
+  referencePhotos?: { name: string; dataUrl: string }[];
 }
 
 export interface PipelineTrace {

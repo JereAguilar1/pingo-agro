@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { LoteApplicationRecord, ProducerLote } from "@/lib/types";
 import { SatelliteLoteMap } from "./SatelliteLoteMap";
-import { IconCheck, IconClose, IconFolder, IconPlus } from "./Icons";
+import { IconCamera, IconCheck, IconClose, IconFolder, IconMic, IconPlus, IconSend, IconSparkles } from "./Icons";
+import { useAudioRecorder } from "@/hooks/useAudioRecorder";
+import { ExtractedLoteFields } from "@/lib/lote-extraction";
 
 interface Props {
   isOpen: boolean;
@@ -69,7 +71,28 @@ const COMMON_WEEDS_PESTS = [
 ];
 
 export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Props) {
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  // Si es un lote nuevo, arrancamos por la captura rápida (audio/foto);
+  // si se está editando uno existente, vamos directo al formulario.
+  const [step, setStep] = useState<0 | 1 | 2 | 3>(initialLote ? 1 : 0);
+
+  // Captura rápida por voz/foto (Paso 0)
+  const [capturedNote, setCapturedNote] = useState("");
+  const [autoFilledFields, setAutoFilledFields] = useState<string[]>([]);
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [referencePhotos, setReferencePhotos] = useState<{ name: string; dataUrl: string }[]>(
+    initialLote?.referencePhotos || []
+  );
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const {
+    isRecording,
+    isTranscribing,
+    recordingTime,
+    liveTranscript,
+    error: audioError,
+    startRecording,
+    stopAndSend,
+    cancelRecording,
+  } = useAudioRecorder();
 
   // Paso 1: Ubicación Satelital y Entorno
   const [name, setName] = useState(initialLote?.name || "Lote 12 — El Mirador");
@@ -143,6 +166,15 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
     initialLote?.detectedPestsAndWeeds || ["Rama negra (Conyza)"]
   );
 
+  useEffect(() => {
+    if (isOpen) {
+      setStep(initialLote ? 1 : 0);
+      setCapturedNote("");
+      setAutoFilledFields([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   function addCustomApplication() {
@@ -179,6 +211,111 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
     );
   }
 
+  function applyExtractedFields(extracted: ExtractedLoteFields) {
+    const applied: string[] = [];
+    if (extracted.name) {
+      setName(extracted.name);
+      applied.push("name");
+    }
+    if (extracted.hectares !== undefined) {
+      setHectares(String(extracted.hectares));
+      applied.push("hectares");
+    }
+    if (extracted.crop) {
+      setCrop(extracted.crop);
+      applied.push("crop");
+    }
+    if (extracted.hybrid) {
+      setHybrid(extracted.hybrid);
+      applied.push("hybrid");
+    }
+    if (extracted.phenology) {
+      setPhenology(extracted.phenology);
+      applied.push("phenology");
+    }
+    if (extracted.targetYieldTonHa !== undefined) {
+      setTargetYield(String(extracted.targetYieldTonHa));
+      applied.push("targetYieldTonHa");
+    }
+    if (extracted.previousCrop) {
+      setPreviousCrop(extracted.previousCrop);
+      applied.push("previousCrop");
+    }
+    if (extracted.municipality) {
+      setMunicipality(extracted.municipality);
+      applied.push("municipality");
+    }
+    if (extracted.locality) {
+      setLocality(extracted.locality);
+      applied.push("locality");
+    }
+    if (extracted.relief) {
+      setRelief(extracted.relief);
+      applied.push("relief");
+    }
+    if (extracted.soilNitrateKgHa !== undefined) {
+      setSoilN(String(extracted.soilNitrateKgHa));
+      applied.push("soilNitrateKgHa");
+    }
+    if (extracted.soilPhosphorusPpm !== undefined) {
+      setSoilP(String(extracted.soilPhosphorusPpm));
+      applied.push("soilPhosphorusPpm");
+    }
+    if (extracted.organicMatterPercent !== undefined) {
+      setSoilMO(String(extracted.organicMatterPercent));
+      applied.push("organicMatterPercent");
+    }
+    if (extracted.ph !== undefined) {
+      setSoilPh(String(extracted.ph));
+      applied.push("ph");
+    }
+    if (extracted.toscaDepthCm !== undefined) {
+      setToscaDepth(String(extracted.toscaDepthCm));
+      applied.push("toscaDepthCm");
+    }
+    setAutoFilledFields(applied);
+  }
+
+  async function handleVoiceCapture() {
+    const transcript = await stopAndSend();
+    if (!transcript) return;
+    setCapturedNote(transcript);
+    setIsExtracting(true);
+    try {
+      const res = await fetch("/api/extract-lote", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ text: transcript }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        applyExtractedFields(data.extracted || {});
+      }
+    } catch {
+      // Si falla la extracción, el usuario igual puede completar todo a mano.
+    } finally {
+      setIsExtracting(false);
+      setStep(1);
+    }
+  }
+
+  function handlePhotoSelect(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        setReferencePhotos((prev) => [...prev, { name: file.name, dataUrl: reader.result as string }]);
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  }
+
+  function removeReferencePhoto(index: number) {
+    setReferencePhotos((prev) => prev.filter((_, i) => i !== index));
+  }
+
   function handleSave() {
     const saved: ProducerLote = {
       id: initialLote?.id || `lote-${Date.now()}`,
@@ -207,6 +344,7 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
       soilTexture,
       previousApplications: applications,
       detectedPestsAndWeeds: selectedWeeds,
+      referencePhotos,
     };
     onSaveLote(saved);
     onClose();
@@ -234,8 +372,12 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
               <h2 className="font-semibold text-sm sm:text-base leading-tight" style={{ color: "var(--surco-ink)" }}>
                 {initialLote ? `Editar: ${initialLote.name}` : "Nuevo Proyecto de Lote"}
               </h2>
-              <span className="text-[11px]" style={{ color: "var(--surco-ink-muted)" }}>
-                Paso {step} de 3 · {step === 1 ? "Ubicación Satelital" : step === 2 ? "Suelo y Campaña" : "Historial de Aplicaciones"}
+              <span className="text-xs" style={{ color: "var(--surco-ink-muted)" }}>
+                {step === 0
+                  ? "Contanos sobre tu lote"
+                  : `Paso ${step} de 3 · ${
+                      step === 1 ? "Ubicación Satelital" : step === 2 ? "Suelo y Campaña" : "Historial de Aplicaciones"
+                    }`}
               </span>
             </div>
           </div>
@@ -249,7 +391,8 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
           </button>
         </div>
 
-        {/* Pasos / Stepper estilizado */}
+        {/* Pasos / Stepper estilizado (oculto en la captura rápida inicial) */}
+        {step > 0 && (
         <div
           className="grid grid-cols-3 border-b text-xs font-medium"
           style={{ borderColor: "var(--surco-border-light)", background: "var(--surco-bg)" }}
@@ -278,11 +421,171 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
             );
           })}
         </div>
+        )}
 
         {/* Contenido según el paso */}
-        <div className="p-4 sm:p-5 overflow-y-auto flex-1 flex flex-col gap-4 text-xs sm:text-sm">
+        <div className="p-4 sm:p-5 overflow-y-auto flex-1 flex flex-col gap-4 text-sm">
+          {step === 0 && (
+            <div className="flex flex-col gap-5 py-2">
+              <div className="text-center flex flex-col gap-1.5 max-w-md mx-auto">
+                <h3 className="text-base sm:text-lg font-semibold" style={{ color: "var(--surco-ink)" }}>
+                  Contanos sobre tu lote
+                </h3>
+                <p className="text-sm" style={{ color: "var(--surco-ink-muted)" }}>
+                  Grabá un audio describiéndolo (cuántas hectáreas, qué cultivo, dónde está,
+                  qué dio el análisis de suelo) y completamos el formulario por vos. Después
+                  revisás y ajustás lo que haga falta.
+                </p>
+              </div>
+
+              {audioError && (
+                <div className="rounded-xl border px-3.5 py-2 text-sm text-red-800 bg-red-50 border-red-200 text-center max-w-md mx-auto w-full">
+                  {audioError}
+                </div>
+              )}
+
+              {isRecording || isTranscribing || isExtracting ? (
+                <div
+                  className="max-w-md mx-auto w-full flex flex-col gap-3 rounded-2xl border bg-white px-4 py-5 text-center"
+                  style={{ borderColor: "rgba(220, 38, 38, 0.35)" }}
+                >
+                  <div className="flex items-center justify-center gap-2.5">
+                    <span className="relative flex h-3 w-3 shrink-0">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-red-600" />
+                    </span>
+                    <span className="text-sm font-semibold tabular-nums text-red-600">
+                      {Math.floor(recordingTime / 60)}:{recordingTime % 60 < 10 ? "0" : ""}
+                      {recordingTime % 60}
+                    </span>
+                  </div>
+                  <p className="text-sm italic" style={{ color: "var(--surco-ink-muted)" }}>
+                    {isExtracting
+                      ? "Completando el formulario con lo que dijiste…"
+                      : isTranscribing
+                      ? "Transcribiendo audio…"
+                      : liveTranscript
+                      ? `"${liveTranscript}"`
+                      : "Grabando… contame sobre el lote"}
+                  </p>
+                  {isRecording && (
+                    <div className="flex items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        onClick={cancelRecording}
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-500 hover:text-red-600 hover:bg-red-50 cursor-pointer"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleVoiceCapture()}
+                        className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium text-white cursor-pointer"
+                        style={{ background: "var(--surco-green)" }}
+                      >
+                        <span>Listo, completar</span>
+                        <IconSend className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-md mx-auto w-full">
+                  <button
+                    type="button"
+                    onClick={() => void startRecording()}
+                    className="flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed p-6 transition-all cursor-pointer hover:border-solid hover:shadow-sm"
+                    style={{ borderColor: "var(--surco-green)", background: "var(--surco-green-tint)" }}
+                  >
+                    <div
+                      className="w-12 h-12 rounded-full flex items-center justify-center text-white"
+                      style={{ background: "var(--surco-green)" }}
+                    >
+                      <IconMic className="w-6 h-6" />
+                    </div>
+                    <span className="text-sm font-semibold" style={{ color: "var(--surco-green)" }}>
+                      Grabar audio
+                    </span>
+                    <span className="text-xs text-center" style={{ color: "var(--surco-ink-muted)" }}>
+                      Hablá y lo completamos solo
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => photoInputRef.current?.click()}
+                    className="flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed p-6 transition-all cursor-pointer hover:border-solid hover:shadow-sm"
+                    style={{ borderColor: "var(--surco-border)", background: "var(--surco-bg)" }}
+                  >
+                    <div
+                      className="w-12 h-12 rounded-full flex items-center justify-center"
+                      style={{ background: "var(--surco-bg-alt)", color: "var(--surco-ink-soft)" }}
+                    >
+                      <IconCamera className="w-6 h-6" />
+                    </div>
+                    <span className="text-sm font-semibold" style={{ color: "var(--surco-ink)" }}>
+                      Foto del análisis
+                    </span>
+                    <span className="text-xs text-center" style={{ color: "var(--surco-ink-muted)" }}>
+                      Guardá el papel o la planilla
+                    </span>
+                  </button>
+                  <input
+                    ref={photoInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handlePhotoSelect}
+                    className="hidden"
+                  />
+                </div>
+              )}
+
+              {referencePhotos.length > 0 && (
+                <div className="max-w-md mx-auto w-full flex flex-wrap gap-2">
+                  {referencePhotos.map((photo, i) => (
+                    <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden border" style={{ borderColor: "var(--surco-border)" }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={photo.dataUrl} alt={photo.name} className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => removeReferencePhoto(i)}
+                        className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/60 text-white flex items-center justify-center cursor-pointer"
+                      >
+                        <IconClose className="w-2.5 h-2.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="text-sm font-medium cursor-pointer hover:underline"
+                  style={{ color: "var(--surco-ink-muted)" }}
+                >
+                  Prefiero completar el formulario a mano →
+                </button>
+              </div>
+            </div>
+          )}
+
           {step === 1 && (
             <>
+              {autoFilledFields.length > 0 && (
+                <div
+                  className="rounded-xl border px-3.5 py-2.5 flex items-start gap-2 text-sm"
+                  style={{ background: "var(--surco-green-tint)", borderColor: "var(--surco-green)" }}
+                >
+                  <IconSparkles className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "var(--surco-green)" }} />
+                  <span style={{ color: "var(--surco-green-dark)" }}>
+                    Completamos {autoFilledFields.length} dato{autoFilledFields.length !== 1 ? "s" : ""} a partir
+                    de tu audio{capturedNote ? ` ("${capturedNote}")` : ""}. Revisá y ajustá lo que haga falta.
+                  </span>
+                </div>
+              )}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="sm:col-span-2 flex flex-col gap-1">
                   <label className="text-xs font-medium" style={{ color: "var(--surco-ink-soft)" }}>
@@ -292,7 +595,7 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Ej. Lote 4 — La Loma (Gardey)"
-                    className="px-3 py-2 rounded-xl border bg-white text-xs sm:text-sm outline-none transition-all focus:border-emerald-800/50"
+                    className="px-3 py-2 rounded-xl border bg-white text-sm outline-none transition-all focus:border-emerald-800/50"
                     style={{ borderColor: "var(--surco-border)", color: "var(--surco-ink)" }}
                   />
                 </div>
@@ -304,7 +607,7 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
                     type="number"
                     value={hectares}
                     onChange={(e) => setHectares(e.target.value)}
-                    className="px-3 py-2 rounded-xl border bg-white text-xs sm:text-sm font-semibold outline-none"
+                    className="px-3 py-2 rounded-xl border bg-white text-sm font-semibold outline-none"
                     style={{ borderColor: "var(--surco-border)", color: "var(--surco-green)" }}
                   />
                 </div>
@@ -330,7 +633,7 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-medium" style={{ color: "var(--surco-ink-muted)" }}>
+                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-muted)" }}>
                     Partido
                   </label>
                   <input
@@ -341,7 +644,7 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-medium" style={{ color: "var(--surco-ink-muted)" }}>
+                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-muted)" }}>
                     Localidad
                   </label>
                   <input
@@ -352,7 +655,7 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-medium" style={{ color: "var(--surco-ink-muted)" }}>
+                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-muted)" }}>
                     Relieve
                   </label>
                   <select
@@ -369,7 +672,7 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
                   </select>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-medium" style={{ color: "var(--surco-ink-muted)" }}>
+                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-muted)" }}>
                     Zona sensible y distancia (m)
                   </label>
                   <div className="flex gap-1">
@@ -407,7 +710,7 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
               </span>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-medium" style={{ color: "var(--surco-ink-muted)" }}>Cultivo</label>
+                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-muted)" }}>Cultivo</label>
                   <select
                     value={crop}
                     onChange={(e) => setCrop(e.target.value)}
@@ -422,7 +725,7 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
                   </select>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-medium" style={{ color: "var(--surco-ink-muted)" }}>Híbrido / Variedad</label>
+                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-muted)" }}>Híbrido / Variedad</label>
                   <input
                     value={hybrid}
                     onChange={(e) => setHybrid(e.target.value)}
@@ -432,7 +735,7 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-medium" style={{ color: "var(--surco-ink-muted)" }}>Estadio Fenológico</label>
+                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-muted)" }}>Estadio Fenológico</label>
                   <input
                     value={phenology}
                     onChange={(e) => setPhenology(e.target.value)}
@@ -442,7 +745,7 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-medium" style={{ color: "var(--surco-ink-muted)" }}>Fecha de Siembra</label>
+                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-muted)" }}>Fecha de Siembra</label>
                   <input
                     value={plantingDate}
                     onChange={(e) => setPlantingDate(e.target.value)}
@@ -451,7 +754,7 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-medium" style={{ color: "var(--surco-ink-muted)" }}>Rinde Objetivo (t/ha)</label>
+                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-muted)" }}>Rinde Objetivo (t/ha)</label>
                   <input
                     type="number"
                     step="0.5"
@@ -462,7 +765,7 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-medium" style={{ color: "var(--surco-ink-muted)" }}>Cultivo Antecesor</label>
+                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-muted)" }}>Cultivo Antecesor</label>
                   <input
                     value={previousCrop}
                     onChange={(e) => setPreviousCrop(e.target.value)}
@@ -477,7 +780,7 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
               </span>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-medium" style={{ color: "var(--surco-ink-muted)" }}>Prof. a Tosca (cm)</label>
+                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-muted)" }}>Prof. a Tosca (cm)</label>
                   <input
                     type="number"
                     value={toscaDepth}
@@ -487,7 +790,7 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-medium" style={{ color: "var(--surco-ink-muted)" }}>N-NO3 (0–60cm kg/ha)</label>
+                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-muted)" }}>N-NO3 (0–60cm kg/ha)</label>
                   <input
                     type="number"
                     value={soilN}
@@ -497,7 +800,7 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-medium" style={{ color: "var(--surco-ink-muted)" }}>Fósforo P Bray (ppm)</label>
+                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-muted)" }}>Fósforo P Bray (ppm)</label>
                   <input
                     type="number"
                     step="0.5"
@@ -508,7 +811,7 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-medium" style={{ color: "var(--surco-ink-muted)" }}>Materia Orgánica (%)</label>
+                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-muted)" }}>Materia Orgánica (%)</label>
                   <input
                     type="number"
                     step="0.1"
@@ -519,7 +822,7 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-medium" style={{ color: "var(--surco-ink-muted)" }}>pH actual</label>
+                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-muted)" }}>pH actual</label>
                   <input
                     type="number"
                     step="0.1"
@@ -530,7 +833,7 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-medium" style={{ color: "var(--surco-ink-muted)" }}>Textura</label>
+                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-muted)" }}>Textura</label>
                   <select
                     value={soilTexture}
                     onChange={(e) => setSoilTexture(e.target.value as ProducerLote["soilTexture"])}
@@ -552,19 +855,19 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
                 <span className="text-xs font-semibold uppercase tracking-wider text-emerald-900 block mb-1">
                   Historial de lo que se le echó previamente al lote
                 </span>
-                <p className="text-[11px] text-gray-500 mb-2.5">
+                <p className="text-xs text-gray-500 mb-2.5">
                   Herbicidas residuales, arrancadores y fertilizantes aplicados para que el asistente determine carry-over y rotación de modos de acción.
                 </p>
 
                 {/* Accesos rápidos */}
                 <div className="flex items-center gap-1.5 flex-wrap mb-3">
-                  <span className="text-[11px] text-gray-400">Atajos:</span>
+                  <span className="text-xs text-gray-400">Atajos:</span>
                   {QUICK_APPLICATIONS.map((preset) => (
                     <button
                       key={preset.productName}
                       type="button"
                       onClick={() => addQuickApplication(preset)}
-                      className="px-2 py-0.5 rounded-md border text-[11px] transition-colors cursor-pointer hover:bg-black/5"
+                      className="px-2 py-0.5 rounded-md border text-xs transition-colors cursor-pointer hover:bg-black/5"
                       style={{
                         background: "var(--surco-card)",
                         borderColor: "var(--surco-border-light)",
@@ -590,13 +893,13 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
                         style={{ borderColor: "var(--surco-border-light)" }}
                       >
                         <div className="min-w-0">
-                          <span className="font-mono text-[11px] font-semibold text-emerald-800 mr-2">
+                          <span className="font-mono text-xs font-semibold text-emerald-800 mr-2">
                             {app.date}
                           </span>
                           <span className="font-medium text-gray-900">{app.productName}</span>
                           <span className="text-gray-500 ml-1">({app.dose})</span>
                           {app.modeOfAction && (
-                            <span className="text-[11px] text-emerald-700 ml-1.5">
+                            <span className="text-xs text-emerald-700 ml-1.5">
                               [{app.modeOfAction}]
                             </span>
                           )}
@@ -704,7 +1007,8 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
           )}
         </div>
 
-        {/* Footer del modal */}
+        {/* Footer del modal (oculto en la captura rápida inicial) */}
+        {step > 0 && (
         <div
           className="px-5 py-3 border-t flex items-center justify-between"
           style={{ background: "var(--surco-bg)", borderColor: "var(--surco-border-light)" }}
@@ -714,7 +1018,7 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
               <button
                 type="button"
                 onClick={() => setStep((s) => (s - 1) as 1 | 2 | 3)}
-                className="px-3.5 py-1.5 rounded-xl border text-xs font-medium cursor-pointer transition-colors hover:bg-black/5"
+                className="px-3.5 py-1.5 rounded-xl border text-sm font-medium cursor-pointer transition-colors hover:bg-black/5"
                 style={{ borderColor: "var(--surco-border-light)", color: "var(--surco-ink)" }}
               >
                 ← Anterior
@@ -727,7 +1031,7 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
               <button
                 type="button"
                 onClick={() => setStep((s) => (s + 1) as 1 | 2 | 3)}
-                className="px-4 py-1.5 rounded-xl text-xs font-medium text-white cursor-pointer shadow-2xs hover:opacity-95"
+                className="px-4 py-1.5 rounded-xl text-sm font-medium text-white cursor-pointer shadow-2xs hover:opacity-95"
                 style={{ background: "var(--surco-green)" }}
               >
                 Siguiente →
@@ -736,7 +1040,7 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
               <button
                 type="button"
                 onClick={handleSave}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-white cursor-pointer shadow-2xs hover:opacity-95"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-white cursor-pointer shadow-2xs hover:opacity-95"
                 style={{ background: "var(--surco-green)" }}
               >
                 <IconCheck className="w-4 h-4" />
@@ -745,6 +1049,7 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
             )}
           </div>
         </div>
+        )}
       </div>
     </div>
   );
