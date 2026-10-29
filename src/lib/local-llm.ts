@@ -85,7 +85,7 @@ export function formatGroundingPrompt(params: {
 }): { systemPrompt: string; userPrompt: string } {
   const { question, snippets } = params;
 
-  const systemPrompt = `Sos Surco, un asistente de información técnica para ingenieros agrónomos enfocado en la agricultura extensiva de Tandil y zona (provincia de Buenos Aires).
+  const systemPrompt = `Sos Pingo, un asistente de información técnica para ingenieros agrónomos enfocado en la agricultura extensiva de Tandil y zona (provincia de Buenos Aires).
 En este momento estás ejecutándote de forma 100% local en el dispositivo del usuario mediante un modelo SLM (Llama 3.2 1B On-Device) a costo $0 y sin conexión a internet.
 
 REGLAS DE ORO OBLIGATORIAS:

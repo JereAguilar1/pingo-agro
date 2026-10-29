@@ -61,7 +61,7 @@ export async function draftAndVerifyAgentResponse(params: {
   if (isAiConfigured() && evidenceBlocks.length > 0) {
     try {
       const system = [
-        "Sos el Agente Redactor y Verificador de Surco, un asistente agronómico experto.",
+        "Sos el Agente Redactor y Verificador de Pingo, un asistente agronómico experto.",
         "Tu tarea es redactar una respuesta directa, clara y concisa en español rioplatense para el productor o ingeniero agrónomo, usando EXCLUSIVAMENTE los hallazgos de los sub-agentes provistos abajo.",
         "Reglas estrictas:",
         "1. Si hay un resultado del Sub-Agente de Cálculo, incluí sus cifras exactas sin modificarlas.",

@@ -451,9 +451,15 @@ function ChatInner() {
 
                 {/* Estado vacío minimalista: Sin sugerencias ni recomendaciones que distraigan */}
                 {messages.length === 0 && !loading && (
-                  <div className="my-auto py-16 text-center flex flex-col items-center gap-1.5">
+                  <div className="my-auto py-16 text-center flex flex-col items-center gap-2.5">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="/logo-icon.png"
+                      alt="Pingo"
+                      className="w-12 h-12 object-contain opacity-90"
+                    />
                     <h2 className="text-base sm:text-lg font-semibold tracking-tight" style={{ color: "var(--surco-ink)" }}>
-                      {activeLote ? `Nuevo chat en ${activeLote.name}` : "Chat General"}
+                      {activeLote ? `Nuevo chat en ${activeLote.name}` : "Pingo — Chat General"}
                     </h2>
 
                     <p className="text-sm" style={{ color: "var(--surco-ink-muted)" }}>

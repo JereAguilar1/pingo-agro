@@ -124,7 +124,7 @@ export function ModelManager({ isOpen, onClose, onStatusChange }: ModelManagerPr
         </div>
 
         <p className="text-xs text-stone-600 dark:text-stone-400 mb-4 leading-relaxed">
-          Permite que Surco redacte explicaciones técnicas en el medio del lote sin señal de celular ni costos de API, ejecutando el modelo dentro del chip de tu propio teléfono.
+          Permite que Pingo redacte explicaciones técnicas en el medio del lote sin señal de celular ni costos de API, ejecutando el modelo dentro del chip de tu propio teléfono.
         </p>
 
         {gpuInfo.checked && !gpuInfo.supported ? (
@@ -141,7 +141,7 @@ export function ModelManager({ isOpen, onClose, onStatusChange }: ModelManagerPr
 
             <div className="rounded-xl p-3 border border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/30 text-xs text-emerald-900 dark:text-emerald-200">
               <strong className="block mb-1">✅ No te preocupes:</strong>
-              Surco sigue funcionando al 100% en modo offline: los 18 escenarios agronómicos (C01 a C18), cálculos de dosis de urea y toda la biblioteca de fuentes reales se resuelven en memoria local sin necesidad de descargar este modelo.
+              Pingo sigue funcionando al 100% en modo offline: los 18 escenarios agronómicos (C01 a C18), cálculos de dosis de urea y toda la biblioteca de fuentes reales se resuelven en memoria local sin necesidad de descargar este modelo.
             </div>
           </div>
         ) : (

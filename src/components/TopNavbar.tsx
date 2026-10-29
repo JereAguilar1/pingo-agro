@@ -65,10 +65,15 @@ export function TopNavbar({
 
         <Link
           href="/"
-          className="font-semibold text-base sm:text-lg tracking-tight transition-opacity hover:opacity-85"
-          style={{ color: "var(--surco-green)" }}
+          className="inline-flex items-center gap-2 transition-opacity hover:opacity-85"
+          aria-label="Pingo — Asistente Agronómico"
         >
-          Surco
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo.png"
+            alt="Pingo — Asistente Agronómico"
+            className="h-8 sm:h-9 w-auto object-contain"
+          />
         </Link>
       </div>
     </header>

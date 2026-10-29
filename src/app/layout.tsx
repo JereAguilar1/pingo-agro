@@ -15,14 +15,18 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Surco — Asistente agronómico",
+  title: "Pingo — Asistente Agronómico",
   description:
-    "Asistente de información técnica para ingenieros agrónomos. Agricultura extensiva de Tandil y zona.",
+    "Pingo — Asistente de información técnica para ingenieros agrónomos y productores. Agricultura extensiva de Tandil y zona.",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/logo-icon.png",
+    apple: "/logo-icon.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Surco",
+    title: "Pingo",
   },
 };
 

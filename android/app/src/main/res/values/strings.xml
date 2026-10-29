@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Surco</string>
-    <string name="title_activity_main">Surco</string>
+    <string name="app_name">Pingo</string>
+    <string name="title_activity_main">Pingo</string>
     <string name="package_name">com.surco.agro</string>
     <string name="custom_url_scheme">com.surco.agro</string>
 </resources>

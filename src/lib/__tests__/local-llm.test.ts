@@ -45,7 +45,7 @@ describe("Local LLM Service", () => {
         snippets: mockSnippets,
       });
 
-      expect(systemPrompt).toContain("Surco");
+      expect(systemPrompt).toContain("Pingo");
       expect(systemPrompt).toMatch(/nunca inventes|no inventes/i);
       expect(systemPrompt).toMatch(/solo responde usando/i);
       expect(userPrompt).toContain("Conyza bonariensis");

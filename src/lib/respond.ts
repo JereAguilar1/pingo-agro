@@ -663,7 +663,7 @@ function handleNutrientBalanceInsufficientInfo(): AssistantResponse {
     kind: "insufficient_info",
     answer:
       "El cálculo de un balance completo de nutrientes (entradas por fertilización, fijación biológica simbiótica, deposición atmosférica y salidas por grano cosechado, rastrojo y pérdidas) no está implementado como herramienta de cálculo determinista en este prototipo. " +
-      "Surco dispone de cálculos deterministas específicos para la concentración de N y dosis de producto (como urea a partir de R03), pero no simula balances integrales con modelos no verificados. " +
+      "Pingo dispone de cálculos deterministas específicos para la concentración de N y dosis de producto (como urea a partir de R03), pero no simula balances integrales con modelos no verificados. " +
       "Para orientar la estimación conceptual y ver cómo se estructuran las entradas y salidas de la secuencia, indicá el cultivo o rotación, los rendimientos y los fertilizantes aportados.",
     sources: [
       makeSourceCard("R03", "Concentración de nitrógeno en fertilizantes y transformaciones edáficas (INTA)."),
@@ -745,7 +745,7 @@ function handleApplicationConditionsInsufficientInfo(): AssistantResponse {
       makeSourceCard("R19", "INTA: tecnologías y monitoreo continuo de pulverizaciones y deriva."),
     ],
     warnings: [
-      "Surco nunca autoriza de forma automática una aplicación: la decisión técnica y legal corresponde al profesional actuante bajo receta agronómica.",
+      "Pingo nunca autoriza de forma automática una aplicación: la decisión técnica y legal corresponde al profesional actuante bajo receta agronómica.",
       "Las condiciones deben medirse en el lote a la altura de las pastillas: el pronóstico general nunca sustituye la medición in situ.",
     ],
     followUpQuestions: [
@@ -772,8 +772,8 @@ function handleMunicipalityRegulationsInsufficientInfo(): AssistantResponse {
   return {
     kind: "insufficient_info",
     answer:
-      "La biblioteca de normativa municipal de Surco en este prototipo está concentrada específicamente en el Partido de Tandil (Ordenanza 17.404/2021 [R14], Decreto 1800/2022 [R15] y suspensiones judiciales vigentes [R16]), articulada con la Ley Provincial 10.699 [R12] y Decreto 499/1991 [R13]. " +
-      "Si tu lote se ubica en otro municipio de la Provincia de Buenos Aires (como Azul, Balcarce, Necochea, Olavarría), rige la normativa marco provincial pero Surco no dispone de la ordenanza municipal local correspondiente. " +
+      "La biblioteca de normativa municipal de Pingo en este prototipo está concentrada específicamente en el Partido de Tandil (Ordenanza 17.404/2021 [R14], Decreto 1800/2022 [R15] y suspensiones judiciales vigentes [R16]), articulada con la Ley Provincial 10.699 [R12] y Decreto 499/1991 [R13]. " +
+      "Si tu lote se ubica en otro municipio de la Provincia de Buenos Aires (como Azul, Balcarce, Necochea, Olavarría), rige la normativa marco provincial pero Pingo no dispone de la ordenanza municipal local correspondiente. " +
       "Para orientar la consulta, indicá el municipio donde se encuentra el lote y el tipo de aplicación que se pretende realizar.",
     sources: [
       makeSourceCard("R11", "Buscador de normativa nacional sobre fitosanitarios."),
@@ -782,7 +782,7 @@ function handleMunicipalityRegulationsInsufficientInfo(): AssistantResponse {
       makeSourceCard("R14", "Ordenanza 17.404/2021 de la Municipalidad de Tandil."),
     ],
     warnings: [
-      "Surco solo cuenta con cobertura documental municipal completa para Tandil; para otros distritos no se simulan normativas locales inexistentes.",
+      "Pingo solo cuenta con cobertura documental municipal completa para Tandil; para otros distritos no se simulan normativas locales inexistentes.",
     ],
     followUpQuestions: [
       "¿En qué municipio o partido se encuentra el lote?",
@@ -806,7 +806,7 @@ function handleInputNoveltiesInsufficientInfo(): AssistantResponse {
   return {
     kind: "insufficient_info",
     answer:
-      "Surco no cuenta con una conexión en tiempo real a lanzamientos comerciales ni a bases de novedades de insumos agropecuarios. " +
+      "Pingo no cuenta con una conexión en tiempo real a lanzamientos comerciales ni a bases de novedades de insumos agropecuarios. " +
       "Para evaluar novedades sobre semillas, fertilizantes o fitosanitarios en tu zona, la recomendación técnica es contrastar siempre la información en dos niveles: " +
       "1) Lo comunicado por las empresas o cámaras del sector (como las fichas técnicas y guías de CASAFE [R24]), que presentan características comerciales del producto; frente a " +
       "2) La evidencia independiente generada en redes de ensayos de la región pampeana (Red de maíz [R06], RECSO soja [R07], REM de Aapresid [R08]) y la inscripción oficial vigente en el Registro Nacional de SENASA (R01). " +
@@ -833,7 +833,7 @@ function handleCustomLibraryGeneral(): AssistantResponse {
   return {
     kind: "general",
     answer:
-      "La función de cargar y procesar documentos propios (archivos PDF, planillas de campo, análisis de suelo o ensayos privados) está fuera de alcance en este prototipo MVP de Surco. " +
+      "La función de cargar y procesar documentos propios (archivos PDF, planillas de campo, análisis de suelo o ensayos privados) está fuera de alcance en este prototipo MVP de Pingo. " +
       "Para este prototipo, toda la evidencia proviene de la biblioteca documental curada y verificada versionada en el repositorio. " +
       "Mientras tanto, podés copiar y pegar el fragmento o los datos textuales de tu ensayo o análisis directamente en el chat para que podamos analizarlos en conjunto con las fuentes oficiales disponibles.",
     sources: [],
@@ -848,7 +848,7 @@ function handleLivePriceInsufficientInfo(): AssistantResponse {
   return {
     kind: "insufficient_info",
     answer:
-      "Surco no tiene una conexión en tiempo real y verificada con fuentes de precios, por lo que no puede mostrar una cotización actual. " +
+      "Pingo no tiene una conexión en tiempo real y verificada con fuentes de precios, por lo que no puede mostrar una cotización actual. " +
       "Te comparto dónde consultarla directamente; al comparar una referencia de pizarra con una oferta concreta, prestá atención a fecha, calidad, destino, entrega, forma de pago y gastos.",
     sources: [
       {
@@ -879,7 +879,7 @@ function handleRentalRatesInsufficientInfo(): AssistantResponse {
   return {
     kind: "insufficient_info",
     answer:
-      "Surco no dispone de una serie representativa de alquileres rurales ni publica promedios zonales para Tandil y la región. " +
+      "Pingo no dispone de una serie representativa de alquileres rurales ni publica promedios zonales para Tandil y la región. " +
       "Los valores de arrendamiento varían ampliamente según la aptitud del lote (agrícola pura, mixta o ganadera), la campaña, el tipo de contrato (quintales fijos, porcentaje o monto en dinero) y los antecedentes de manejo. " +
       "Para evaluar referencias comparables, completá los datos del lote para orientar la consulta hacia publicaciones de grupos CREA de la zona o fuentes profesionales locales.",
     sources: [
@@ -889,7 +889,7 @@ function handleRentalRatesInsufficientInfo(): AssistantResponse {
       ),
     ],
     warnings: [
-      "No se proporciona ningún valor en $/ha ni quintales fijos por hectárea: Surco no cuenta con una muestra representativa de alquileres para validar un promedio zonal.",
+      "No se proporciona ningún valor en $/ha ni quintales fijos por hectárea: Pingo no cuenta con una muestra representativa de alquileres para validar un promedio zonal.",
     ],
     followUpQuestions: [
       "¿Para qué campaña agrícola buscás la referencia?",
@@ -1055,7 +1055,7 @@ function buildRagSystemPrompt(fragments: { sourceCode: string; institution: stri
     .join("\n\n");
 
   return [
-    "Sos Surco, un asistente técnico para ingenieros agrónomos especializado en agricultura extensiva de Tandil y zona.",
+    "Sos Pingo, un asistente técnico para ingenieros agrónomos especializado en agricultura extensiva de Tandil y zona.",
     "Reglas obligatorias:",
     "1. Usá únicamente la evidencia provista abajo. No inventes fuentes, enlaces, fechas, cifras ni resultados de ensayos.",
     "2. Si la evidencia no alcanza para responder con certeza, decilo explícitamente y pedí el dato o documento que falta.",
@@ -1082,7 +1082,7 @@ function handlePhytoFormSubmission(data: Record<string, string>): AssistantRespo
       `Con "${producto}" identificado, el siguiente paso es buscarlo en el vademécum público de SENASA para confirmar su registro vigente${
         cultivo ? ` para ${cultivo}` : ""
       }${objetivo ? ` contra ${objetivo}` : ""}, y revisar el marbete correspondiente. ` +
-      `Surco no consulta ese registro en tiempo real, así que no puede confirmar la autorización por vos: el marbete es la fuente que determina usos, dosis y restricciones permitidas.`,
+      `Pingo no consulta ese registro en tiempo real, así que no puede confirmar la autorización por vos: el marbete es la fuente que determina usos, dosis y restricciones permitidas.`,
     sources: SENASA_SOURCES,
     warnings: [
       "No se afirma ninguna autorización: hay que verificarla en la fuente oficial con el producto exacto.",
@@ -1135,7 +1135,7 @@ function handleCropRotationFormSubmission(data: Record<string, string>): Assista
     kind: "insufficient_info",
     answer:
       `Con "${producto}" identificado, buscalo en el vademécum público de SENASA y revisá su marbete en la sección de restricciones de uso: ahí figura el intervalo de siembra (el tiempo mínimo antes de poder sembrar ${cultivoNuevo} en ese lote) según la formulación y dosis aplicada. ` +
-      `Recordá que esa restricción es distinta del período de carencia hasta cosecha del cultivo tratado. Surco no tiene acceso al marbete en tiempo real, así que el intervalo exacto hay que confirmarlo ahí.`,
+      `Recordá que esa restricción es distinta del período de carencia hasta cosecha del cultivo tratado. Pingo no tiene acceso al marbete en tiempo real, así que el intervalo exacto hay que confirmarlo ahí.`,
     sources: SENASA_SOURCES,
     warnings: [
       "No se propone ningún número de días u meses de intervalo de siembra: ese dato solo lo da el marbete del producto identificado.",
@@ -1188,7 +1188,7 @@ function handleRentalRatesFormSubmission(data: Record<string, string>): Assistan
       ),
     ],
     warnings: [
-      "Surco no publica valores numéricos de alquiler: cualquier cifra aislada de oferta debe contrastarse en el mercado local.",
+      "Pingo no publica valores numéricos de alquiler: cualquier cifra aislada de oferta debe contrastarse en el mercado local.",
     ],
     mode: "demo",
   };
@@ -1386,10 +1386,10 @@ function handleNutrientBalanceFormSubmission(data: Record<string, string>): Assi
   return {
     kind: "grounded_answer",
     answer:
-      `Para la secuencia ${secuencia} con rendimientos de ${rinde} y fertilización de ${fertilizantes} (${limites.toLowerCase()}), recordamos que Surco no calcula automáticamente un balance integral de nutrientes en este prototipo para evitar estimaciones no contrastadas. ` +
+      `Para la secuencia ${secuencia} con rendimientos de ${rinde} y fertilización de ${fertilizantes} (${limites.toLowerCase()}), recordamos que Pingo no calcula automáticamente un balance integral de nutrientes en este prototipo para evitar estimaciones no contrastadas. ` +
       `Desde el punto de vista conceptual y metodológico respaldado por INTA [R03], se debe distinguir claramente entre: ` +
       `1) La demanda total de nutrientes para construir biomasa; 2) La extracción o exportación neta que sale del lote en los granos cosechados; y 3) La reposición efectiva mediante fertilizantes. ` +
-      `Para calcular el balance de nitrógeno podés usar las conversiones exactas de urea disponibles en Surco (46% N) y contrastar las toneladas cosechadas con los índices de cosecha de nutrientes publicados por INTA para cada especie.`,
+      `Para calcular el balance de nitrógeno podés usar las conversiones exactas de urea disponibles en Pingo (46% N) y contrastar las toneladas cosechadas con los índices de cosecha de nutrientes publicados por INTA para cada especie.`,
     sources: [
       makeSourceCard("R03", "Transformación del nitrógeno de la urea y concentración elemental de nutrientes (INTA)."),
     ],
@@ -1484,7 +1484,7 @@ function handleMunicipalityRegulationsFormSubmission(data: Record<string, string
   return {
     kind: "grounded_answer",
     answer:
-      `La biblioteca documental de Surco en este prototipo solo cubre la normativa municipal del Partido de Tandil; no dispone de las ordenanzas locales vigentes para ${municipio}. ` +
+      `La biblioteca documental de Pingo en este prototipo solo cubre la normativa municipal del Partido de Tandil; no dispone de las ordenanzas locales vigentes para ${municipio}. ` +
       `En todo el territorio de la Provincia de Buenos Aires rige la Ley Provincial 10.699 [R12] y su Decreto Reglamentario 499/1991 [R13], que obligan a contar con receta agronómica y operarios habilitados. ` +
       `Para conocer las restricciones puntuales, distancias de amortiguamiento y zonas de exclusión en ${municipio}, debés consultar directamente el digesto municipal o el área de producción/medio ambiente de ese municipio.`,
     sources: [
@@ -1492,7 +1492,7 @@ function handleMunicipalityRegulationsFormSubmission(data: Record<string, string
       makeSourceCard("R13", "Decreto Reglamentario 499/1991 bonaerense."),
     ],
     warnings: [
-      `No se detalla la ordenanza municipal de ${municipio}: Surco declara explícitamente la falta de cobertura local para evitar inventar restricciones no verificadas.`,
+      `No se detalla la ordenanza municipal de ${municipio}: Pingo declara explícitamente la falta de cobertura local para evitar inventar restricciones no verificadas.`,
     ],
     mode: "demo",
   };
