@@ -1,220 +1,208 @@
 "use client";
 
-import { ChangeEvent, useEffect, useRef, useState } from "react";
-import { LoteApplicationRecord, ProducerLote } from "@/lib/types";
+import { useState, useRef, useEffect } from "react";
+import { ProducerLote, LoteApplicationRecord } from "@/lib/types";
+import {
+  IconCheck,
+  IconClose,
+  IconMapPin,
+  IconPlus,
+  IconSatellite,
+  IconFlask,
+  IconSparkles,
+  IconArrowLeft,
+  IconMic,
+  IconStop,
+  IconCamera,
+  IconTrash,
+} from "./Icons";
 import { SatelliteLoteMap } from "./SatelliteLoteMap";
-import { IconCamera, IconCheck, IconClose, IconFolder, IconMic, IconPlus, IconSend, IconSparkles } from "./Icons";
+import { parseLoteFromTextLocal } from "@/lib/lote-extraction";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
-import { ExtractedLoteFields } from "@/lib/lote-extraction";
 
 interface Props {
-  isOpen: boolean;
+  isOpen?: boolean;
   initialLote?: ProducerLote | null;
   onClose: () => void;
-  onSaveLote: (lote: ProducerLote) => void;
+  onSave?: (lote: ProducerLote) => void;
+  onSaveLote?: (lote: ProducerLote) => void;
 }
-
-const QUICK_APPLICATIONS: Omit<LoteApplicationRecord, "id">[] = [
-  {
-    date: "2026-09-12",
-    category: "Herbicida barbecho",
-    productName: "Gesaprim 90 WG (Atrazina)",
-    activeIngredient: "Atrazina 90%",
-    modeOfAction: "Fotosistema II (Grupo C1)",
-    dose: "1,2 kg/ha",
-    notes: "Residual en barbecho químico",
-  },
-  {
-    date: "2026-09-25",
-    category: "Herbicida barbecho",
-    productName: "Metsulfurón 60 WG + 2,4-D",
-    activeIngredient: "Metsulfurón metil 60% + 2,4-D",
-    modeOfAction: "Inhibidor ALS (Grupo B) + Auxínico (O)",
-    dose: "6 g/ha + 1,5 l/ha",
-    notes: "Control de hoja ancha en barbecho",
-  },
-  {
-    date: "2026-10-08",
-    category: "Herbicida preemergente",
-    productName: "Dual Gold (S-Metolacloro)",
-    activeIngredient: "S-Metolacloro 96%",
-    modeOfAction: "Inhibidor VLCFA (Grupo K3)",
-    dose: "1,3 l/ha",
-    notes: "Preemergente para gramíneas anuales y Amaranthus",
-  },
-  {
-    date: "2026-10-18",
-    category: "Fertilizante",
-    productName: "MAP (Fosfato Monoamónico 11-52-0)",
-    activeIngredient: "Fósforo 52% P2O5 + N 11%",
-    dose: "90 kg/ha",
-    notes: "Arrancador en la línea de siembra",
-  },
-  {
-    date: "2026-11-10",
-    category: "Fertilizante",
-    productName: "Urea Granulada (46-0-0)",
-    activeIngredient: "Nitrógeno 46%",
-    dose: "150 kg/ha",
-    notes: "Refertilización en V5–V6",
-  },
-];
 
 const COMMON_WEEDS_PESTS = [
   "Rama negra (Conyza)",
   "Yuyo colorado (Amaranthus)",
   "Raigrás anual (Lolium)",
+  "Capín (Echinochloa)",
   "Sorgo de Alepo",
-  "Nabón (Raphanus)",
+  "Nabo / Nabón (Brassica)",
   "Oruga cogollera (Spodoptera)",
-  "Diatraea / Barrenador",
+  "Chinche de los cuernos (Dichelops)",
+  "Isoca bolillera (Helicoverpa)",
+  "Roya común / Roya anaranjada",
 ];
 
-function AutoBadge() {
-  return (
-    <span
-      className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-      style={{ color: "var(--surco-green)", background: "var(--surco-green-tint)" }}
-    >
-      detectado
-    </span>
-  );
-}
+const QUICK_APPLICATIONS: Omit<LoteApplicationRecord, "id" | "date">[] = [
+  {
+    category: "Herbicida barbecho",
+    productName: "Glifosato Full II + 2,4-D Enlist",
+    activeIngredient: "Glifosato 54% + 2,4-D colina",
+    modeOfAction: "EPSPS (G) + Auxínico (O)",
+    dose: "2,2 l/ha + 1,2 l/ha",
+  },
+  {
+    category: "Herbicida preemergente",
+    productName: "Atrazina Gesaprim 90 WG + Dual Gold",
+    activeIngredient: "Atrazina 90% + S-Metolacloro",
+    modeOfAction: "Fotosistema II (C1) + VLCFA (K3)",
+    dose: "1,5 kg/ha + 1,2 l/ha",
+  },
+  {
+    category: "Herbicida preemergente",
+    productName: "Fierce RM (Flumioxazin + Pyroxasulfone)",
+    activeIngredient: "Flumioxazin + Pyroxasulfone",
+    modeOfAction: "PPO (14) + K3 (15)",
+    dose: "250 g/ha",
+  },
+  {
+    category: "Fertilizante",
+    productName: "MAP (Fosfato Monoamónico) a la siembra",
+    activeIngredient: "11-52-0",
+    modeOfAction: "Nutrición P + N arrancador",
+    dose: "85 kg/ha",
+  },
+  {
+    category: "Fertilizante",
+    productName: "Urea granulada / SolMIX en V5-V6",
+    activeIngredient: "Nitrógeno 46%",
+    modeOfAction: "Nutrición N macollaje / V6",
+    dose: "160 kg/ha",
+  },
+];
 
-export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Props) {
-  // Si es un lote nuevo, arrancamos por la captura rápida (audio/foto);
-  // si se está editando uno existente, vamos directo al formulario.
+const CROP_OPTIONS = [
+  { label: "Maíz", icon: "🌽", defaultSpace: "52", defaultDensity: "72000", defaultYield: "10" },
+  { label: "Soja", icon: "🌱", defaultSpace: "42", defaultDensity: "320000", defaultYield: "4.2" },
+  { label: "Trigo", icon: "🌾", defaultSpace: "19", defaultDensity: "2800000", defaultYield: "5.5" },
+  { label: "Girasol", icon: "🌻", defaultSpace: "52", defaultDensity: "55000", defaultYield: "3.2" },
+  { label: "Cebada", icon: "🌾", defaultSpace: "19", defaultDensity: "2600000", defaultYield: "5.8" },
+];
+
+const PHENOLOGY_PRESETS: Record<string, string[]> = {
+  Maíz: ["Barbecho", "VE (Emergencia)", "V2", "V4", "V6", "V8", "VT (Panojado)", "R1 (Floración)", "R4 (Grano pastoso)"],
+  Soja: ["Barbecho", "VE", "V2", "V4", "R1 (Inicio floración)", "R3 (Inicio vainas)", "R5 (Inicio grano)"],
+  Trigo: ["Barbecho", "Emergencia", "Z2.1 (Inicio macollaje)", "Z3.1 (Un nudo)", "Z3.9 (Hoja bandera)", "Espigazón"],
+  Girasol: ["Barbecho", "VE", "V4", "V8", "R1 (Estrella)", "R5 (Floración)", "R9 (Madurez)"],
+  Cebada: ["Barbecho", "Emergencia", "Z2.2 (Macollaje)", "Z3.1 (Encañazón)", "Hoja bandera", "Espigazón"],
+};
+
+const LOCALITY_PRESETS = ["Gardey", "María Ignacia (Vela)", "Iraola", "De la Canal", "Azucena", "Fulton"];
+
+const RELIEF_OPTIONS: { value: NonNullable<ProducerLote["relief"]>; label: string; desc: string }[] = [
+  { value: "Plano", label: "Plano", desc: "Sin pendiente limitante" },
+  { value: "Loma", label: "Loma", desc: "Bien drenado, riesgo tosca" },
+  { value: "Media loma", label: "Media loma", desc: "Alto potencial productivo" },
+  { value: "Bajo dulce", label: "Bajo dulce", desc: "Mayor humedad y riesgo helada" },
+  { value: "Bajo alcalino", label: "Bajo alcalino", desc: "Limitante sódica / drenaje" },
+];
+
+const SENSITIVE_ZONE_OPTIONS: { value: NonNullable<ProducerLote["sensitiveZoneType"]>; label: string; defaultDist: string }[] = [
+  { value: "Ninguna cercana", label: "Sin restricción cercana", defaultDist: "1500" },
+  { value: "Escuela rural", label: "Escuela rural", defaultDist: "300" },
+  { value: "Curso de agua / Arroyo", label: "Arroyo / Curso de agua", defaultDist: "150" },
+  { value: "Zona periurbana", label: "Zona periurbana / Viviendas", defaultDist: "250" },
+];
+
+export function LoteWizardModal({ isOpen = true, initialLote, onClose, onSave, onSaveLote }: Props) {
+  const isEditing = Boolean(initialLote);
+  // Cuando se crea un lote nuevo mostramos el paso 0 (Carga inteligente IA / foto); al editar abrimos en paso 1
   const [step, setStep] = useState<0 | 1 | 2 | 3>(initialLote ? 1 : 0);
 
-  // Captura rápida por voz/foto (Paso 0)
-  const [capturedNote, setCapturedNote] = useState("");
+  // Estado de captura por voz / IA y foto de referencia
+  const [voiceActive, setVoiceActive] = useState(false);
+  const [voiceTranscript, setVoiceTranscript] = useState("");
+  const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [extractingAi, setExtractingAi] = useState(false);
   const [autoFilledFields, setAutoFilledFields] = useState<string[]>([]);
-  const [isExtracting, setIsExtracting] = useState(false);
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
   const [referencePhotos, setReferencePhotos] = useState<{ name: string; dataUrl: string }[]>(
-    initialLote?.referencePhotos || []
+    initialLote?.referencePhotos ?? []
   );
-  const photoInputRef = useRef<HTMLInputElement>(null);
-  const {
-    isRecording,
-    isTranscribing,
-    recordingTime,
-    liveTranscript,
-    error: audioError,
-    startRecording,
-    stopAndSend,
-    cancelRecording,
-  } = useAudioRecorder();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null);
+  const photoInputRef = useRef<HTMLInputElement | null>(null);
+  const audioRecorder = useAudioRecorder();
 
-  // Paso 1: Ubicación Satelital y Entorno
-  const [name, setName] = useState(initialLote?.name || "Lote 12 — El Mirador");
-  const [municipality, setMunicipality] = useState(initialLote?.municipality || "Tandil");
-  const [locality, setLocality] = useState(initialLote?.locality || "Gardey");
-  const [center, setCenter] = useState<{ lat: number; lng: number }>(
-    initialLote?.coordinates || { lat: -37.2785, lng: -59.3612 }
-  );
-  const [polygon, setPolygon] = useState<[number, number][]>(
-    initialLote?.polygon || [
-      [-37.275, -59.366],
-      [-37.275, -59.356],
-      [-37.283, -59.356],
-      [-37.283, -59.366],
-    ]
-  );
-  const [hectares, setHectares] = useState(String(initialLote?.hectares || 85));
-  const [relief, setRelief] = useState<ProducerLote["relief"]>(initialLote?.relief || "Loma");
+  // Paso 1: Ubicación y Polígono
+  const [name, setName] = useState(initialLote?.name ?? "");
+  const [hectares, setHectares] = useState(String(initialLote?.hectares ?? 75));
+  const [municipality, setMunicipality] = useState(initialLote?.municipality ?? "Tandil");
+  const [locality, setLocality] = useState(initialLote?.locality ?? "Gardey");
+  const [relief, setRelief] = useState<ProducerLote["relief"]>(initialLote?.relief ?? "Media loma");
   const [sensitiveZoneType, setSensitiveZoneType] = useState<ProducerLote["sensitiveZoneType"]>(
-    initialLote?.sensitiveZoneType || "Escuela rural"
+    initialLote?.sensitiveZoneType ?? "Ninguna cercana"
   );
   const [sensitiveZoneDistanceM, setSensitiveZoneDistanceM] = useState(
-    String(initialLote?.sensitiveZoneDistanceM ?? 550)
+    String(initialLote?.sensitiveZoneDistanceM ?? 1200)
   );
-
-  // Paso 2: Suelo y Campaña Actual
-  const [crop, setCrop] = useState(initialLote?.crop || "Maíz");
-  const [hybrid, setHybrid] = useState(initialLote?.hybrid || "DK 72-10 Trecepta (Vip3A)");
-  const [plantingDate, setPlantingDate] = useState(
-    initialLote?.plantingDate || "2026-10-18 (Temprano)"
+  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number }>(
+    initialLote?.coordinates ?? { lat: -37.282, lng: -59.356 }
   );
-  const [phenology, setPhenology] = useState(initialLote?.phenology || "V6 (6 hojas)");
-  const [previousCrop, setPreviousCrop] = useState(initialLote?.previousCrop || "Soja 1ra");
-  const [targetYield, setTargetYield] = useState(String(initialLote?.targetYieldTonHa || 10));
-  const [rowSpacingCm, setRowSpacingCm] = useState(String(initialLote?.rowSpacingCm || 52));
-  const [targetDensity, setTargetDensity] = useState(
-    String(initialLote?.targetDensityPlantsHa || 72000)
-  );
-  const [toscaDepth, setToscaDepth] = useState(String(initialLote?.toscaDepthCm || 105));
-  const [soilN, setSoilN] = useState(String(initialLote?.soilNitrateKgHa || 64));
-  const [soilP, setSoilP] = useState(String(initialLote?.soilPhosphorusPpm || 14));
-  const [soilMO, setSoilMO] = useState(String(initialLote?.organicMatterPercent || 4.6));
-  const [soilPh, setSoilPh] = useState(String(initialLote?.ph || 6.1));
-  const [soilTexture, setSoilTexture] = useState<ProducerLote["soilTexture"]>(
-    initialLote?.soilTexture || "Franco"
-  );
-
-  // Paso 3: Qué se le echó previamente + Malezas/Plagas
-  const [applications, setApplications] = useState<LoteApplicationRecord[]>(
-    initialLote?.previousApplications || [
-      {
-        id: "app-init-1",
-        date: "2026-09-12",
-        category: "Herbicida barbecho",
-        productName: "Gesaprim 90 WG + Roundup Full II",
-        activeIngredient: "Atrazina 90% + Glifosato 66%",
-        modeOfAction: "Fotosistema II (C1) + EPSPS (G)",
-        dose: "1,2 kg/ha + 2,5 l/ha",
-      },
+  const [polygonCoords, setPolygonCoords] = useState<[number, number][]>(
+    initialLote?.polygon ?? [
+      [-37.2785, -59.362],
+      [-37.2785, -59.351],
+      [-37.2855, -59.351],
+      [-37.2855, -59.362],
     ]
   );
-  const [appDate, setAppDate] = useState("2026-10-05");
+
+  // Paso 2: Cultivo y Suelo
+  const [crop, setCrop] = useState(initialLote?.crop ?? "Maíz");
+  const [hybrid, setHybrid] = useState(initialLote?.hybrid ?? "DK 72-10 VT3P");
+  const [plantingDate, setPlantingDate] = useState(initialLote?.plantingDate ?? "2025-10-12");
+  const [phenology, setPhenology] = useState(initialLote?.phenology ?? "V6");
+  const [targetYield, setTargetYield] = useState(String(initialLote?.targetYieldTonHa ?? 10));
+  const [targetDensity, setTargetDensity] = useState(String(initialLote?.targetDensityPlantsHa ?? 72000));
+  const [rowSpacingCm, setRowSpacingCm] = useState(String(initialLote?.rowSpacingCm ?? 52));
+  const [previousCrop, setPreviousCrop] = useState(initialLote?.previousCrop ?? "Soja 1ra");
+  const [toscaDepth, setToscaDepth] = useState(String(initialLote?.toscaDepthCm ?? 85));
+  const [soilN, setSoilN] = useState(String(initialLote?.soilNitrateKgHa ?? 58));
+  const [soilP, setSoilP] = useState(String(initialLote?.soilPhosphorusPpm ?? 13));
+  const [soilMO, setSoilMO] = useState(String(initialLote?.organicMatterPercent ?? 3.8));
+  const [soilPh, setSoilPh] = useState(String(initialLote?.ph ?? 6.1));
+  const [soilTexture, setSoilTexture] = useState<ProducerLote["soilTexture"]>(
+    initialLote?.soilTexture ?? "Franco"
+  );
+  const [notes, setNotes] = useState(initialLote?.notes ?? "");
+
+  // Paso 3: Aplicaciones previas y Malezas
+  const [applications, setApplications] = useState<LoteApplicationRecord[]>(
+    initialLote?.previousApplications ?? []
+  );
+  const [selectedWeeds, setSelectedWeeds] = useState<string[]>(
+    initialLote?.detectedPestsAndWeeds ?? ["Rama negra (Conyza)"]
+  );
+  const [customWeedInput, setCustomWeedInput] = useState("");
+
+  // Formulario rápido para agregar aplicación manual
+  const [appDate, setAppDate] = useState("2025-09-18");
   const [appCategory, setAppCategory] =
     useState<LoteApplicationRecord["category"]>("Herbicida barbecho");
   const [appProduct, setAppProduct] = useState("");
   const [appActive, setAppActive] = useState("");
-  const [appMode, setAppMode] = useState("");
   const [appDose, setAppDose] = useState("");
 
-  const [selectedWeeds, setSelectedWeeds] = useState<string[]>(
-    initialLote?.detectedPestsAndWeeds || ["Rama negra (Conyza)"]
-  );
-
+  // Bloquear scroll del body cuando la pantalla completa está activa
   useEffect(() => {
-    if (isOpen) {
-      setStep(initialLote ? 1 : 0);
-      setCapturedNote("");
-      setAutoFilledFields([]);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (!isOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
   }, [isOpen]);
 
   if (!isOpen) return null;
-
-  function addCustomApplication() {
-    if (!appProduct.trim()) return;
-    const item: LoteApplicationRecord = {
-      id: `app-${Date.now()}`,
-      date: appDate,
-      category: appCategory,
-      productName: appProduct.trim(),
-      activeIngredient: appActive.trim() || appProduct.trim(),
-      modeOfAction: appMode.trim() || undefined,
-      dose: appDose.trim() || "Dosis estándar",
-    };
-    setApplications((prev) => [...prev, item]);
-    setAppProduct("");
-    setAppActive("");
-    setAppMode("");
-    setAppDose("");
-  }
-
-  function addQuickApplication(preset: Omit<LoteApplicationRecord, "id">) {
-    setApplications((prev) => [
-      ...prev,
-      {
-        ...preset,
-        id: `app-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      },
-    ]);
-  }
 
   function toggleWeed(weed: string) {
     setSelectedWeeds((prev) =>
@@ -222,875 +210,1730 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
     );
   }
 
-  function applyExtractedFields(extracted: ExtractedLoteFields) {
-    const applied: string[] = [];
-    if (extracted.name) {
-      setName(extracted.name);
-      applied.push("name");
+  function addCustomWeed() {
+    const clean = customWeedInput.trim();
+    if (!clean) return;
+    if (!selectedWeeds.includes(clean)) {
+      setSelectedWeeds((prev) => [...prev, clean]);
     }
-    if (extracted.hectares !== undefined) {
-      setHectares(String(extracted.hectares));
-      applied.push("hectares");
-    }
-    if (extracted.crop) {
-      setCrop(extracted.crop);
-      applied.push("crop");
-    }
-    if (extracted.hybrid) {
-      setHybrid(extracted.hybrid);
-      applied.push("hybrid");
-    }
-    if (extracted.phenology) {
-      setPhenology(extracted.phenology);
-      applied.push("phenology");
-    }
-    if (extracted.targetYieldTonHa !== undefined) {
-      setTargetYield(String(extracted.targetYieldTonHa));
-      applied.push("targetYieldTonHa");
-    }
-    if (extracted.previousCrop) {
-      setPreviousCrop(extracted.previousCrop);
-      applied.push("previousCrop");
-    }
-    if (extracted.municipality) {
-      setMunicipality(extracted.municipality);
-      applied.push("municipality");
-    }
-    if (extracted.locality) {
-      setLocality(extracted.locality);
-      applied.push("locality");
-    }
-    if (extracted.relief) {
-      setRelief(extracted.relief);
-      applied.push("relief");
-    }
-    if (extracted.soilNitrateKgHa !== undefined) {
-      setSoilN(String(extracted.soilNitrateKgHa));
-      applied.push("soilNitrateKgHa");
-    }
-    if (extracted.soilPhosphorusPpm !== undefined) {
-      setSoilP(String(extracted.soilPhosphorusPpm));
-      applied.push("soilPhosphorusPpm");
-    }
-    if (extracted.organicMatterPercent !== undefined) {
-      setSoilMO(String(extracted.organicMatterPercent));
-      applied.push("organicMatterPercent");
-    }
-    if (extracted.ph !== undefined) {
-      setSoilPh(String(extracted.ph));
-      applied.push("ph");
-    }
-    if (extracted.toscaDepthCm !== undefined) {
-      setToscaDepth(String(extracted.toscaDepthCm));
-      applied.push("toscaDepthCm");
-    }
-    setAutoFilledFields(applied);
+    setCustomWeedInput("");
   }
 
-  async function handleVoiceCapture() {
-    const transcript = await stopAndSend();
-    if (!transcript) return;
-    setCapturedNote(transcript);
-    setIsExtracting(true);
+  function addQuickApplication(preset: Omit<LoteApplicationRecord, "id" | "date">) {
+    const newApp: LoteApplicationRecord = {
+      ...preset,
+      id: `app-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      date: appDate,
+    };
+    setApplications((prev) => [newApp, ...prev]);
+  }
+
+  function addCustomApplication() {
+    if (!appProduct.trim()) return;
+    const newApp: LoteApplicationRecord = {
+      id: `app-${Date.now()}`,
+      date: appDate,
+      category: appCategory,
+      productName: appProduct.trim(),
+      activeIngredient: appActive.trim() || appProduct.trim(),
+      dose: appDose.trim() || "Dosis estándar de marbete",
+    };
+    setApplications((prev) => [newApp, ...prev]);
+    setAppProduct("");
+    setAppActive("");
+    setAppDose("");
+  }
+
+  // Aplicar campos extraídos al formulario
+  function applyExtractedFields(
+    fields: Partial<ProducerLote>,
+    detectedFields: string[]
+  ) {
+    if (fields.name) setName(fields.name);
+    if (fields.hectares !== undefined) setHectares(String(fields.hectares));
+    if (fields.crop) setCrop(fields.crop);
+    if (fields.hybrid) setHybrid(fields.hybrid);
+    if (fields.phenology) setPhenology(fields.phenology);
+    if (fields.targetYieldTonHa !== undefined) setTargetYield(String(fields.targetYieldTonHa));
+    if (fields.targetDensityPlantsHa !== undefined) setTargetDensity(String(fields.targetDensityPlantsHa));
+    if (fields.rowSpacingCm !== undefined) setRowSpacingCm(String(fields.rowSpacingCm));
+    if (fields.previousCrop) setPreviousCrop(fields.previousCrop);
+    if (fields.municipality) setMunicipality(fields.municipality);
+    if (fields.locality) setLocality(fields.locality);
+    if (fields.relief) setRelief(fields.relief);
+    if (fields.toscaDepthCm !== undefined) setToscaDepth(String(fields.toscaDepthCm));
+    if (fields.soilNitrateKgHa !== undefined) setSoilN(String(fields.soilNitrateKgHa));
+    if (fields.soilPhosphorusPpm !== undefined) setSoilP(String(fields.soilPhosphorusPpm));
+    if (fields.organicMatterPercent !== undefined) setSoilMO(String(fields.organicMatterPercent));
+    if (fields.ph !== undefined) setSoilPh(String(fields.ph));
+    if (fields.sensitiveZoneDistanceM !== undefined) {
+      setSensitiveZoneDistanceM(String(fields.sensitiveZoneDistanceM));
+    }
+    if (fields.detectedPestsAndWeeds && fields.detectedPestsAndWeeds.length > 0) {
+      setSelectedWeeds((prev) =>
+        Array.from(new Set([...prev, ...fields.detectedPestsAndWeeds!]))
+      );
+    }
+    setAutoFilledFields((prev) => Array.from(new Set([...prev, ...detectedFields])));
+  }
+
+  // Procesar texto con el extractor IA / determinístico
+  async function processTranscriptWithAI(rawText: string) {
+    const clean = rawText.trim();
+    if (!clean) return;
+    setExtractingAi(true);
+    setVoiceError(null);
+
+    // 1. Primero aplicamos extracción local determinística inmediata
+    const localFields = parseLoteFromTextLocal(clean);
+    applyExtractedFields(localFields, Object.keys(localFields));
+
+    // 2. Luego intentamos enriquecer con Gemini en la nube si hay conexión
     try {
       const res = await fetch("/api/extract-lote", {
         method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ text: transcript }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: clean }),
       });
       if (res.ok) {
-        const data = await res.json();
-        applyExtractedFields(data.extracted || {});
+        const data = (await res.json()) as {
+          fields?: Partial<ProducerLote>;
+        };
+        if (data.fields && Object.keys(data.fields).length > 0) {
+          applyExtractedFields(data.fields, Object.keys(data.fields));
+        }
       }
     } catch {
-      // Si falla la extracción, el usuario igual puede completar todo a mano.
+      // Silencioso: ya aplicamos extracción local determinística
     } finally {
-      setIsExtracting(false);
-      setStep(1);
+      setExtractingAi(false);
     }
   }
 
-  function handlePhotoSelect(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        setReferencePhotos((prev) => [...prev, { name: file.name, dataUrl: reader.result as string }]);
+  // Captura de voz con soporte dual (Web Speech API + MediaRecorder fallback)
+  async function handleVoiceToggle() {
+    setVoiceError(null);
+
+    // Si está grabando con MediaRecorder fallback
+    if (audioRecorder.isRecording) {
+      const text = await audioRecorder.stopAndSend();
+      setVoiceActive(false);
+      if (text?.trim()) {
+        const nextText = (voiceTranscript + " " + text.trim()).trim();
+        setVoiceTranscript(nextText);
+        await processTranscriptWithAI(nextText);
+      } else {
+        setVoiceError(
+          audioRecorder.error ??
+            "No se detectó voz clara. Podés intentar de nuevo o escribir el resumen abajo."
+        );
+      }
+      return;
+    }
+
+    // Si está activo SpeechRecognition
+    if (voiceActive && recognitionRef.current) {
+      recognitionRef.current.stop();
+      setVoiceActive(false);
+      if (voiceTranscript.trim()) {
+        await processTranscriptWithAI(voiceTranscript);
+      }
+      return;
+    }
+
+    // Intentar usar SpeechRecognition en vivo o MediaRecorder
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SpeechRec = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRec) {
+      const started = await audioRecorder.startRecording();
+      if (started) {
+        setVoiceActive(true);
+      } else {
+        setVoiceError(
+          audioRecorder.error ??
+            "Tu navegador no habilitó el micrófono. Podés pegar o escribir los datos del lote en el cuadro de texto."
+        );
+      }
+      return;
+    }
+
+    const recognition = new SpeechRec();
+    recognition.lang = "es-AR";
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    let accumulated = voiceTranscript ? voiceTranscript + " " : "";
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    recognition.onresult = (event: any) => {
+      let interim = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const text = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          accumulated += text + " ";
+        } else {
+          interim += text;
+        }
+      }
+      const fullText = (accumulated + interim).trim();
+      setVoiceTranscript(fullText);
+
+      const localFields = parseLoteFromTextLocal(fullText);
+      applyExtractedFields(localFields, Object.keys(localFields));
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    recognition.onerror = (event: any) => {
+      setVoiceActive(false);
+      if (event.error !== "aborted") {
+        setVoiceError("No se pudo escuchar el micrófono. Podés escribir el resumen directamente en el cuadro.");
       }
     };
-    reader.readAsDataURL(file);
+
+    recognition.onend = () => {
+      setVoiceActive(false);
+      if (accumulated.trim()) {
+        void processTranscriptWithAI(accumulated.trim());
+      }
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+    setVoiceActive(true);
+  }
+
+  function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    files.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === "string") {
+          setReferencePhotos((prev) => [
+            ...prev,
+            { name: file.name, dataUrl: reader.result as string },
+          ]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
     e.target.value = "";
   }
 
-  function removeReferencePhoto(index: number) {
-    setReferencePhotos((prev) => prev.filter((_, i) => i !== index));
-  }
-
   function handleSave() {
-    const saved: ProducerLote = {
-      id: initialLote?.id || `lote-${Date.now()}`,
-      name: name.trim() || "Nuevo Lote",
+    const centerLat =
+      polygonCoords.length > 0
+        ? polygonCoords.reduce((acc, c) => acc + c[0], 0) / polygonCoords.length
+        : mapCenter.lat;
+    const centerLng =
+      polygonCoords.length > 0
+        ? polygonCoords.reduce((acc, c) => acc + c[1], 0) / polygonCoords.length
+        : mapCenter.lng;
+
+    const newLote: ProducerLote = {
+      id: initialLote?.id ?? `lote-${Date.now()}`,
+      name: name.trim() || `Lote ${crop} (${locality || municipality})`,
+      hectares: Number(hectares) || 50,
+      crop,
+      hybrid: hybrid.trim() || "Sin especificar",
+      plantingDate,
+      phenology: phenology.trim() || "Barbecho",
+      targetYieldTonHa: Number(targetYield) || 9,
+      targetDensityPlantsHa: Number(targetDensity) || 70000,
+      rowSpacingCm: Number(rowSpacingCm) || 52,
+      previousCrop: previousCrop.trim() || "Soja",
       municipality: municipality.trim() || "Tandil",
-      locality: locality.trim() || undefined,
-      coordinates: center,
-      polygon,
-      hectares: parseFloat(hectares) || 80,
+      locality: locality.trim() || "Gardey",
       relief,
       sensitiveZoneType,
-      sensitiveZoneDistanceM: parseFloat(sensitiveZoneDistanceM) || 0,
-      crop,
-      hybrid: hybrid.trim() || "Híbrido Maíz",
-      plantingDate,
-      phenology,
-      previousCrop,
-      targetYieldTonHa: parseFloat(targetYield) || 9.5,
-      rowSpacingCm: parseFloat(rowSpacingCm) || 52,
-      targetDensityPlantsHa: parseFloat(targetDensity) || 70000,
-      toscaDepthCm: parseFloat(toscaDepth) || 90,
-      soilNitrateKgHa: parseFloat(soilN) || 60,
-      soilPhosphorusPpm: parseFloat(soilP) || 14,
-      organicMatterPercent: parseFloat(soilMO) || 4.5,
-      ph: parseFloat(soilPh) || 6.2,
+      sensitiveZoneDistanceM: Number(sensitiveZoneDistanceM) || 1000,
+      coordinates: {
+        lat: Number(centerLat.toFixed(5)),
+        lng: Number(centerLng.toFixed(5)),
+      },
+      polygon: polygonCoords,
+      toscaDepthCm: Number(toscaDepth) || 80,
+      soilNitrateKgHa: Number(soilN) || 50,
+      soilPhosphorusPpm: Number(soilP) || 12,
+      organicMatterPercent: Number(soilMO) || 3.5,
+      ph: Number(soilPh) || 6.2,
       soilTexture,
       previousApplications: applications,
       detectedPestsAndWeeds: selectedWeeds,
-      referencePhotos,
+      notes: notes.trim() || undefined,
+      referencePhotos: referencePhotos.length > 0 ? referencePhotos : undefined,
     };
-    onSaveLote(saved);
-    onClose();
+
+    onSave?.(newLote);
+    onSaveLote?.(newLote);
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-3 sm:p-5 animate-fadeIn">
-      <div
-        className="w-full max-w-3xl max-h-[92vh] rounded-2xl border shadow-xl flex flex-col overflow-hidden bg-white"
-        style={{ borderColor: "var(--surco-border)" }}
+  function AutoBadge() {
+    return (
+      <span
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide"
+        style={{ background: "var(--surco-green-tint)", color: "var(--surco-green)" }}
       >
-        {/* Cabecera del modal */}
-        <div
-          className="px-5 py-3.5 border-b flex items-center justify-between"
-          style={{ background: "var(--surco-bg)", borderColor: "var(--surco-border-light)" }}
-        >
-          <div className="flex items-center gap-2.5">
-            <div
-              className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-              style={{ background: "var(--surco-green-tint)", color: "var(--surco-green)" }}
+        <IconSparkles className="w-2.5 h-2.5" />
+        IA
+      </span>
+    );
+  }
+
+  const STEPS = [
+    { id: 0 as const, label: "Carga rápida IA", shortLabel: "IA / Foto", icon: IconSparkles },
+    { id: 1 as const, label: "1. Ubicación y Mapa", shortLabel: "1. Mapa", icon: IconSatellite },
+    { id: 2 as const, label: "2. Cultivo y Suelo", shortLabel: "2. Suelo", icon: IconFlask },
+    { id: 3 as const, label: "3. Aplicaciones y Sanidad", shortLabel: "3. Manejo", icon: IconCheck },
+  ];
+
+  const currentCropPresets = PHENOLOGY_PRESETS[crop] ?? PHENOLOGY_PRESETS.Maíz;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 w-screen h-screen flex flex-col overflow-hidden"
+      style={{ background: "var(--surco-bg)", color: "var(--surco-ink)" }}
+    >
+      {/* ===================================================================== */}
+      {/* BARRA SUPERIOR STICKY A PANTALLA COMPLETA                             */}
+      {/* ===================================================================== */}
+      <header
+        className="shrink-0 border-b bg-white/95 backdrop-blur-md z-20"
+        style={{ borderColor: "var(--surco-border-light)" }}
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 h-16 flex items-center justify-between gap-3">
+          {/* Izquierda: Volver y Título */}
+          <div className="flex items-center gap-3 min-w-0">
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-xs sm:text-sm font-medium transition-colors hover:bg-black/5 cursor-pointer shrink-0"
+              style={{ borderColor: "var(--surco-border-light)", color: "var(--surco-ink)" }}
+              title="Salir sin guardar"
             >
-              <IconFolder className="w-4 h-4" />
-            </div>
-            <div>
-              <h2 className="font-semibold text-sm sm:text-base leading-tight" style={{ color: "var(--surco-ink)" }}>
-                {initialLote ? `Editar: ${initialLote.name}` : "Nuevo Proyecto de Lote"}
-              </h2>
-              <span className="text-xs" style={{ color: "var(--surco-ink-muted)" }}>
-                {step === 0
-                  ? "Contanos sobre tu lote"
-                  : `Paso ${step} de 3 · ${
-                      step === 1 ? "Ubicación Satelital" : step === 2 ? "Suelo y Campaña" : "Historial de Aplicaciones"
-                    }`}
-              </span>
+              <IconArrowLeft className="w-4 h-4" />
+              <span className="hidden sm:inline">Volver</span>
+            </button>
+
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="font-serif text-lg sm:text-xl font-bold truncate" style={{ color: "var(--surco-ink)" }}>
+                  {isEditing ? `Editar ${name || initialLote?.name}` : name ? name : "Nuevo Lote"}
+                </h1>
+                <span
+                  className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold"
+                  style={{ background: "var(--surco-green-tint)", color: "var(--surco-green)" }}
+                >
+                  {crop} · {hectares || "—"} ha · {locality || municipality}
+                </span>
+              </div>
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-black/5 text-gray-500 cursor-pointer"
-          >
-            <IconClose className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Pasos / Stepper estilizado (oculto en la captura rápida inicial) */}
-        {step > 0 && (
-        <div
-          className="grid grid-cols-3 border-b text-xs font-medium"
-          style={{ borderColor: "var(--surco-border-light)", background: "var(--surco-bg)" }}
-        >
-          {[
-            { n: 1 as const, label: "1. Satélite y Polígono" },
-            { n: 2 as const, label: "2. Suelo y Campaña" },
-            { n: 3 as const, label: "3. Aplicaciones Previas" },
-          ].map((item) => {
-            const isActive = step === item.n;
-            return (
-              <button
-                key={item.n}
-                type="button"
-                onClick={() => setStep(item.n)}
-                className="py-2.5 px-3 text-center transition-all cursor-pointer border-b-2"
-                style={{
-                  borderColor: isActive ? "var(--surco-green)" : "transparent",
-                  color: isActive ? "var(--surco-green)" : "var(--surco-ink-muted)",
-                  fontWeight: isActive ? 600 : 400,
-                  background: isActive ? "var(--surco-card)" : "transparent",
-                }}
+          {/* Derecha: Resumen rápido y Guardar directo */}
+          <div className="flex items-center gap-2 shrink-0">
+            {autoFilledFields.length > 0 && (
+              <span
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold"
+                style={{ background: "var(--surco-green-tint)", color: "var(--surco-green)" }}
               >
-                {item.label}
+                <IconSparkles className="w-3.5 h-3.5" />
+                {autoFilledFields.length} datos autocompletados
+              </span>
+            )}
+
+            {referencePhotos.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowPhotoModal(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-semibold transition-colors hover:bg-black/5 cursor-pointer"
+                style={{ borderColor: "var(--surco-border)", color: "var(--surco-ink)" }}
+              >
+                <IconCamera className="w-3.5 h-3.5 text-emerald-700" />
+                <span>Ver foto ({referencePhotos.length})</span>
               </button>
-            );
-          })}
+            )}
+
+            <button
+              type="button"
+              onClick={handleSave}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-white shadow-xs transition-all hover:opacity-95 cursor-pointer"
+              style={{ background: "var(--surco-green)" }}
+            >
+              <IconCheck className="w-4 h-4" />
+              <span>Guardar lote</span>
+            </button>
+          </div>
         </div>
-        )}
 
-        {/* Contenido según el paso */}
-        <div className="p-4 sm:p-5 overflow-y-auto flex-1 flex flex-col gap-4 text-sm">
-          {step === 0 && (
-            <div className="flex flex-col gap-5 py-2">
-              <div className="text-center flex flex-col gap-1.5 max-w-md mx-auto">
-                <h3 className="text-base sm:text-lg font-semibold" style={{ color: "var(--surco-ink)" }}>
-                  Contanos sobre tu lote
-                </h3>
-                <p className="text-sm" style={{ color: "var(--surco-ink-muted)" }}>
-                  Grabá un audio describiéndolo (cuántas hectáreas, qué cultivo, dónde está,
-                  qué dio el análisis de suelo) y completamos el formulario por vos. Después
-                  revisás y ajustás lo que haga falta.
-                </p>
-              </div>
-
-              {audioError && (
-                <div className="rounded-xl border px-3.5 py-2 text-sm text-red-800 bg-red-50 border-red-200 text-center max-w-md mx-auto w-full">
-                  {audioError}
-                </div>
-              )}
-
-              {isRecording || isTranscribing || isExtracting ? (
-                <div
-                  className="max-w-md mx-auto w-full flex flex-col gap-3 rounded-2xl border bg-white px-4 py-5 text-center"
-                  style={{ borderColor: "rgba(220, 38, 38, 0.35)" }}
+        {/* Barra de navegación por pasos (interactiva en todo momento) */}
+        <div
+          className="border-t bg-stone-50/80"
+          style={{ borderColor: "var(--surco-border-light)" }}
+        >
+          <div className="max-w-7xl mx-auto px-4 sm:px-8 flex items-center gap-1.5 sm:gap-3 py-2 overflow-x-auto no-scrollbar">
+            {STEPS.map((s) => {
+              const Icon = s.icon;
+              const isActive = step === s.id;
+              const isCompleted = step > s.id;
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => setStep(s.id)}
+                  className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer shrink-0"
+                  style={{
+                    background: isActive
+                      ? "var(--surco-green)"
+                      : isCompleted
+                      ? "var(--surco-green-tint)"
+                      : "transparent",
+                    color: isActive
+                      ? "#ffffff"
+                      : isCompleted
+                      ? "var(--surco-green)"
+                      : "var(--surco-ink-muted)",
+                  }}
                 >
-                  <div className="flex items-center justify-center gap-2.5">
-                    <span className="relative flex h-3 w-3 shrink-0">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                      <span className="relative inline-flex rounded-full h-3 w-3 bg-red-600" />
-                    </span>
-                    <span className="text-sm font-semibold tabular-nums text-red-600">
-                      {Math.floor(recordingTime / 60)}:{recordingTime % 60 < 10 ? "0" : ""}
-                      {recordingTime % 60}
-                    </span>
-                  </div>
-                  <p className="text-sm italic" style={{ color: "var(--surco-ink-muted)" }}>
-                    {isExtracting
-                      ? "Completando el formulario con lo que dijiste…"
-                      : isTranscribing
-                      ? "Transcribiendo audio…"
-                      : liveTranscript
-                      ? `"${liveTranscript}"`
-                      : "Grabando… contame sobre el lote"}
+                  <Icon className="w-3.5 h-3.5 shrink-0" />
+                  <span className="hidden sm:inline">{s.label}</span>
+                  <span className="sm:hidden">{s.shortLabel}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </header>
+
+      {/* ===================================================================== */}
+      {/* ÁREA DE CONTENIDO PRINCIPAL (SCROLLABLE A PANTALLA COMPLETA)          */}
+      {/* ===================================================================== */}
+      <main className="flex-1 overflow-y-auto">
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-8 pb-28">
+          {/* ================================================================= */}
+          {/* PASO 0: CARGA INTELIGENTE CON VOZ, TEXTO O FOTO DE LABORATORIO    */}
+          {/* ================================================================= */}
+          {step === 0 && (
+            <div className="max-w-5xl mx-auto flex flex-col gap-6">
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                <div>
+                  <span
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold mb-2"
+                    style={{ background: "var(--surco-green-tint)", color: "var(--surco-green)" }}
+                  >
+                    <IconSparkles className="w-3.5 h-3.5" />
+                    Asistente de carga rápida
+                  </span>
+                  <h2 className="font-serif text-2xl sm:text-3xl font-bold" style={{ color: "var(--surco-ink)" }}>
+                    ¿Cómo preferís cargar los datos del lote?
+                  </h2>
+                  <p className="text-sm sm:text-base mt-1" style={{ color: "var(--surco-ink-muted)" }}>
+                    Dictá o escribí un resumen con tus palabras para autocompletar las fichas, adjuntá la foto del laboratorio de suelo o avanzá paso a paso.
                   </p>
-                  {isRecording && (
-                    <div className="flex items-center justify-center gap-2">
-                      <button
-                        type="button"
-                        onClick={cancelRecording}
-                        className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-500 hover:text-red-600 hover:bg-red-50 cursor-pointer"
-                      >
-                        Cancelar
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void handleVoiceCapture()}
-                        className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium text-white cursor-pointer"
-                        style={{ background: "var(--surco-green)" }}
-                      >
-                        <span>Listo, completar</span>
-                        <IconSend className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  )}
                 </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-md mx-auto w-full">
-                  <button
-                    type="button"
-                    onClick={() => void startRecording()}
-                    className="flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed p-6 transition-all cursor-pointer hover:border-solid hover:shadow-sm"
-                    style={{ borderColor: "var(--surco-green)", background: "var(--surco-green-tint)" }}
-                  >
-                    <div
-                      className="w-12 h-12 rounded-full flex items-center justify-center text-white"
-                      style={{ background: "var(--surco-green)" }}
-                    >
-                      <IconMic className="w-6 h-6" />
-                    </div>
-                    <span className="text-sm font-semibold" style={{ color: "var(--surco-green)" }}>
-                      Grabar audio
-                    </span>
-                    <span className="text-xs text-center" style={{ color: "var(--surco-ink-muted)" }}>
-                      Hablá y lo completamos solo
-                    </span>
-                  </button>
 
-                  <button
-                    type="button"
-                    onClick={() => photoInputRef.current?.click()}
-                    className="flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed p-6 transition-all cursor-pointer hover:border-solid hover:shadow-sm"
-                    style={{ borderColor: "var(--surco-border)", background: "var(--surco-bg)" }}
-                  >
-                    <div
-                      className="w-12 h-12 rounded-full flex items-center justify-center"
-                      style={{ background: "var(--surco-bg-alt)", color: "var(--surco-ink-soft)" }}
-                    >
-                      <IconCamera className="w-6 h-6" />
-                    </div>
-                    <span className="text-sm font-semibold" style={{ color: "var(--surco-ink)" }}>
-                      Foto del análisis
-                    </span>
-                    <span className="text-xs text-center" style={{ color: "var(--surco-ink-muted)" }}>
-                      Guardá el papel o la planilla
-                    </span>
-                  </button>
-                  <input
-                    ref={photoInputRef}
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    onChange={handlePhotoSelect}
-                    className="hidden"
-                  />
-                </div>
-              )}
-
-              {referencePhotos.length > 0 && (
-                <div className="max-w-md mx-auto w-full flex flex-wrap gap-2">
-                  {referencePhotos.map((photo, i) => (
-                    <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden border" style={{ borderColor: "var(--surco-border)" }}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={photo.dataUrl} alt={photo.name} className="w-full h-full object-cover" />
-                      <button
-                        type="button"
-                        onClick={() => removeReferencePhoto(i)}
-                        className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/60 text-white flex items-center justify-center cursor-pointer"
-                      >
-                        <IconClose className="w-2.5 h-2.5" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="text-center">
                 <button
                   type="button"
                   onClick={() => setStep(1)}
-                  className="text-sm font-medium cursor-pointer hover:underline"
-                  style={{ color: "var(--surco-ink-muted)" }}
+                  className="self-start sm:self-auto inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border bg-white text-sm font-semibold shadow-2xs transition-colors hover:bg-stone-50 cursor-pointer shrink-0"
+                  style={{ borderColor: "var(--surco-border)", color: "var(--surco-ink)" }}
                 >
-                  Prefiero completar el formulario a mano →
+                  <span>Ir al formulario manual</span>
+                  <span>→</span>
                 </button>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                {/* Tarjeta Principal: Dictado por Voz + Texto Libre con IA */}
+                <div
+                  className="lg:col-span-7 rounded-3xl border p-6 sm:p-8 flex flex-col justify-between gap-6 bg-white shadow-xs"
+                  style={{
+                    borderColor: voiceActive ? "var(--surco-green)" : "var(--surco-border-light)",
+                  }}
+                >
+                  <div className="flex flex-col gap-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-center gap-3.5">
+                        <div
+                          className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
+                          style={{
+                            background: voiceActive ? "#dc2626" : "var(--surco-green)",
+                            color: "#ffffff",
+                          }}
+                        >
+                          {voiceActive ? (
+                            <IconStop className="w-6 h-6 animate-pulse" />
+                          ) : (
+                            <IconMic className="w-6 h-6" />
+                          )}
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-bold" style={{ color: "var(--surco-ink)" }}>
+                            Dictado por voz o nota rápida
+                          </h3>
+                          <p className="text-xs sm:text-sm" style={{ color: "var(--surco-ink-muted)" }}>
+                            Hablá normalmente o escribí los datos que tengas a mano
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleVoiceToggle}
+                        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-semibold text-white shadow-sm transition-all cursor-pointer shrink-0"
+                        style={{
+                          background: voiceActive ? "#dc2626" : "var(--surco-green)",
+                        }}
+                      >
+                        {voiceActive ? (
+                          <>
+                            <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+                            <span>Detener dictado</span>
+                          </>
+                        ) : (
+                          <>
+                            <IconMic className="w-4 h-4" />
+                            <span>Dictar por voz</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Cuadro editable de transcripción / nota libre */}
+                    <div className="flex flex-col gap-2">
+                      <label className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--surco-ink-muted)" }}>
+                        Transcripción o resumen del lote (podés dictar o escribir acá)
+                      </label>
+                      <textarea
+                        rows={4}
+                        value={voiceTranscript}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setVoiceTranscript(val);
+                          const localFields = parseLoteFromTextLocal(val);
+                          applyExtractedFields(localFields, Object.keys(localFields));
+                        }}
+                        placeholder='Ejemplo: "Lote La Loma en Gardey, son 95 hectáreas en media loma. Sembramos maíz DK 72-10, hoy está en V6, venimos de soja, rinde objetivo 11 toneladas, nitrógeno 64 kg y fósforo 14 ppm, vimos rama negra."'
+                        className="w-full rounded-2xl border p-4 text-sm sm:text-base leading-relaxed outline-none transition-colors bg-stone-50/70 focus:bg-white"
+                        style={{
+                          borderColor: "var(--surco-border)",
+                          color: "var(--surco-ink)",
+                        }}
+                      />
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <span className="text-xs" style={{ color: "var(--surco-ink-muted)" }}>
+                          {extractingAi
+                            ? "Analizando datos agronómicos con IA..."
+                            : "Los datos detectados se cargan automáticamente en los pasos 1, 2 y 3."}
+                        </span>
+                        {voiceTranscript.trim() && (
+                          <button
+                            type="button"
+                            onClick={() => processTranscriptWithAI(voiceTranscript)}
+                            disabled={extractingAi}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold cursor-pointer transition-opacity hover:opacity-90 disabled:opacity-50"
+                            style={{
+                              background: "var(--surco-green-tint)",
+                              color: "var(--surco-green)",
+                            }}
+                          >
+                            <IconSparkles className="w-3.5 h-3.5" />
+                            <span>{extractingAi ? "Procesando..." : "Analizar texto con IA"}</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {voiceError && (
+                      <div className="rounded-xl bg-amber-50 border border-amber-200 px-3.5 py-2.5 text-xs text-amber-900">
+                        {voiceError}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Vista previa en vivo de los campos detectados */}
+                  <div
+                    className="rounded-2xl border p-4"
+                    style={{ background: "var(--surco-bg)", borderColor: "var(--surco-border-light)" }}
+                  >
+                    <div className="flex items-center justify-between mb-2.5">
+                      <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--surco-ink-soft)" }}>
+                        Vista previa de datos cargados
+                      </span>
+                      {autoFilledFields.length > 0 && (
+                        <span className="text-xs font-semibold" style={{ color: "var(--surco-green)" }}>
+                          ✓ {autoFilledFields.length} campos detectados
+                        </span>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+                      <div className="rounded-xl bg-white p-2.5 border" style={{ borderColor: "var(--surco-border-light)" }}>
+                        <span className="text-gray-400 block">Lote / Sup.</span>
+                        <span className="font-bold text-gray-900 truncate block">
+                          {name || "Sin nombre"} ({hectares} ha)
+                        </span>
+                      </div>
+                      <div className="rounded-xl bg-white p-2.5 border" style={{ borderColor: "var(--surco-border-light)" }}>
+                        <span className="text-gray-400 block">Cultivo / Estado</span>
+                        <span className="font-bold text-emerald-900 truncate block">
+                          {crop} · {phenology}
+                        </span>
+                      </div>
+                      <div className="rounded-xl bg-white p-2.5 border" style={{ borderColor: "var(--surco-border-light)" }}>
+                        <span className="text-gray-400 block">N-NO3 / P Bray</span>
+                        <span className="font-bold text-gray-900 truncate block">
+                          {soilN} kg / {soilP} ppm
+                        </span>
+                      </div>
+                      <div className="rounded-xl bg-white p-2.5 border" style={{ borderColor: "var(--surco-border-light)" }}>
+                        <span className="text-gray-400 block">Rinde Objetivo</span>
+                        <span className="font-bold text-gray-900 truncate block">
+                          {targetYield} t/ha
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tarjeta Derecha: Fotos de Análisis de Suelo o Libreta */}
+                <div
+                  className="lg:col-span-5 rounded-3xl border p-6 sm:p-8 flex flex-col justify-between gap-6 bg-white shadow-xs"
+                  style={{ borderColor: "var(--surco-border-light)" }}
+                >
+                  <div className="flex flex-col gap-4">
+                    <div className="flex items-center gap-3.5">
+                      <div
+                        className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
+                        style={{ background: "var(--surco-bg-alt)", color: "var(--surco-green)" }}
+                      >
+                        <IconCamera className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold" style={{ color: "var(--surco-ink)" }}>
+                          Foto de laboratorio o cuaderno
+                        </h3>
+                        <p className="text-xs sm:text-sm" style={{ color: "var(--surco-ink-muted)" }}>
+                          Guardá la planilla del análisis de suelo o marbete como respaldo del lote
+                        </p>
+                      </div>
+                    </div>
+
+                    <input
+                      ref={photoInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handlePhotoUpload}
+                      className="hidden"
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => photoInputRef.current?.click()}
+                      className="w-full rounded-2xl border-2 border-dashed p-6 flex flex-col items-center justify-center gap-2 text-center transition-colors hover:bg-stone-50 cursor-pointer"
+                      style={{ borderColor: "var(--surco-border)" }}
+                    >
+                      <IconCamera className="w-8 h-8 text-emerald-800" />
+                      <span className="text-sm font-semibold" style={{ color: "var(--surco-ink)" }}>
+                        Sacar foto o elegir de la galería
+                      </span>
+                      <span className="text-xs" style={{ color: "var(--surco-ink-muted)" }}>
+                        Podrás consultar la imagen mientras cargás los datos de suelo
+                      </span>
+                    </button>
+
+                    {referencePhotos.length > 0 && (
+                      <div className="grid grid-cols-2 gap-3">
+                        {referencePhotos.map((photo, idx) => (
+                          <div
+                            key={idx}
+                            className="relative group rounded-2xl border overflow-hidden bg-stone-100 h-28"
+                            style={{ borderColor: "var(--surco-border-light)" }}
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={photo.dataUrl}
+                              alt={photo.name}
+                              className="w-full h-full object-cover cursor-pointer"
+                              onClick={() => setShowPhotoModal(true)}
+                            />
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setReferencePhotos((prev) => prev.filter((_, i) => i !== idx))
+                              }
+                              className="absolute top-2 right-2 p-1.5 rounded-full bg-black/70 text-white hover:bg-red-600 cursor-pointer"
+                              title="Quitar foto"
+                            >
+                              <IconClose className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div
+                    className="rounded-2xl p-4 text-xs leading-relaxed"
+                    style={{ background: "var(--surco-green-tint)", color: "var(--surco-green)" }}
+                  >
+                    <strong>Consejo práctico:</strong> Si subís una foto del análisis de laboratorio ahora, en el <strong>Paso 2 (Cultivo y Suelo)</strong> vas a tener un botón para verla en grande al lado de las casillas de Nitrógeno, Fósforo y pH.
+                  </div>
+                </div>
               </div>
             </div>
           )}
 
+          {/* ================================================================= */}
+          {/* PASO 1: UBICACIÓN, PERÍMETRO SATELITAL Y ENTORNO                  */}
+          {/* ================================================================= */}
           {step === 1 && (
-            <>
-              {autoFilledFields.length > 0 && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-start">
+              {/* Columna Izquierda (7 cols): Mapa Satelital Interactivo Grande */}
+              <div className="lg:col-span-7 flex flex-col gap-4">
                 <div
-                  className="rounded-xl border px-3.5 py-2.5 flex items-start gap-2 text-sm"
-                  style={{ background: "var(--surco-green-tint)", borderColor: "var(--surco-green)" }}
+                  className="rounded-3xl border bg-white p-4 sm:p-6 shadow-xs flex flex-col gap-4"
+                  style={{ borderColor: "var(--surco-border-light)" }}
                 >
-                  <IconSparkles className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "var(--surco-green)" }} />
-                  <span style={{ color: "var(--surco-green-dark)" }}>
-                    Completamos {autoFilledFields.length} dato{autoFilledFields.length !== 1 ? "s" : ""} a partir
-                    de tu audio{capturedNote ? ` ("${capturedNote}")` : ""}. Revisá y ajustá lo que haga falta.
-                  </span>
-                </div>
-              )}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="sm:col-span-2 flex flex-col gap-1">
-                  <label className="text-xs font-medium flex items-center gap-1.5" style={{ color: "var(--surco-ink-soft)" }}>
-                    Nombre del Lote / Campo
-                    {autoFilledFields.includes("name") && <AutoBadge />}
-                  </label>
-                  <input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Ej. Lote 4 — La Loma (Gardey)"
-                    className="px-3 py-2 rounded-xl border bg-white text-sm outline-none transition-all focus:border-emerald-800/50"
-                    style={{ borderColor: "var(--surco-border)", color: "var(--surco-ink)" }}
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium flex items-center gap-1.5" style={{ color: "var(--surco-ink-soft)" }}>
-                    Superficie (ha)
-                    {autoFilledFields.includes("hectares") && <AutoBadge />}
-                  </label>
-                  <input
-                    type="number"
-                    value={hectares}
-                    onChange={(e) => setHectares(e.target.value)}
-                    className="px-3 py-2 rounded-xl border bg-white text-sm font-semibold outline-none"
-                    style={{ borderColor: "var(--surco-border)", color: "var(--surco-green)" }}
-                  />
-                </div>
-              </div>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <span
+                        className="text-xs font-bold uppercase tracking-wider block"
+                        style={{ color: "var(--surco-green)" }}
+                      >
+                        Delimitación Satelital
+                      </span>
+                      <h2 className="font-serif text-xl font-bold" style={{ color: "var(--surco-ink)" }}>
+                        Trazá el perímetro de tu lote
+                      </h2>
+                    </div>
 
-              <div className="rounded-xl overflow-hidden border" style={{ borderColor: "var(--surco-border-light)" }}>
-                <SatelliteLoteMap
-                  center={center}
-                  polygon={polygon}
-                  onChangeCenter={(newCenter, preset) => {
-                    setCenter(newCenter);
-                    if (preset) {
-                      setMunicipality(preset.municipality);
-                      setLocality(preset.locality);
-                    }
-                  }}
-                  onChangePolygon={(newPoly, calcHa) => {
-                    setPolygon(newPoly);
-                    if (calcHa > 0) setHectares(String(calcHa));
-                  }}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium flex items-center gap-1.5" style={{ color: "var(--surco-ink-muted)" }}>
-                    Partido
-                    {autoFilledFields.includes("municipality") && <AutoBadge />}
-                  </label>
-                  <input
-                    value={municipality}
-                    onChange={(e) => setMunicipality(e.target.value)}
-                    className="px-2.5 py-1.5 rounded-lg border bg-white text-xs outline-none"
-                    style={{ borderColor: "var(--surco-border-light)" }}
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium flex items-center gap-1.5" style={{ color: "var(--surco-ink-muted)" }}>
-                    Localidad
-                    {autoFilledFields.includes("locality") && <AutoBadge />}
-                  </label>
-                  <input
-                    value={locality}
-                    onChange={(e) => setLocality(e.target.value)}
-                    className="px-2.5 py-1.5 rounded-lg border bg-white text-xs outline-none"
-                    style={{ borderColor: "var(--surco-border-light)" }}
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium flex items-center gap-1.5" style={{ color: "var(--surco-ink-muted)" }}>
-                    Relieve
-                    {autoFilledFields.includes("relief") && <AutoBadge />}
-                  </label>
-                  <select
-                    value={relief}
-                    onChange={(e) => setRelief(e.target.value as ProducerLote["relief"])}
-                    className="px-2.5 py-1.5 rounded-lg border bg-white text-xs outline-none"
-                    style={{ borderColor: "var(--surco-border-light)" }}
-                  >
-                    <option value="Loma">Loma</option>
-                    <option value="Media loma">Media loma</option>
-                    <option value="Plano">Plano</option>
-                    <option value="Bajo dulce">Bajo dulce</option>
-                    <option value="Bajo alcalino">Bajo alcalino</option>
-                  </select>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-muted)" }}>
-                    Zona sensible y distancia (m)
-                  </label>
-                  <div className="flex gap-1">
-                    <select
-                      value={sensitiveZoneType}
-                      onChange={(e) =>
-                        setSensitiveZoneType(e.target.value as ProducerLote["sensitiveZoneType"])
-                      }
-                      className="flex-1 px-2 py-1.5 rounded-lg border bg-white text-xs outline-none"
-                      style={{ borderColor: "var(--surco-border-light)" }}
+                    <div
+                      className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-2xl text-xs sm:text-sm font-bold"
+                      style={{ background: "var(--surco-green-tint)", color: "var(--surco-green)" }}
                     >
-                      <option value="Escuela rural">Escuela</option>
-                      <option value="Curso de agua / Arroyo">Arroyo</option>
-                      <option value="Zona periurbana">Periurbano</option>
-                      <option value="Ninguna cercana">Ninguna</option>
-                    </select>
-                    <input
-                      type="number"
-                      value={sensitiveZoneDistanceM}
-                      onChange={(e) => setSensitiveZoneDistanceM(e.target.value)}
-                      placeholder="m"
-                      className="w-16 px-2 py-1.5 rounded-lg border bg-white text-xs outline-none"
-                      style={{ borderColor: "var(--surco-border-light)" }}
-                    />
+                      <IconSatellite className="w-4 h-4" />
+                      <span>{hectares || "0"} ha calculadas</span>
+                    </div>
+                  </div>
+
+                  <SatelliteLoteMap
+                    center={mapCenter}
+                    polygon={polygonCoords}
+                    heightClassName="h-80 sm:h-[440px]"
+                    onChangeCenter={(newCenter, preset) => {
+                      setMapCenter(newCenter);
+                      if (preset) {
+                        setMunicipality(preset.municipality);
+                        setLocality(preset.locality);
+                      }
+                    }}
+                    onChangePolygon={(coords, areaHa) => {
+                      setPolygonCoords(coords);
+                      if (areaHa > 0) {
+                        setHectares(String(areaHa));
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Columna Derecha (5 cols): Identificación, Relieve y Zona Sensible */}
+              <div className="lg:col-span-5 flex flex-col gap-6">
+                {/* Card 1: Identificación y Ubicación */}
+                <div
+                  className="rounded-3xl border bg-white p-5 sm:p-6 shadow-xs flex flex-col gap-4"
+                  style={{ borderColor: "var(--surco-border-light)" }}
+                >
+                  <h3 className="text-base font-bold" style={{ color: "var(--surco-ink)" }}>
+                    Identificación y ubicación
+                  </h3>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                    <div className="sm:col-span-2 flex flex-col gap-1.5">
+                      <label className="text-xs font-semibold flex items-center gap-1.5" style={{ color: "var(--surco-ink-soft)" }}>
+                        Nombre del lote
+                        {autoFilledFields.includes("name") && <AutoBadge />}
+                      </label>
+                      <input
+                        placeholder="Ej. Lote La Loma / Lote 4 Norte"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl border bg-stone-50/60 focus:bg-white text-sm font-medium outline-none transition-colors"
+                        style={{ borderColor: "var(--surco-border)" }}
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-semibold flex items-center gap-1.5" style={{ color: "var(--surco-ink-soft)" }}>
+                        Superficie (ha)
+                        {autoFilledFields.includes("hectares") && <AutoBadge />}
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          value={hectares}
+                          onChange={(e) => setHectares(e.target.value)}
+                          className="w-full px-3.5 py-2.5 pr-9 rounded-xl border bg-stone-50/60 focus:bg-white text-sm font-bold outline-none transition-colors"
+                          style={{ borderColor: "var(--surco-border)", color: "var(--surco-green)" }}
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-gray-400">
+                          ha
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-semibold flex items-center gap-1.5" style={{ color: "var(--surco-ink-soft)" }}>
+                        Partido / Municipio
+                        {autoFilledFields.includes("municipality") && <AutoBadge />}
+                      </label>
+                      <input
+                        value={municipality}
+                        onChange={(e) => setMunicipality(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl border bg-stone-50/60 focus:bg-white text-sm outline-none transition-colors"
+                        style={{ borderColor: "var(--surco-border)" }}
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-semibold flex items-center gap-1.5" style={{ color: "var(--surco-ink-soft)" }}>
+                        Paraje / Localidad
+                        {autoFilledFields.includes("locality") && <AutoBadge />}
+                      </label>
+                      <input
+                        value={locality}
+                        onChange={(e) => setLocality(e.target.value)}
+                        placeholder="Ej. Gardey, Vela..."
+                        className="w-full px-3.5 py-2.5 rounded-xl border bg-stone-50/60 focus:bg-white text-sm outline-none transition-colors"
+                        style={{ borderColor: "var(--surco-border)" }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Atajos de parajes frecuentes */}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[11px] font-medium text-gray-400">Parajes rápidos:</span>
+                    {LOCALITY_PRESETS.map((loc) => {
+                      const active = locality.toLowerCase() === loc.toLowerCase();
+                      return (
+                        <button
+                          key={loc}
+                          type="button"
+                          onClick={() => setLocality(loc)}
+                          className="px-2.5 py-1 rounded-lg border text-xs transition-colors cursor-pointer"
+                          style={{
+                            background: active ? "var(--surco-green-tint)" : "var(--surco-bg)",
+                            borderColor: active ? "var(--surco-green)" : "var(--surco-border-light)",
+                            color: active ? "var(--surco-green)" : "var(--surco-ink-soft)",
+                            fontWeight: active ? 600 : 400,
+                          }}
+                        >
+                          {loc}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Card 2: Relieve y Posición en el Paisaje */}
+                <div
+                  className="rounded-3xl border bg-white p-5 sm:p-6 shadow-xs flex flex-col gap-4"
+                  style={{ borderColor: "var(--surco-border-light)" }}
+                >
+                  <div>
+                    <h3 className="text-base font-bold flex items-center gap-2" style={{ color: "var(--surco-ink)" }}>
+                      Relieve y ambiente del lote
+                      {autoFilledFields.includes("relief") && <AutoBadge />}
+                    </h3>
+                    <p className="text-xs mt-0.5" style={{ color: "var(--surco-ink-muted)" }}>
+                      Define riesgo de helada tardía, escurrimiento y retención hídrica
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {RELIEF_OPTIONS.map((opt) => {
+                      const active = relief === opt.value;
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setRelief(opt.value)}
+                          className="rounded-2xl border p-3 text-left transition-all cursor-pointer flex flex-col justify-between"
+                          style={{
+                            background: active ? "var(--surco-green-tint)" : "var(--surco-bg)",
+                            borderColor: active ? "var(--surco-green)" : "var(--surco-border-light)",
+                          }}
+                        >
+                          <span
+                            className="text-xs font-bold block"
+                            style={{ color: active ? "var(--surco-green)" : "var(--surco-ink)" }}
+                          >
+                            {opt.label}
+                          </span>
+                          <span className="text-[11px] text-gray-500 mt-0.5 leading-tight block">
+                            {opt.desc}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Card 3: Restricción Ambiental / Zona Sensible */}
+                <div
+                  className="rounded-3xl border bg-white p-5 sm:p-6 shadow-xs flex flex-col gap-4"
+                  style={{ borderColor: "var(--surco-border-light)" }}
+                >
+                  <div>
+                    <h3 className="text-base font-bold" style={{ color: "var(--surco-ink)" }}>
+                      Cercanía a zonas sensibles (Ordenanza Municipal)
+                    </h3>
+                    <p className="text-xs mt-0.5" style={{ color: "var(--surco-ink-muted)" }}>
+                      Permite validar distancias de amortiguamiento para pulverizaciones terrestres
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    {SENSITIVE_ZONE_OPTIONS.map((opt) => {
+                      const active = sensitiveZoneType === opt.value;
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => {
+                            setSensitiveZoneType(opt.value);
+                            setSensitiveZoneDistanceM(opt.defaultDist);
+                          }}
+                          className="rounded-xl border px-3 py-2.5 text-left text-xs font-semibold transition-all cursor-pointer"
+                          style={{
+                            background: active ? "var(--surco-green-tint)" : "var(--surco-bg)",
+                            borderColor: active ? "var(--surco-green)" : "var(--surco-border-light)",
+                            color: active ? "var(--surco-green)" : "var(--surco-ink)",
+                          }}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex items-center justify-between gap-4 pt-1">
+                    <label className="text-xs font-semibold" style={{ color: "var(--surco-ink-soft)" }}>
+                      Distancia libre hasta el punto sensible (metros):
+                    </label>
+                    <div className="relative w-32 shrink-0">
+                      <input
+                        type="number"
+                        step="50"
+                        value={sensitiveZoneDistanceM}
+                        onChange={(e) => setSensitiveZoneDistanceM(e.target.value)}
+                        className="w-full px-3 py-2 pr-8 rounded-xl border bg-stone-50/60 focus:bg-white text-sm font-bold outline-none"
+                        style={{ borderColor: "var(--surco-border)" }}
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">
+                        m
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </>
+            </div>
           )}
 
+          {/* ================================================================= */}
+          {/* PASO 2: CULTIVO, MANEJO Y LABORATORIO DE SUELO                    */}
+          {/* ================================================================= */}
           {step === 2 && (
-            <>
-              <span className="text-xs font-semibold uppercase tracking-wider text-emerald-900">
-                Cultivo y Campaña Actual
-              </span>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium flex items-center gap-1.5" style={{ color: "var(--surco-ink-muted)" }}>
-                    Cultivo
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-start">
+              {/* Columna Izquierda (6 cols): Cultivo y Manejo de Campaña */}
+              <div
+                className="lg:col-span-6 rounded-3xl border bg-white p-5 sm:p-7 shadow-xs flex flex-col gap-5"
+                style={{ borderColor: "var(--surco-border-light)" }}
+              >
+                <div>
+                  <span
+                    className="text-xs font-bold uppercase tracking-wider block"
+                    style={{ color: "var(--surco-green)" }}
+                  >
+                    Campaña Actual
+                  </span>
+                  <h2 className="font-serif text-xl font-bold" style={{ color: "var(--surco-ink)" }}>
+                    Cultivo, fenología y planteo técnico
+                  </h2>
+                </div>
+
+                {/* Selector visual de cultivo */}
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-semibold flex items-center gap-1.5" style={{ color: "var(--surco-ink-soft)" }}>
+                    Cultivo principal
                     {autoFilledFields.includes("crop") && <AutoBadge />}
                   </label>
-                  <select
-                    value={crop}
-                    onChange={(e) => setCrop(e.target.value)}
-                    className="px-3 py-2 rounded-xl border bg-white text-xs outline-none"
-                    style={{ borderColor: "var(--surco-border-light)" }}
-                  >
-                    <option value="Maíz">Maíz</option>
-                    <option value="Soja">Soja</option>
-                    <option value="Trigo">Trigo</option>
-                    <option value="Girasol">Girasol</option>
-                    <option value="Cebada">Cebada</option>
-                  </select>
+                  <div className="grid grid-cols-5 gap-2">
+                    {CROP_OPTIONS.map((item) => {
+                      const active = crop === item.label;
+                      return (
+                        <button
+                          key={item.label}
+                          type="button"
+                          onClick={() => {
+                            setCrop(item.label);
+                            if (!isEditing) {
+                              setRowSpacingCm(item.defaultSpace);
+                              setTargetDensity(item.defaultDensity);
+                              setTargetYield(item.defaultYield);
+                            }
+                          }}
+                          className="rounded-2xl border py-2.5 px-2 flex flex-col items-center gap-1 transition-all cursor-pointer"
+                          style={{
+                            background: active ? "var(--surco-green)" : "var(--surco-bg)",
+                            borderColor: active ? "var(--surco-green)" : "var(--surco-border-light)",
+                            color: active ? "#ffffff" : "var(--surco-ink)",
+                          }}
+                        >
+                          <span className="text-lg">{item.icon}</span>
+                          <span className="text-xs font-bold">{item.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-muted)" }}>Híbrido / Variedad</label>
-                  <input
-                    value={hybrid}
-                    onChange={(e) => setHybrid(e.target.value)}
-                    placeholder="Ej. DK 72-10 Trecepta"
-                    className="px-3 py-2 rounded-xl border bg-white text-xs outline-none"
-                    style={{ borderColor: "var(--surco-border-light)" }}
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium flex items-center gap-1.5" style={{ color: "var(--surco-ink-muted)" }}>
-                    Estadio Fenológico
+
+                {/* Estado Fenológico con chips rápidos */}
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-semibold flex items-center gap-1.5" style={{ color: "var(--surco-ink-soft)" }}>
+                    Estado fenológico actual
                     {autoFilledFields.includes("phenology") && <AutoBadge />}
                   </label>
                   <input
                     value={phenology}
                     onChange={(e) => setPhenology(e.target.value)}
-                    placeholder="Ej. V6 (6 hojas)"
-                    className="px-3 py-2 rounded-xl border bg-white text-xs outline-none"
-                    style={{ borderColor: "var(--surco-border-light)" }}
+                    placeholder="Ej. Barbecho, V6, R1, Z3.1..."
+                    className="w-full px-3.5 py-2.5 rounded-xl border bg-stone-50/60 focus:bg-white text-sm font-semibold outline-none"
+                    style={{ borderColor: "var(--surco-border)" }}
                   />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-muted)" }}>Fecha de Siembra</label>
-                  <input
-                    value={plantingDate}
-                    onChange={(e) => setPlantingDate(e.target.value)}
-                    className="px-3 py-2 rounded-xl border bg-white text-xs outline-none"
-                    style={{ borderColor: "var(--surco-border-light)" }}
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium flex items-center gap-1.5" style={{ color: "var(--surco-ink-muted)" }}>
-                    Rinde Objetivo (t/ha)
-                    {autoFilledFields.includes("targetYieldTonHa") && <AutoBadge />}
-                  </label>
-                  <input
-                    type="number"
-                    step="0.5"
-                    value={targetYield}
-                    onChange={(e) => setTargetYield(e.target.value)}
-                    className="px-3 py-2 rounded-xl border bg-white text-xs font-bold outline-none"
-                    style={{ borderColor: "var(--surco-border-light)", color: "var(--surco-green)" }}
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium flex items-center gap-1.5" style={{ color: "var(--surco-ink-muted)" }}>
-                    Cultivo Antecesor
-                    {autoFilledFields.includes("previousCrop") && <AutoBadge />}
-                  </label>
-                  <input
-                    value={previousCrop}
-                    onChange={(e) => setPreviousCrop(e.target.value)}
-                    className="px-3 py-2 rounded-xl border bg-white text-xs outline-none"
-                    style={{ borderColor: "var(--surco-border-light)" }}
-                  />
-                </div>
-              </div>
-
-              <span className="text-xs font-semibold uppercase tracking-wider text-emerald-900 pt-2">
-                Análisis de Suelo (Laboratorio)
-              </span>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-muted)" }}>Prof. a Tosca (cm)</label>
-                  <input
-                    type="number"
-                    value={toscaDepth}
-                    onChange={(e) => setToscaDepth(e.target.value)}
-                    className="px-3 py-2 rounded-xl border bg-white text-xs outline-none"
-                    style={{ borderColor: "var(--surco-border-light)" }}
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium flex items-center gap-1.5" style={{ color: "var(--surco-ink-muted)" }}>
-                    N-NO3 (0–60cm kg/ha)
-                    {autoFilledFields.includes("soilNitrateKgHa") && <AutoBadge />}
-                  </label>
-                  <input
-                    type="number"
-                    value={soilN}
-                    onChange={(e) => setSoilN(e.target.value)}
-                    className="px-3 py-2 rounded-xl border bg-white text-xs outline-none"
-                    style={{ borderColor: "var(--surco-border-light)" }}
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium flex items-center gap-1.5" style={{ color: "var(--surco-ink-muted)" }}>
-                    Fósforo P Bray (ppm)
-                    {autoFilledFields.includes("soilPhosphorusPpm") && <AutoBadge />}
-                  </label>
-                  <input
-                    type="number"
-                    step="0.5"
-                    value={soilP}
-                    onChange={(e) => setSoilP(e.target.value)}
-                    className="px-3 py-2 rounded-xl border bg-white text-xs outline-none"
-                    style={{ borderColor: "var(--surco-border-light)" }}
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium flex items-center gap-1.5" style={{ color: "var(--surco-ink-muted)" }}>
-                    Materia Orgánica (%)
-                    {autoFilledFields.includes("organicMatterPercent") && <AutoBadge />}
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={soilMO}
-                    onChange={(e) => setSoilMO(e.target.value)}
-                    className="px-3 py-2 rounded-xl border bg-white text-xs outline-none"
-                    style={{ borderColor: "var(--surco-border-light)" }}
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium flex items-center gap-1.5" style={{ color: "var(--surco-ink-muted)" }}>
-                    pH actual
-                    {autoFilledFields.includes("ph") && <AutoBadge />}
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={soilPh}
-                    onChange={(e) => setSoilPh(e.target.value)}
-                    className="px-3 py-2 rounded-xl border bg-white text-xs outline-none"
-                    style={{ borderColor: "var(--surco-border-light)" }}
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-muted)" }}>Textura</label>
-                  <select
-                    value={soilTexture}
-                    onChange={(e) => setSoilTexture(e.target.value as ProducerLote["soilTexture"])}
-                    className="px-3 py-2 rounded-xl border bg-white text-xs outline-none"
-                    style={{ borderColor: "var(--surco-border-light)" }}
-                  >
-                    <option value="Franco">Franco</option>
-                    <option value="Franco-arcilloso">Franco-arcilloso</option>
-                    <option value="Franco-arenoso">Franco-arenoso</option>
-                  </select>
-                </div>
-              </div>
-            </>
-          )}
-
-          {step === 3 && (
-            <>
-              <div>
-                <span className="text-xs font-semibold uppercase tracking-wider text-emerald-900 block mb-1">
-                  Historial de lo que se le echó previamente al lote
-                </span>
-                <p className="text-xs text-gray-500 mb-2.5">
-                  Herbicidas residuales, arrancadores y fertilizantes aplicados para que el asistente determine carry-over y rotación de modos de acción.
-                </p>
-
-                {/* Accesos rápidos */}
-                <div className="flex items-center gap-1.5 flex-wrap mb-3">
-                  <span className="text-xs text-gray-400">Atajos:</span>
-                  {QUICK_APPLICATIONS.map((preset) => (
-                    <button
-                      key={preset.productName}
-                      type="button"
-                      onClick={() => addQuickApplication(preset)}
-                      className="px-2 py-0.5 rounded-md border text-xs transition-colors cursor-pointer hover:bg-black/5"
-                      style={{
-                        background: "var(--surco-card)",
-                        borderColor: "var(--surco-border-light)",
-                        color: "var(--surco-ink-soft)",
-                      }}
-                    >
-                      + {preset.productName.split("(")[0].trim()}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Lista de aplicaciones */}
-                <div className="flex flex-col gap-1.5 mb-3 max-h-48 overflow-y-auto pr-1">
-                  {applications.length === 0 ? (
-                    <div className="text-center p-3 text-xs text-gray-400 border border-dashed rounded-xl">
-                      Sin aplicaciones registradas todavía.
-                    </div>
-                  ) : (
-                    applications.map((app) => (
-                      <div
-                        key={app.id}
-                        className="rounded-xl border p-2.5 flex items-center justify-between gap-2 text-xs bg-white"
-                        style={{ borderColor: "var(--surco-border-light)" }}
-                      >
-                        <div className="min-w-0">
-                          <span className="font-mono text-xs font-semibold text-emerald-800 mr-2">
-                            {app.date}
-                          </span>
-                          <span className="font-medium text-gray-900">{app.productName}</span>
-                          <span className="text-gray-500 ml-1">({app.dose})</span>
-                          {app.modeOfAction && (
-                            <span className="text-xs text-emerald-700 ml-1.5">
-                              [{app.modeOfAction}]
-                            </span>
-                          )}
-                        </div>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {currentCropPresets.map((stage) => {
+                      const shortStage = stage.split(" ")[0];
+                      const active = phenology === stage || phenology === shortStage;
+                      return (
                         <button
+                          key={stage}
                           type="button"
-                          onClick={() => setApplications((prev) => prev.filter((item) => item.id !== app.id))}
-                          className="p-1 rounded-md hover:bg-red-50 text-red-600 cursor-pointer shrink-0"
-                          title="Eliminar"
+                          onClick={() => setPhenology(shortStage)}
+                          className="px-2.5 py-1 rounded-lg border text-xs transition-colors cursor-pointer"
+                          style={{
+                            background: active ? "var(--surco-green-tint)" : "var(--surco-bg)",
+                            borderColor: active ? "var(--surco-green)" : "var(--surco-border-light)",
+                            color: active ? "var(--surco-green)" : "var(--surco-ink-soft)",
+                            fontWeight: active ? 600 : 400,
+                          }}
                         >
-                          <IconClose className="w-3.5 h-3.5" />
+                          {stage}
                         </button>
-                      </div>
-                    ))
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Híbrido / Variedad + Fecha de Siembra */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold flex items-center gap-1.5" style={{ color: "var(--surco-ink-soft)" }}>
+                      Híbrido / Variedad
+                      {autoFilledFields.includes("hybrid") && <AutoBadge />}
+                    </label>
+                    <input
+                      value={hybrid}
+                      onChange={(e) => setHybrid(e.target.value)}
+                      placeholder="Ej. DK 72-10 VT3P / DM 46i20"
+                      className="w-full px-3.5 py-2.5 rounded-xl border bg-stone-50/60 focus:bg-white text-sm outline-none"
+                      style={{ borderColor: "var(--surco-border)" }}
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold" style={{ color: "var(--surco-ink-soft)" }}>
+                      Fecha de siembra (real o estimada)
+                    </label>
+                    <input
+                      type="date"
+                      value={plantingDate}
+                      onChange={(e) => setPlantingDate(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border bg-stone-50/60 focus:bg-white text-sm outline-none"
+                      style={{ borderColor: "var(--surco-border)" }}
+                    />
+                  </div>
+                </div>
+
+                {/* Rinde Objetivo, Densidad, Espaciamiento y Cultivo Antecesor */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold flex items-center gap-1" style={{ color: "var(--surco-ink-soft)" }}>
+                      Rinde Obj.
+                      {autoFilledFields.includes("targetYieldTonHa") && <AutoBadge />}
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        step="0.5"
+                        value={targetYield}
+                        onChange={(e) => setTargetYield(e.target.value)}
+                        className="w-full px-3 py-2.5 pr-10 rounded-xl border bg-stone-50/60 focus:bg-white text-sm font-bold outline-none"
+                        style={{ borderColor: "var(--surco-border)", color: "var(--surco-green)" }}
+                      />
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] font-semibold text-gray-400">
+                        t/ha
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold flex items-center gap-1" style={{ color: "var(--surco-ink-soft)" }}>
+                      Densidad
+                      {autoFilledFields.includes("targetDensityPlantsHa") && <AutoBadge />}
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        step="1000"
+                        value={targetDensity}
+                        onChange={(e) => setTargetDensity(e.target.value)}
+                        className="w-full px-3 py-2.5 pr-11 rounded-xl border bg-stone-50/60 focus:bg-white text-sm outline-none"
+                        style={{ borderColor: "var(--surco-border)" }}
+                      />
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-400">
+                        pl/ha
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold flex items-center gap-1" style={{ color: "var(--surco-ink-soft)" }}>
+                      Entresurco
+                      {autoFilledFields.includes("rowSpacingCm") && <AutoBadge />}
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        value={rowSpacingCm}
+                        onChange={(e) => setRowSpacingCm(e.target.value)}
+                        className="w-full px-3 py-2.5 pr-8 rounded-xl border bg-stone-50/60 focus:bg-white text-sm outline-none"
+                        style={{ borderColor: "var(--surco-border)" }}
+                      />
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-gray-400">
+                        cm
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold flex items-center gap-1" style={{ color: "var(--surco-ink-soft)" }}>
+                      Antecesor
+                      {autoFilledFields.includes("previousCrop") && <AutoBadge />}
+                    </label>
+                    <input
+                      value={previousCrop}
+                      onChange={(e) => setPreviousCrop(e.target.value)}
+                      placeholder="Ej. Soja 1ra"
+                      className="w-full px-3 py-2.5 rounded-xl border bg-stone-50/60 focus:bg-white text-sm outline-none"
+                      style={{ borderColor: "var(--surco-border)" }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Columna Derecha (6 cols): Análisis de Suelo (Laboratorio) */}
+              <div
+                className="lg:col-span-6 rounded-3xl border bg-white p-5 sm:p-7 shadow-xs flex flex-col gap-5"
+                style={{ borderColor: "var(--surco-border-light)" }}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <span
+                      className="text-xs font-bold uppercase tracking-wider block"
+                      style={{ color: "var(--surco-green)" }}
+                    >
+                      Diagnóstico Edáfico
+                    </span>
+                    <h2 className="font-serif text-xl font-bold" style={{ color: "var(--surco-ink)" }}>
+                      Análisis de suelo y profundidad efectiva
+                    </h2>
+                  </div>
+
+                  {referencePhotos.length > 0 ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowPhotoModal(true)}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-semibold cursor-pointer hover:bg-stone-50 shrink-0"
+                      style={{ borderColor: "var(--surco-green)", color: "var(--surco-green)" }}
+                    >
+                      <IconCamera className="w-4 h-4" />
+                      <span>Ver planilla adjunta</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => photoInputRef.current?.click()}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium cursor-pointer hover:bg-stone-50 shrink-0"
+                      style={{ borderColor: "var(--surco-border)", color: "var(--surco-ink-soft)" }}
+                    >
+                      <IconCamera className="w-3.5 h-3.5" />
+                      <span>Adjuntar foto lab</span>
+                    </button>
                   )}
                 </div>
 
-                {/* Formulario rápido para añadir aplicación manual */}
-                <div
-                  className="rounded-xl border p-2.5 grid grid-cols-2 sm:grid-cols-6 gap-2 text-xs"
-                  style={{ background: "var(--surco-bg)", borderColor: "var(--surco-border-light)" }}
-                >
-                  <input
-                    type="date"
-                    value={appDate}
-                    onChange={(e) => setAppDate(e.target.value)}
-                    className="px-2 py-1.5 rounded-lg border bg-white outline-none"
-                    style={{ borderColor: "var(--surco-border-light)" }}
-                  />
-                  <select
-                    value={appCategory}
-                    onChange={(e) => setAppCategory(e.target.value as LoteApplicationRecord["category"])}
-                    className="px-2 py-1.5 rounded-lg border bg-white outline-none"
-                    style={{ borderColor: "var(--surco-border-light)" }}
+                {/* Parámetros químicos y físicos en tarjetas claras */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Nitrógeno N-NO3 */}
+                  <div
+                    className="rounded-2xl border p-4 flex flex-col gap-1.5"
+                    style={{ background: "var(--surco-bg)", borderColor: "var(--surco-border-light)" }}
                   >
-                    <option value="Herbicida barbecho">Barbecho</option>
-                    <option value="Herbicida preemergente">Preemergente</option>
-                    <option value="Herbicida postemergente">Postemergente</option>
-                    <option value="Fertilizante">Fertilizante</option>
-                    <option value="Insecticida">Insecticida</option>
-                    <option value="Fungicida">Fungicida</option>
-                  </select>
-                  <input
-                    placeholder="Producto comercial"
-                    value={appProduct}
-                    onChange={(e) => setAppProduct(e.target.value)}
-                    className="px-2 py-1.5 rounded-lg border bg-white outline-none"
-                    style={{ borderColor: "var(--surco-border-light)" }}
-                  />
-                  <input
-                    placeholder="Principio activo"
-                    value={appActive}
-                    onChange={(e) => setAppActive(e.target.value)}
-                    className="px-2 py-1.5 rounded-lg border bg-white outline-none"
-                    style={{ borderColor: "var(--surco-border-light)" }}
-                  />
-                  <input
-                    placeholder="Dosis (ej. 1,5 l/ha)"
-                    value={appDose}
-                    onChange={(e) => setAppDose(e.target.value)}
-                    className="px-2 py-1.5 rounded-lg border bg-white outline-none"
-                    style={{ borderColor: "var(--surco-border-light)" }}
-                  />
-                  <button
-                    type="button"
-                    onClick={addCustomApplication}
-                    className="inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg font-medium text-white cursor-pointer shadow-2xs hover:opacity-90"
-                    style={{ background: "var(--surco-green)" }}
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold" style={{ color: "var(--surco-ink)" }}>
+                        Nitrógeno N-NO3 (0–60 cm)
+                      </label>
+                      {autoFilledFields.includes("soilNitrateKgHa") && <AutoBadge />}
+                    </div>
+                    <span className="text-[11px] text-gray-500">
+                      Disponibilidad inicial para balance de N
+                    </span>
+                    <div className="relative mt-1">
+                      <input
+                        type="number"
+                        value={soilN}
+                        onChange={(e) => setSoilN(e.target.value)}
+                        className="w-full px-3.5 py-2.5 pr-14 rounded-xl border bg-white text-base font-bold outline-none"
+                        style={{ borderColor: "var(--surco-border)" }}
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-gray-400">
+                        kg/ha
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Fósforo P Bray */}
+                  <div
+                    className="rounded-2xl border p-4 flex flex-col gap-1.5"
+                    style={{ background: "var(--surco-bg)", borderColor: "var(--surco-border-light)" }}
                   >
-                    <IconPlus className="w-3 h-3" />
-                    <span>Agregar</span>
-                  </button>
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold" style={{ color: "var(--surco-ink)" }}>
+                        Fósforo P Bray (0–20 cm)
+                      </label>
+                      {autoFilledFields.includes("soilPhosphorusPpm") && <AutoBadge />}
+                    </div>
+                    <span className="text-[11px] text-gray-500">
+                      Umbral crítico referencia: ~15–18 ppm
+                    </span>
+                    <div className="relative mt-1">
+                      <input
+                        type="number"
+                        step="0.5"
+                        value={soilP}
+                        onChange={(e) => setSoilP(e.target.value)}
+                        className="w-full px-3.5 py-2.5 pr-14 rounded-xl border bg-white text-base font-bold outline-none"
+                        style={{ borderColor: "var(--surco-border)" }}
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-gray-400">
+                        ppm
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Materia Orgánica */}
+                  <div
+                    className="rounded-2xl border p-4 flex flex-col gap-1.5"
+                    style={{ background: "var(--surco-bg)", borderColor: "var(--surco-border-light)" }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold" style={{ color: "var(--surco-ink)" }}>
+                        Materia Orgánica (MO)
+                      </label>
+                      {autoFilledFields.includes("organicMatterPercent") && <AutoBadge />}
+                    </div>
+                    <span className="text-[11px] text-gray-500">
+                      Mineralización y retención de herbicidas
+                    </span>
+                    <div className="relative mt-1">
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={soilMO}
+                        onChange={(e) => setSoilMO(e.target.value)}
+                        className="w-full px-3.5 py-2.5 pr-10 rounded-xl border bg-white text-base font-bold outline-none"
+                        style={{ borderColor: "var(--surco-border)" }}
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-gray-400">
+                        %
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Profundidad a Tosca */}
+                  <div
+                    className="rounded-2xl border p-4 flex flex-col gap-1.5"
+                    style={{ background: "var(--surco-bg)", borderColor: "var(--surco-border-light)" }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold" style={{ color: "var(--surco-ink)" }}>
+                        Profundidad efectiva / Tosca
+                      </label>
+                      {autoFilledFields.includes("toscaDepthCm") && <AutoBadge />}
+                    </div>
+                    <span className="text-[11px] text-gray-500">
+                      Define almacenaje de agua útil del perfil
+                    </span>
+                    <div className="relative mt-1">
+                      <input
+                        type="number"
+                        step="5"
+                        value={toscaDepth}
+                        onChange={(e) => setToscaDepth(e.target.value)}
+                        className="w-full px-3.5 py-2.5 pr-12 rounded-xl border bg-white text-base font-bold outline-none"
+                        style={{ borderColor: "var(--surco-border)" }}
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-gray-400">
+                        cm
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* pH y Textura Superficial */}
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-end">
+                  <div className="sm:col-span-4 flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold flex items-center gap-1.5" style={{ color: "var(--surco-ink-soft)" }}>
+                      pH actual (0–20 cm)
+                      {autoFilledFields.includes("ph") && <AutoBadge />}
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={soilPh}
+                      onChange={(e) => setSoilPh(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border bg-stone-50/60 focus:bg-white text-sm font-bold outline-none"
+                      style={{ borderColor: "var(--surco-border)" }}
+                    />
+                  </div>
+
+                  <div className="sm:col-span-8 flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold" style={{ color: "var(--surco-ink-soft)" }}>
+                      Textura superficial del lote
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {(["Franco", "Franco-arcilloso", "Franco-arenoso"] as const).map((tex) => {
+                        const active = soilTexture === tex;
+                        return (
+                          <button
+                            key={tex}
+                            type="button"
+                            onClick={() => setSoilTexture(tex)}
+                            className="py-2.5 px-2 rounded-xl border text-xs font-semibold transition-all cursor-pointer truncate"
+                            style={{
+                              background: active ? "var(--surco-green-tint)" : "var(--surco-bg)",
+                              borderColor: active ? "var(--surco-green)" : "var(--surco-border-light)",
+                              color: active ? "var(--surco-green)" : "var(--surco-ink)",
+                            }}
+                          >
+                            {tex}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               </div>
+            </div>
+          )}
 
-              {/* Malezas / Plagas detectadas */}
-              <div className="pt-2">
-                <span className="text-xs font-semibold uppercase tracking-wider text-emerald-900 block mb-2">
-                  Malezas o Plagas Monitoreadas
-                </span>
-                <div className="flex flex-wrap gap-1.5">
-                  {COMMON_WEEDS_PESTS.map((w) => {
-                    const active = selectedWeeds.includes(w);
-                    return (
+          {/* ================================================================= */}
+          {/* PASO 3: HISTORIAL DE APLICACIONES Y MALEZAS / PLAGAS              */}
+          {/* ================================================================= */}
+          {step === 3 && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-start">
+              {/* Columna Izquierda (7 cols): Aplicaciones Previas */}
+              <div
+                className="lg:col-span-7 rounded-3xl border bg-white p-5 sm:p-7 shadow-xs flex flex-col gap-5"
+                style={{ borderColor: "var(--surco-border-light)" }}
+              >
+                <div>
+                  <span
+                    className="text-xs font-bold uppercase tracking-wider block"
+                    style={{ color: "var(--surco-green)" }}
+                  >
+                    Trazabilidad de Manejo
+                  </span>
+                  <h2 className="font-serif text-xl font-bold" style={{ color: "var(--surco-ink)" }}>
+                    Historial de aplicaciones del lote
+                  </h2>
+                  <p className="text-xs sm:text-sm mt-0.5" style={{ color: "var(--surco-ink-muted)" }}>
+                    Cargá barbechos, preemergentes o fertilizantes aplicados para evaluar carry-over y rotación de modos de acción (HRAC).
+                  </p>
+                </div>
+
+                {/* Atajos de 1 toque */}
+                <div className="flex flex-col gap-2">
+                  <span className="text-xs font-semibold" style={{ color: "var(--surco-ink-soft)" }}>
+                    Agregar tratamiento frecuente en 1 toque:
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {QUICK_APPLICATIONS.map((preset) => (
                       <button
-                        key={w}
+                        key={preset.productName}
                         type="button"
-                        onClick={() => toggleWeed(w)}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs transition-all cursor-pointer"
+                        onClick={() => addQuickApplication(preset)}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium transition-all hover:bg-emerald-50/60 cursor-pointer text-left"
                         style={{
-                          background: active ? "var(--surco-green-tint)" : "var(--surco-card)",
-                          borderColor: active ? "var(--surco-green)" : "var(--surco-border-light)",
-                          color: active ? "var(--surco-green)" : "var(--surco-ink-soft)",
-                          fontWeight: active ? 600 : 400,
+                          background: "var(--surco-bg)",
+                          borderColor: "var(--surco-border-light)",
+                          color: "var(--surco-ink)",
                         }}
                       >
-                        {active && <IconCheck className="w-3 h-3 text-emerald-800" />}
-                        <span>{w}</span>
+                        <IconPlus className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                        <span>{preset.productName.split("(")[0].trim()}</span>
+                        <span className="text-[11px] text-gray-400">({preset.dose})</span>
                       </button>
-                    );
-                  })}
+                    ))}
+                  </div>
+                </div>
+
+                {/* Formulario cómodo para cargar aplicación manual */}
+                <div
+                  className="rounded-2xl border p-4 flex flex-col gap-3"
+                  style={{ background: "var(--surco-bg)", borderColor: "var(--surco-border-light)" }}
+                >
+                  <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--surco-ink-soft)" }}>
+                    Cargar otra aplicación manualmente
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <input
+                      type="date"
+                      value={appDate}
+                      onChange={(e) => setAppDate(e.target.value)}
+                      className="px-3 py-2.5 rounded-xl border bg-white text-xs sm:text-sm outline-none"
+                      style={{ borderColor: "var(--surco-border)" }}
+                    />
+                    <select
+                      value={appCategory}
+                      onChange={(e) => setAppCategory(e.target.value as LoteApplicationRecord["category"])}
+                      className="px-3 py-2.5 rounded-xl border bg-white text-xs sm:text-sm outline-none"
+                      style={{ borderColor: "var(--surco-border)" }}
+                    >
+                      <option value="Herbicida barbecho">Herbicida barbecho</option>
+                      <option value="Herbicida preemergente">Herbicida preemergente</option>
+                      <option value="Herbicida postemergente">Herbicida postemergente</option>
+                      <option value="Fertilizante">Fertilizante</option>
+                      <option value="Insecticida">Insecticida</option>
+                      <option value="Fungicida">Fungicida</option>
+                    </select>
+                    <input
+                      placeholder="Dosis (ej. 1,5 l/ha o 120 kg/ha)"
+                      value={appDose}
+                      onChange={(e) => setAppDose(e.target.value)}
+                      className="px-3 py-2.5 rounded-xl border bg-white text-xs sm:text-sm outline-none"
+                      style={{ borderColor: "var(--surco-border)" }}
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
+                    <input
+                      placeholder="Producto comercial (ej. Dual Gold, Atrazina 90, Urea...)"
+                      value={appProduct}
+                      onChange={(e) => setAppProduct(e.target.value)}
+                      className="sm:col-span-5 px-3 py-2.5 rounded-xl border bg-white text-xs sm:text-sm outline-none"
+                      style={{ borderColor: "var(--surco-border)" }}
+                    />
+                    <input
+                      placeholder="Principio activo / Grupo (opcional)"
+                      value={appActive}
+                      onChange={(e) => setAppActive(e.target.value)}
+                      className="sm:col-span-4 px-3 py-2.5 rounded-xl border bg-white text-xs sm:text-sm outline-none"
+                      style={{ borderColor: "var(--surco-border)" }}
+                    />
+                    <button
+                      type="button"
+                      onClick={addCustomApplication}
+                      disabled={!appProduct.trim()}
+                      className="sm:col-span-3 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-white cursor-pointer transition-opacity hover:opacity-90 disabled:opacity-40"
+                      style={{ background: "var(--surco-green)" }}
+                    >
+                      <IconPlus className="w-4 h-4" />
+                      <span>Agregar</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Lista cronológica de aplicaciones cargadas */}
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--surco-ink-soft)" }}>
+                      Aplicaciones registradas ({applications.length})
+                    </span>
+                  </div>
+
+                  {applications.length === 0 ? (
+                    <div
+                      className="rounded-2xl border border-dashed p-6 text-center text-xs sm:text-sm"
+                      style={{ borderColor: "var(--surco-border)", color: "var(--surco-ink-muted)" }}
+                    >
+                      Todavía no agregaste aplicaciones previas en este lote. Podés tocar cualquiera de los atajos de arriba.
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-2 max-h-72 overflow-y-auto pr-1">
+                      {applications.map((app) => (
+                        <div
+                          key={app.id}
+                          className="rounded-2xl border p-3.5 flex items-center justify-between gap-3 bg-stone-50/60"
+                          style={{ borderColor: "var(--surco-border-light)" }}
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span
+                                className="px-2 py-0.5 rounded-md text-[11px] font-semibold"
+                                style={{ background: "var(--surco-green-tint)", color: "var(--surco-green)" }}
+                              >
+                                {app.category}
+                              </span>
+                              <span className="font-mono text-xs text-gray-500">{app.date}</span>
+                              {app.modeOfAction && (
+                                <span className="text-[11px] font-medium text-emerald-800">
+                                  · {app.modeOfAction}
+                                </span>
+                              )}
+                            </div>
+                            <div className="mt-1 flex items-baseline gap-2 flex-wrap">
+                              <span className="text-sm font-bold" style={{ color: "var(--surco-ink)" }}>
+                                {app.productName}
+                              </span>
+                              <span className="text-xs font-semibold text-emerald-800">
+                                Dosis: {app.dose}
+                              </span>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setApplications((prev) => prev.filter((item) => item.id !== app.id))
+                            }
+                            className="p-2 rounded-xl hover:bg-red-50 text-red-600 cursor-pointer shrink-0"
+                            title="Eliminar aplicación"
+                          >
+                            <IconTrash className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
-            </>
+
+              {/* Columna Derecha (5 cols): Malezas, Plagas y Observaciones */}
+              <div className="lg:col-span-5 flex flex-col gap-6">
+                <div
+                  className="rounded-3xl border bg-white p-5 sm:p-7 shadow-xs flex flex-col gap-4"
+                  style={{ borderColor: "var(--surco-border-light)" }}
+                >
+                  <div>
+                    <span
+                      className="text-xs font-bold uppercase tracking-wider block"
+                      style={{ color: "var(--surco-green)" }}
+                    >
+                      Monitoreo de Campo
+                    </span>
+                    <h3 className="font-serif text-xl font-bold" style={{ color: "var(--surco-ink)" }}>
+                      Malezas y plagas detectadas
+                    </h3>
+                    <p className="text-xs mt-0.5" style={{ color: "var(--surco-ink-muted)" }}>
+                      Seleccioná los escapes o plagas presentes en el lote
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    {Array.from(new Set([...COMMON_WEEDS_PESTS, ...selectedWeeds])).map((w) => {
+                      const active = selectedWeeds.includes(w);
+                      return (
+                        <button
+                          key={w}
+                          type="button"
+                          onClick={() => toggleWeed(w)}
+                          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium transition-all cursor-pointer"
+                          style={{
+                            background: active ? "var(--surco-green)" : "var(--surco-bg)",
+                            borderColor: active ? "var(--surco-green)" : "var(--surco-border-light)",
+                            color: active ? "#ffffff" : "var(--surco-ink)",
+                          }}
+                        >
+                          {active && <IconCheck className="w-3.5 h-3.5" />}
+                          <span>{w}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Agregar otra maleza o plaga personalizada */}
+                  <div className="flex items-center gap-2 pt-1">
+                    <input
+                      value={customWeedInput}
+                      onChange={(e) => setCustomWeedInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          addCustomWeed();
+                        }
+                      }}
+                      placeholder="Otra maleza o plaga (ej. Chinche verde)..."
+                      className="flex-1 px-3.5 py-2 rounded-xl border bg-stone-50/60 focus:bg-white text-xs sm:text-sm outline-none"
+                      style={{ borderColor: "var(--surco-border)" }}
+                    />
+                    <button
+                      type="button"
+                      onClick={addCustomWeed}
+                      disabled={!customWeedInput.trim()}
+                      className="px-3.5 py-2 rounded-xl border text-xs font-semibold cursor-pointer hover:bg-stone-50 disabled:opacity-40"
+                      style={{ borderColor: "var(--surco-border)", color: "var(--surco-ink)" }}
+                    >
+                      + Sumar
+                    </button>
+                  </div>
+                </div>
+
+                {/* Notas de campo / Observaciones */}
+                <div
+                  className="rounded-3xl border bg-white p-5 sm:p-7 shadow-xs flex flex-col gap-3"
+                  style={{ borderColor: "var(--surco-border-light)" }}
+                >
+                  <label className="text-sm font-bold" style={{ color: "var(--surco-ink)" }}>
+                    Observaciones adicionales del lote (opcional)
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Ej. Sector bajo con rastrojo pesado de trigo, presencia de tosca a 55 cm en la cabecera norte..."
+                    className="w-full rounded-2xl border p-3.5 text-xs sm:text-sm outline-none bg-stone-50/60 focus:bg-white"
+                    style={{ borderColor: "var(--surco-border)" }}
+                  />
+                </div>
+              </div>
+            </div>
           )}
         </div>
+      </main>
 
-        {/* Footer del modal (oculto en la captura rápida inicial) */}
-        {step > 0 && (
-        <div
-          className="px-5 py-3 border-t flex items-center justify-between"
-          style={{ background: "var(--surco-bg)", borderColor: "var(--surco-border-light)" }}
-        >
+      {/* ===================================================================== */}
+      {/* BARRA INFERIOR STICKY DE ACCIONES (SIEMPRE ACCESIBLE)                 */}
+      {/* ===================================================================== */}
+      <footer
+        className="shrink-0 border-t bg-white/95 backdrop-blur-md z-20"
+        style={{ borderColor: "var(--surco-border-light)" }}
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 h-20 flex items-center justify-between gap-4">
+          {/* Botón Izquierdo: Anterior o Cancelar */}
           <div>
-            {step > 1 && (
+            {step > 0 ? (
               <button
                 type="button"
-                onClick={() => setStep((s) => (s - 1) as 1 | 2 | 3)}
-                className="px-3.5 py-1.5 rounded-xl border text-sm font-medium cursor-pointer transition-colors hover:bg-black/5"
-                style={{ borderColor: "var(--surco-border-light)", color: "var(--surco-ink)" }}
+                onClick={() => setStep((s) => (s - 1) as 0 | 1 | 2 | 3)}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border text-xs sm:text-sm font-semibold transition-colors hover:bg-stone-100 cursor-pointer"
+                style={{ borderColor: "var(--surco-border)", color: "var(--surco-ink)" }}
               >
-                ← Anterior
+                <span>← Paso anterior</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={onClose}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border text-xs sm:text-sm font-medium transition-colors hover:bg-stone-100 cursor-pointer"
+                style={{ borderColor: "var(--surco-border-light)", color: "var(--surco-ink-muted)" }}
+              >
+                <span>Cancelar</span>
               </button>
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* Indicador central de progreso */}
+          <div className="hidden md:flex items-center gap-2 text-xs font-medium" style={{ color: "var(--surco-ink-muted)" }}>
+            <IconMapPin className="w-3.5 h-3.5 text-emerald-700" />
+            <span>
+              {name || `Lote ${crop}`} · <strong>{hectares || 0} ha</strong> · {locality || municipality}
+            </span>
+          </div>
+
+          {/* Botón Derecho: Siguiente paso o Guardar Lote */}
+          <div className="flex items-center gap-2.5">
             {step < 3 ? (
               <button
                 type="button"
-                onClick={() => setStep((s) => (s + 1) as 1 | 2 | 3)}
-                className="px-4 py-1.5 rounded-xl text-sm font-medium text-white cursor-pointer shadow-2xs hover:opacity-95"
+                onClick={() => setStep((s) => (s + 1) as 0 | 1 | 2 | 3)}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold text-white shadow-sm transition-all hover:opacity-95 cursor-pointer"
                 style={{ background: "var(--surco-green)" }}
               >
-                Siguiente →
+                <span>
+                  {step === 0
+                    ? "Continuar a Ubicación y Mapa →"
+                    : step === 1
+                    ? "Siguiente: Cultivo y Suelo →"
+                    : "Siguiente: Aplicaciones y Sanidad →"}
+                </span>
               </button>
             ) : (
               <button
                 type="button"
                 onClick={handleSave}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-white cursor-pointer shadow-2xs hover:opacity-95"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold text-white shadow-sm transition-all hover:opacity-95 cursor-pointer"
                 style={{ background: "var(--surco-green)" }}
               >
                 <IconCheck className="w-4 h-4" />
-                <span>Guardar Proyecto de Lote</span>
+                <span>{isEditing ? "Guardar cambios del lote" : "Crear y guardar lote"}</span>
               </button>
             )}
           </div>
         </div>
-        )}
-      </div>
+      </footer>
+
+      {/* ===================================================================== */}
+      {/* VISOR DE FOTOS ADJUNTAS (PARA CONSULTAR LABORATORIO EN CUALQUIER PASO)*/}
+      {/* ===================================================================== */}
+      {showPhotoModal && referencePhotos.length > 0 && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+          onClick={() => setShowPhotoModal(false)}
+        >
+          <div
+            className="max-w-4xl w-full max-h-[90vh] bg-white rounded-3xl overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-5 py-3.5 border-b flex items-center justify-between">
+              <span className="text-sm font-bold">
+                Fotos de referencia adjuntas ({referencePhotos.length})
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowPhotoModal(false)}
+                className="p-1.5 rounded-xl hover:bg-stone-100 cursor-pointer"
+              >
+                <IconClose className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 overflow-y-auto grid grid-cols-1 gap-4">
+              {referencePhotos.map((photo, i) => (
+                <div key={i} className="flex flex-col gap-1.5">
+                  <span className="text-xs text-gray-500 font-medium">{photo.name}</span>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={photo.dataUrl}
+                    alt={photo.name}
+                    className="w-full rounded-2xl border object-contain max-h-[70vh] bg-stone-950"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
