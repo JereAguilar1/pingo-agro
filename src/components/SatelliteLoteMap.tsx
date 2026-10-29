@@ -33,6 +33,7 @@ interface Props {
   onChangeCenter?: (center: { lat: number; lng: number }, preset?: PresetLocation) => void;
   readOnly?: boolean;
   compact?: boolean;
+  heightClassName?: string;
 }
 
 // Conversión Web Mercator (EPSG:3857)
@@ -59,6 +60,7 @@ export function SatelliteLoteMap({
   onChangeCenter,
   readOnly = false,
   compact = false,
+  heightClassName,
 }: Props) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [zoom, setZoom] = useState(15);
@@ -84,6 +86,11 @@ export function SatelliteLoteMap({
 
   useEffect(() => {
     setCurrentPolygon(initialPolygon);
+    if (initialPolygon && initialPolygon.length >= 3) {
+      const avgLat = initialPolygon.reduce((acc, p) => acc + p[0], 0) / initialPolygon.length;
+      const avgLng = initialPolygon.reduce((acc, p) => acc + p[1], 0) / initialPolygon.length;
+      setMapCenter({ lat: avgLat, lng: avgLng });
+    }
   }, [initialPolygon]);
 
   // Actualizar tamaño de viewport en resize o pantalla completa
@@ -94,14 +101,14 @@ export function SatelliteLoteMap({
       } else if (containerRef.current) {
         setViewSize({
           width: containerRef.current.clientWidth || 600,
-          height: containerRef.current.clientHeight || (compact ? 96 : 280),
+          height: containerRef.current.clientHeight || (compact ? 112 : 280),
         });
       }
     }
     updateSize();
     window.addEventListener("resize", updateSize);
     return () => window.removeEventListener("resize", updateSize);
-  }, [isFullscreen, compact]);
+  }, [isFullscreen, compact, heightClassName]);
 
   // Atajos de teclado: Escape para salir de pantalla completa, Ctrl+Z para deshacer
   useEffect(() => {
@@ -323,14 +330,37 @@ export function SatelliteLoteMap({
         }
       }}
       className={`relative w-full overflow-hidden select-none ${
-        isFullscreen ? "flex-1 h-full cursor-crosshair" : compact ? "h-24" : "h-64 sm:h-72 cursor-crosshair rounded-xl border"
-      }`}
+        isFullscreen
+          ? "flex-1 h-full cursor-crosshair"
+          : heightClassName
+          ? `${heightClassName} rounded-xl border`
+          : compact
+          ? "h-28 rounded-xl border"
+          : "h-64 sm:h-72 rounded-xl border"
+      } ${!readOnly ? "cursor-crosshair" : "cursor-grab active:cursor-grabbing"}`}
       style={{
         background: "#0f1712",
         borderColor: "var(--surco-border-light)",
         touchAction: "none",
       }}
     >
+      {/* Botón flotante para ver en pantalla completa en modo de sólo lectura */}
+      {readOnly && !isFullscreen && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsFullscreen(true);
+          }}
+          className="absolute top-2.5 right-2.5 z-10 p-1.5 px-2.5 rounded-lg bg-black/70 hover:bg-black/90 text-white backdrop-blur-md border border-white/20 transition-all cursor-pointer shadow-md flex items-center gap-1.5 text-xs"
+          title="Ver en pantalla completa"
+          aria-label="Ver mapa en pantalla completa"
+        >
+          <IconMaximize className="w-3.5 h-3.5 text-emerald-400" />
+          <span className="font-medium hidden sm:inline">Pantalla completa</span>
+        </button>
+      )}
+
       {/* Capa de mosaico de imágenes satelitales */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {tiles.map((t) => (
@@ -492,50 +522,63 @@ export function SatelliteLoteMap({
               </div>
             </div>
 
-            {/* Centro: Herramientas de trazado (visibles en desktop/tablet) */}
-            <div className="hidden sm:flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={handleUndo}
-                disabled={currentPolygon.length === 0}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border border-white/15 bg-white/5 hover:bg-white/10 disabled:opacity-40 cursor-pointer transition-colors"
-                title="Deshacer último punto (Ctrl+Z)"
-              >
-                <IconUndo className="w-3.5 h-3.5" />
-                <span>Deshacer</span>
-              </button>
+            {/* Centro: Herramientas de trazado (visibles en desktop/tablet, sólo en modo edición) */}
+            {!readOnly && (
+              <div className="hidden sm:flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={handleUndo}
+                  disabled={currentPolygon.length === 0}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border border-white/15 bg-white/5 hover:bg-white/10 disabled:opacity-40 cursor-pointer transition-colors"
+                  title="Deshacer último punto (Ctrl+Z)"
+                >
+                  <IconUndo className="w-3.5 h-3.5" />
+                  <span>Deshacer</span>
+                </button>
 
-              <button
-                type="button"
-                onClick={handleAutoSquare}
-                className="px-2.5 py-1 rounded-lg text-xs font-medium border border-white/15 bg-white/5 hover:bg-white/10 cursor-pointer transition-colors"
-              >
-                Lote centrado
-              </button>
+                <button
+                  type="button"
+                  onClick={handleAutoSquare}
+                  className="px-2.5 py-1 rounded-lg text-xs font-medium border border-white/15 bg-white/5 hover:bg-white/10 cursor-pointer transition-colors"
+                >
+                  Lote centrado
+                </button>
 
-              <button
-                type="button"
-                onClick={handleClear}
-                disabled={currentPolygon.length === 0}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border border-white/15 bg-white/5 hover:bg-red-500/20 hover:border-red-400/40 text-red-300 disabled:opacity-40 cursor-pointer transition-colors"
-                title="Borrar todos los puntos"
-              >
-                <IconTrash className="w-3.5 h-3.5" />
-                <span>Limpiar</span>
-              </button>
-            </div>
+                <button
+                  type="button"
+                  onClick={handleClear}
+                  disabled={currentPolygon.length === 0}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border border-white/15 bg-white/5 hover:bg-red-500/20 hover:border-red-400/40 text-red-300 disabled:opacity-40 cursor-pointer transition-colors"
+                  title="Borrar todos los puntos"
+                >
+                  <IconTrash className="w-3.5 h-3.5" />
+                  <span>Limpiar</span>
+                </button>
+              </div>
+            )}
 
-            {/* Derecha: Botón Confirmar que siempre entra en pantalla */}
+            {/* Derecha: Botón Confirmar si se edita, o Cerrar si es de sólo lectura */}
             <div className="flex items-center gap-1.5 shrink-0">
-              <button
-                type="button"
-                onClick={() => closeFullscreen(true)}
-                className="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer shadow-md transition-all shrink-0"
-              >
-                <IconCheck className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Confirmar ({currentHectares} ha)</span>
-                <span className="sm:hidden">Confirmar</span>
-              </button>
+              {readOnly ? (
+                <button
+                  type="button"
+                  onClick={() => setIsFullscreen(false)}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border border-white/20 bg-white/10 hover:bg-white/20 text-white cursor-pointer transition-colors shrink-0"
+                >
+                  <IconClose className="w-3.5 h-3.5" />
+                  <span>Cerrar</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => closeFullscreen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer shadow-md transition-all shrink-0"
+                >
+                  <IconCheck className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Confirmar ({currentHectares} ha)</span>
+                  <span className="sm:hidden">Confirmar</span>
+                </button>
+              )}
             </div>
           </header>
 
@@ -543,36 +586,38 @@ export function SatelliteLoteMap({
           <div className="flex-1 relative overflow-hidden flex flex-col w-full h-full">
             {mapCanvas}
 
-            {/* Barra flotante inferior de herramientas para Mobile (fácil acceso con el pulgar) */}
-            <div className="sm:hidden absolute bottom-12 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-2 py-1.5 rounded-2xl bg-black/80 backdrop-blur-md border border-white/15 shadow-2xl z-20">
-              <button
-                type="button"
-                onClick={handleUndo}
-                disabled={currentPolygon.length === 0}
-                className="p-2 rounded-xl bg-white/10 text-white disabled:opacity-40 cursor-pointer transition-colors flex items-center justify-center"
-                title="Deshacer último vértice"
-              >
-                <IconUndo className="w-4 h-4" />
-              </button>
+            {/* Barra flotante inferior de herramientas para Mobile (fácil acceso con el pulgar, sólo en modo edición) */}
+            {!readOnly && (
+              <div className="sm:hidden absolute bottom-12 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-2 py-1.5 rounded-2xl bg-black/80 backdrop-blur-md border border-white/15 shadow-2xl z-20">
+                <button
+                  type="button"
+                  onClick={handleUndo}
+                  disabled={currentPolygon.length === 0}
+                  className="p-2 rounded-xl bg-white/10 text-white disabled:opacity-40 cursor-pointer transition-colors flex items-center justify-center"
+                  title="Deshacer último vértice"
+                >
+                  <IconUndo className="w-4 h-4" />
+                </button>
 
-              <button
-                type="button"
-                onClick={handleAutoSquare}
-                className="px-2.5 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium cursor-pointer transition-colors"
-              >
-                Centrado
-              </button>
+                <button
+                  type="button"
+                  onClick={handleAutoSquare}
+                  className="px-2.5 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium cursor-pointer transition-colors"
+                >
+                  Centrado
+                </button>
 
-              <button
-                type="button"
-                onClick={handleClear}
-                disabled={currentPolygon.length === 0}
-                className="p-2 rounded-xl bg-white/10 text-red-300 disabled:opacity-40 cursor-pointer transition-colors flex items-center justify-center"
-                title="Limpiar"
-              >
-                <IconTrash className="w-4 h-4" />
-              </button>
-            </div>
+                <button
+                  type="button"
+                  onClick={handleClear}
+                  disabled={currentPolygon.length === 0}
+                  className="p-2 rounded-xl bg-white/10 text-red-300 disabled:opacity-40 cursor-pointer transition-colors flex items-center justify-center"
+                  title="Limpiar"
+                >
+                  <IconTrash className="w-4 h-4" />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

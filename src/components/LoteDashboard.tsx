@@ -37,71 +37,80 @@ export function LoteDashboard({
 
       {/* Datos principales del lote (minimalista, sin sobrecarga) */}
       <section
-        className="rounded-2xl border bg-white p-4 flex flex-col gap-4"
+        className="rounded-2xl border bg-white p-3.5 sm:p-5 flex flex-col gap-4 shadow-2xs"
         style={{ borderColor: "var(--surco-border-light)" }}
       >
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
-          {/* Vista satelital compacta */}
-          <div className="rounded-xl overflow-hidden border" style={{ borderColor: "var(--surco-border-light)" }}>
+        {/* Mapa satelital destacado con proporciones amplias */}
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center justify-between text-xs px-0.5">
+            <span className="text-[11px] font-medium" style={{ color: "var(--surco-ink-muted)" }}>
+              Vista satelital del lote
+            </span>
+            <span className="text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+              {lote.hectares} ha
+            </span>
+          </div>
+
+          <div className="rounded-xl overflow-hidden border shadow-inner" style={{ borderColor: "var(--surco-border-light)" }}>
             <SatelliteLoteMap
               center={lote.coordinates || { lat: -37.2785, lng: -59.3612 }}
               polygon={lote.polygon || []}
               readOnly
-              compact
+              heightClassName="h-56 sm:h-72"
             />
           </div>
+        </div>
 
-          {/* 4 indicadores esenciales */}
-          <div className="sm:col-span-2 grid grid-cols-2 gap-2.5 text-xs">
-            <div
-              className="rounded-xl p-2.5 border"
-              style={{ background: "var(--surco-bg)", borderColor: "var(--surco-border-light)" }}
-            >
-              <span className="text-[11px] block" style={{ color: "var(--surco-ink-muted)" }}>
-                Cultivo y Estadio
-              </span>
-              <span className="font-semibold text-sm" style={{ color: "var(--surco-ink)" }}>
-                {lote.crop} · {lote.phenology}
-              </span>
-            </div>
+        {/* 4 indicadores esenciales */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+          <div
+            className="rounded-xl p-3 border flex flex-col gap-0.5"
+            style={{ background: "var(--surco-bg)", borderColor: "var(--surco-border-light)" }}
+          >
+            <span className="text-[11px] block" style={{ color: "var(--surco-ink-muted)" }}>
+              Cultivo y Estadio
+            </span>
+            <span className="font-semibold text-xs sm:text-sm" style={{ color: "var(--surco-ink)" }}>
+              {lote.crop} · {lote.phenology}
+            </span>
+          </div>
 
-            <div
-              className="rounded-xl p-2.5 border"
-              style={{ background: "var(--surco-bg)", borderColor: "var(--surco-border-light)" }}
-            >
-              <span className="text-[11px] block" style={{ color: "var(--surco-ink-muted)" }}>
-                Rinde Objetivo
-              </span>
-              <span className="font-semibold text-sm" style={{ color: "var(--surco-ink)" }}>
-                {lote.targetYieldTonHa} t/ha
-              </span>
-            </div>
+          <div
+            className="rounded-xl p-3 border flex flex-col gap-0.5"
+            style={{ background: "var(--surco-bg)", borderColor: "var(--surco-border-light)" }}
+          >
+            <span className="text-[11px] block" style={{ color: "var(--surco-ink-muted)" }}>
+              Rinde Objetivo
+            </span>
+            <span className="font-semibold text-xs sm:text-sm" style={{ color: "var(--surco-ink)" }}>
+              {lote.targetYieldTonHa} t/ha
+            </span>
+          </div>
 
-            <div
-              className="rounded-xl p-2.5 border"
-              style={{ background: "var(--surco-bg)", borderColor: "var(--surco-border-light)" }}
-            >
-              <span className="text-[11px] block" style={{ color: "var(--surco-ink-muted)" }}>
-                Suelo (N · P · Tosca)
-              </span>
-              <span className="font-semibold text-xs sm:text-sm" style={{ color: "var(--surco-ink)" }}>
-                {lote.soilNitrateKgHa} kg · {lote.soilPhosphorusPpm} ppm · {lote.toscaDepthCm} cm
-              </span>
-            </div>
+          <div
+            className="rounded-xl p-3 border flex flex-col gap-0.5"
+            style={{ background: "var(--surco-bg)", borderColor: "var(--surco-border-light)" }}
+          >
+            <span className="text-[11px] block" style={{ color: "var(--surco-ink-muted)" }}>
+              Suelo (N · P · Tosca)
+            </span>
+            <span className="font-semibold text-xs sm:text-sm" style={{ color: "var(--surco-ink)" }}>
+              {lote.soilNitrateKgHa} kg · {lote.soilPhosphorusPpm} ppm · {lote.toscaDepthCm} cm
+            </span>
+          </div>
 
-            <div
-              className="rounded-xl p-2.5 border"
-              style={{ background: "var(--surco-bg)", borderColor: "var(--surco-border-light)" }}
-            >
-              <span className="text-[11px] block" style={{ color: "var(--surco-ink-muted)" }}>
-                Aplicaciones previas
-              </span>
-              <span className="font-semibold text-xs sm:text-sm truncate block" style={{ color: "var(--surco-ink)" }}>
-                {apps.length > 0
-                  ? `${apps.length} registrada${apps.length > 1 ? "s" : ""}`
-                  : "Ninguna"}
-              </span>
-            </div>
+          <div
+            className="rounded-xl p-3 border flex flex-col gap-0.5"
+            style={{ background: "var(--surco-bg)", borderColor: "var(--surco-border-light)" }}
+          >
+            <span className="text-[11px] block" style={{ color: "var(--surco-ink-muted)" }}>
+              Aplicaciones previas
+            </span>
+            <span className="font-semibold text-xs sm:text-sm truncate block" style={{ color: "var(--surco-ink)" }}>
+              {apps.length > 0
+                ? `${apps.length} registrada${apps.length > 1 ? "s" : ""}`
+                : "Ninguna"}
+            </span>
           </div>
         </div>
 
