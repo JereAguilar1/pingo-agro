@@ -16,7 +16,6 @@ import {
   IconPaperclip,
   IconPlus,
   IconSend,
-  IconSparkles,
 } from "@/components/Icons";
 import {
   ChatMessage,
@@ -117,7 +116,7 @@ function ChatInner() {
     const firstUserMsg = nextMessages.find((m) => m.role === "user");
     const threadTitle = firstUserMsg
       ? firstUserMsg.content.slice(0, 42)
-      : "Consulta agronómica";
+      : "Consulta";
 
     setThreads((prev) => {
       let currentId = activeThreadId;
@@ -330,11 +329,11 @@ function ChatInner() {
 
   return (
     <div className="flex-1 flex flex-col min-h-screen" style={{ background: "var(--surco-bg)" }}>
-      {/* Barra de navegación superior compacta y limpia */}
+      {/* Barra de navegación superior sobria y limpia */}
       <header
-        className="sticky top-0 z-20 border-b px-3 sm:px-6 py-2.5 flex items-center justify-between backdrop-blur-md transition-all"
+        className="sticky top-0 z-20 border-b px-3.5 sm:px-6 py-2.5 flex items-center justify-between"
         style={{
-          background: "rgba(252, 251, 249, 0.88)",
+          background: "var(--surco-bg)",
           borderColor: "var(--surco-border-light)",
         }}
       >
@@ -344,18 +343,18 @@ function ChatInner() {
             onClick={() => setShowSidebarMobile(true)}
             className="md:hidden p-1.5 rounded-lg border text-xs font-medium cursor-pointer hover:bg-black/5"
             style={{ borderColor: "var(--surco-border-light)", color: "var(--surco-ink)" }}
-            aria-label="Abrir menú de lotes"
+            aria-label="Abrir menú"
           >
             <IconMenu className="w-4 h-4" />
           </button>
 
-          <Link href="/" className="font-semibold text-base sm:text-lg tracking-tight flex items-center gap-1.5" style={{ color: "var(--surco-green)" }}>
-            <span>Surco</span>
+          <Link href="/" className="font-semibold text-base sm:text-lg tracking-tight" style={{ color: "var(--surco-green)" }}>
+            Surco
           </Link>
 
           <span className="text-gray-300 hidden sm:inline">/</span>
 
-          <span className="text-xs font-medium truncate max-w-[140px] sm:max-w-xs" style={{ color: "var(--surco-ink-soft)" }}>
+          <span className="text-xs font-medium truncate max-w-[150px] sm:max-w-xs" style={{ color: "var(--surco-ink-soft)" }}>
             {activeLote ? activeLote.name : "Chat General"}
           </span>
 
@@ -369,15 +368,15 @@ function ChatInner() {
               setEditingLote(null);
               setShowLoteWizard(true);
             }}
-            className="inline-flex items-center gap-1.5 text-xs font-medium rounded-lg px-2.5 sm:px-3 py-1.5 cursor-pointer transition-all hover:opacity-90 shadow-2xs"
+            className="inline-flex items-center gap-1 text-xs font-medium rounded-lg px-2.5 py-1.5 cursor-pointer border hover:bg-black/5"
             style={{
-              background: "var(--surco-green-tint)",
-              color: "var(--surco-green)",
-              border: "1px solid var(--surco-border)",
+              borderColor: "var(--surco-border-light)",
+              color: "var(--surco-ink)",
+              background: "var(--surco-card)",
             }}
           >
-            <IconPlus className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Nuevo Lote</span>
+            <IconPlus className="w-3.5 h-3.5 text-emerald-800" />
+            <span className="hidden sm:inline">Nuevo lote</span>
           </button>
 
           <ModelStatusButton
@@ -402,7 +401,7 @@ function ChatInner() {
       />
 
       <div className="flex-1 flex min-h-0">
-        {/* Sidebar elegante */}
+        {/* Sidebar minimalista */}
         <ProjectsSidebar
           lotes={lotes}
           threads={threads}
@@ -420,7 +419,7 @@ function ChatInner() {
 
         {/* Espacio principal de conversación */}
         <div className="flex-1 flex flex-col min-w-0">
-          <main className="flex-1 w-full max-w-3xl mx-auto px-3.5 sm:px-6 py-4 sm:py-5 flex flex-col gap-3.5">
+          <main className="flex-1 w-full max-w-2xl mx-auto px-4 sm:px-6 py-4 flex flex-col gap-3">
             {/* Cabecera del lote activo */}
             {activeLote && (
               <LoteHeaderCard
@@ -432,68 +431,18 @@ function ChatInner() {
               />
             )}
 
-            {/* Estado vacío confortable con sugerencias útiles */}
+            {/* Estado vacío minimalista: Sin sugerencias ni recomendaciones que distraigan */}
             {messages.length === 0 && !loading && (
-              <div className="my-auto py-10 text-center flex flex-col items-center gap-3">
-                <div
-                  className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-xs"
-                  style={{ background: "var(--surco-green-tint)", color: "var(--surco-green)" }}
-                >
-                  <IconSparkles className="w-5 h-5" />
-                </div>
-
+              <div className="my-auto py-16 text-center flex flex-col items-center gap-1.5">
                 <h2 className="text-base sm:text-lg font-semibold tracking-tight" style={{ color: "var(--surco-ink)" }}>
-                  {activeLote
-                    ? `Consultas sobre ${activeLote.name}`
-                    : "Consulta agronómica general"}
+                  {activeLote ? activeLote.name : "Chat General"}
                 </h2>
 
-                <p className="text-xs sm:text-sm max-w-md leading-relaxed" style={{ color: "var(--surco-ink-muted)" }}>
+                <p className="text-xs" style={{ color: "var(--surco-ink-muted)" }}>
                   {activeLote
-                    ? "El asistente ya integra el polígono satelital, análisis de suelo, historial de aplicaciones y malezas registradas de este lote."
-                    : "Respuestas respaldadas con fuentes oficiales de INTA, SENASA y vademécums agronómicos."}
+                    ? `${activeLote.hectares} ha · ${activeLote.crop} (${activeLote.phenology})`
+                    : "Consultas técnicas respaldadas por fuentes oficiales"}
                 </p>
-
-                {activeLote && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3 max-w-xl w-full text-left">
-                    {[
-                      {
-                        label: "Rotación y Residualidad",
-                        desc: "¿Qué restricciones tengo según lo aplicado previamente?",
-                      },
-                      {
-                        label: "Fertilización Balanceada",
-                        desc: "¿Cuánta urea y fósforo aplicar según el suelo y rinde objetivo?",
-                      },
-                      {
-                        label: "Manejo de Malezas",
-                        desc: "¿Cómo controlar las malezas del lote sin repetir modo de acción?",
-                      },
-                      {
-                        label: "Normativa Satelital",
-                        desc: "¿Qué recaudos de pulverización aplican por distancia a zonas sensibles?",
-                      },
-                    ].map((item) => (
-                      <button
-                        key={item.label}
-                        type="button"
-                        onClick={() => void sendMessage(item.desc)}
-                        className="p-3 rounded-xl border text-left transition-all hover:border-emerald-800/30 hover:shadow-xs cursor-pointer group"
-                        style={{
-                          background: "var(--surco-card)",
-                          borderColor: "var(--surco-border-light)",
-                        }}
-                      >
-                        <div className="font-semibold text-xs group-hover:text-emerald-900" style={{ color: "var(--surco-ink)" }}>
-                          {item.label}
-                        </div>
-                        <div className="text-[11px] mt-0.5 line-clamp-2" style={{ color: "var(--surco-ink-soft)" }}>
-                          {item.desc}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
             )}
 
@@ -505,27 +454,21 @@ function ChatInner() {
             {loading && (
               <div className="flex justify-start my-1.5">
                 <div
-                  className="rounded-2xl rounded-tl-sm border px-4 py-3 text-xs sm:text-sm flex items-center gap-2.5 shadow-2xs"
-                  style={{
-                    background: "var(--surco-card)",
-                    borderColor: "var(--surco-border-light)",
-                    color: "var(--surco-ink-soft)",
-                  }}
+                  className="rounded-xl border px-3.5 py-2.5 text-xs flex items-center gap-2 text-gray-500 bg-white"
+                  style={{ borderColor: "var(--surco-border-light)" }}
                 >
                   <span className="flex gap-1 items-center">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-700 animate-bounce" style={{ animationDelay: "0ms" }} />
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-700 animate-bounce" style={{ animationDelay: "150ms" }} />
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-700 animate-bounce" style={{ animationDelay: "300ms" }} />
                   </span>
-                  <span>Consultando contexto y verificando fuentes…</span>
+                  <span>Consultando fuentes…</span>
                 </div>
               </div>
             )}
 
             {error && (
-              <div
-                className="rounded-xl border px-4 py-3 text-xs sm:text-sm text-red-800 bg-red-50 border-red-200"
-              >
+              <div className="rounded-xl border px-3.5 py-2.5 text-xs text-red-800 bg-red-50 border-red-200">
                 {error}
               </div>
             )}
@@ -533,37 +476,31 @@ function ChatInner() {
             <div ref={bottomRef} />
           </main>
 
-          {/* Formulario de entrada limpio y flotante al pie */}
+          {/* Formulario de entrada minimalista */}
           <form
             onSubmit={handleSubmit}
-            className="sticky bottom-0 px-3.5 sm:px-6 py-3 backdrop-blur-md"
+            className="sticky bottom-0 px-4 sm:px-6 py-3"
             style={{
-              background: "rgba(252, 251, 249, 0.92)",
+              background: "var(--surco-bg)",
               borderTop: "1px solid var(--surco-border-light)",
             }}
           >
-            <div className="max-w-3xl mx-auto flex flex-col gap-2">
+            <div className="max-w-2xl mx-auto flex flex-col gap-2">
               {uploadedDocs.length > 0 && (
                 <div className="flex items-center gap-1.5 flex-wrap text-xs">
                   {uploadedDocs.map((d) => (
                     <span
                       key={d.id}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px]"
-                      style={{
-                        background: "var(--surco-card)",
-                        borderColor: "var(--surco-border-light)",
-                        color: "var(--surco-ink)",
-                      }}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md border text-[11px] bg-white"
+                      style={{ borderColor: "var(--surco-border-light)" }}
                     >
-                      <IconPaperclip className="w-3 h-3 text-emerald-800" />
                       <span className="truncate max-w-[150px]">{d.title}</span>
                       <button
                         type="button"
                         onClick={() =>
                           setUploadedDocs((prev) => prev.filter((item) => item.id !== d.id))
                         }
-                        className="opacity-50 hover:opacity-100 cursor-pointer"
-                        title="Quitar documento"
+                        className="opacity-40 hover:opacity-100 cursor-pointer"
                       >
                         <IconClose className="w-3 h-3" />
                       </button>
@@ -573,11 +510,8 @@ function ChatInner() {
               )}
 
               <div
-                className="flex items-center gap-1.5 sm:gap-2 p-1.5 rounded-2xl border shadow-xs transition-all focus-within:border-emerald-800/40 focus-within:shadow-sm"
-                style={{
-                  background: "var(--surco-card)",
-                  borderColor: "var(--surco-border)",
-                }}
+                className="flex items-center gap-1.5 p-1 rounded-xl border bg-white transition-all focus-within:border-emerald-800/40"
+                style={{ borderColor: "var(--surco-border)" }}
               >
                 <input
                   ref={docInputRef}
@@ -589,12 +523,11 @@ function ChatInner() {
                 <button
                   type="button"
                   onClick={() => docInputRef.current?.click()}
-                  className="p-2 sm:px-2.5 sm:py-2 rounded-xl text-xs font-medium cursor-pointer transition-colors hover:bg-black/5 shrink-0 flex items-center gap-1.5"
+                  className="p-2 rounded-lg text-xs font-medium cursor-pointer transition-colors hover:bg-black/5 shrink-0"
                   style={{ color: "var(--surco-ink-soft)" }}
-                  title="Adjuntar documento de campo (.txt, .md, .csv)"
+                  title="Adjuntar documento (.txt, .md, .csv)"
                 >
-                  <IconPaperclip className="w-4 h-4 text-emerald-900" />
-                  <span className="hidden sm:inline">Adjuntar</span>
+                  <IconPaperclip className="w-4 h-4 text-gray-500" />
                 </button>
 
                 <input
@@ -602,21 +535,20 @@ function ChatInner() {
                   onChange={(e) => setInput(e.target.value)}
                   placeholder={
                     activeLote
-                      ? `Preguntá sobre ${activeLote.name}…`
-                      : "Escribí tu consulta agronómica…"
+                      ? `Consulta sobre ${activeLote.name}…`
+                      : "Escribí tu consulta…"
                   }
-                  className="flex-1 bg-transparent px-2 py-2 outline-none text-[14px] sm:text-[15px]"
+                  className="flex-1 bg-transparent px-2 py-2 outline-none text-sm"
                   style={{ color: "var(--surco-ink)" }}
                 />
 
                 <button
                   type="submit"
                   disabled={loading || !input.trim()}
-                  className="rounded-xl px-3.5 sm:px-4 py-2 text-xs sm:text-sm font-medium text-white disabled:opacity-40 transition-all cursor-pointer shrink-0 flex items-center gap-1.5 shadow-2xs hover:opacity-95"
+                  className="rounded-lg px-3 py-1.5 text-xs font-medium text-white disabled:opacity-40 transition-opacity cursor-pointer shrink-0 flex items-center gap-1"
                   style={{ background: "var(--surco-green)" }}
                   aria-label="Enviar mensaje"
                 >
-                  <span className="hidden sm:inline">Enviar</span>
                   <IconSend className="w-3.5 h-3.5" />
                 </button>
               </div>

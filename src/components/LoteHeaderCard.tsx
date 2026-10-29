@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ProducerLote } from "@/lib/types";
 import { SatelliteLoteMap } from "./SatelliteLoteMap";
-import { IconChevronDown, IconChevronUp, IconEdit, IconLayers, IconMapPin } from "./Icons";
+import { IconChevronDown, IconChevronUp, IconEdit } from "./Icons";
 
 interface Props {
   lote: ProducerLote;
@@ -17,79 +17,56 @@ export function LoteHeaderCard({ lote, onEditLote }: Props) {
 
   return (
     <div
-      className="rounded-2xl border transition-all duration-200 overflow-hidden shadow-xs"
-      style={{ background: "var(--surco-card)", borderColor: "var(--surco-border)" }}
+      className="rounded-xl border transition-all overflow-hidden bg-white"
+      style={{ borderColor: "var(--surco-border-light)" }}
     >
-      {/* Barra principal compacta */}
-      <div className="px-4 py-3 flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-            style={{ background: "var(--surco-green-tint)", color: "var(--surco-green)" }}
-          >
-            <IconLayers className="w-4 h-4" />
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="font-semibold text-sm sm:text-[15px] truncate" style={{ color: "var(--surco-ink)" }}>
-                {lote.name}
-              </h2>
-              <span
-                className="text-[11px] font-medium px-2 py-0.5 rounded-full"
-                style={{ background: "var(--surco-bg-alt)", color: "var(--surco-ink-soft)" }}
-              >
-                {lote.hectares} ha · {lote.crop}
-              </span>
-            </div>
-            <div className="text-[12px] truncate mt-0.5" style={{ color: "var(--surco-ink-muted)" }}>
-              {lote.locality ? `${lote.locality}, ` : ""}
-              {lote.municipality} · Híbrido {lote.hybrid} ({lote.phenology})
-            </div>
-          </div>
+      {/* Barra compacta */}
+      <div className="px-3.5 py-2.5 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <h2 className="font-semibold text-xs sm:text-sm truncate" style={{ color: "var(--surco-ink)" }}>
+            {lote.name}
+          </h2>
+          <span className="text-[11px] text-gray-400">·</span>
+          <span className="text-[11px] truncate" style={{ color: "var(--surco-ink-muted)" }}>
+            {lote.hectares} ha · {lote.crop} ({lote.phenology})
+          </span>
         </div>
 
-        <div className="flex items-center gap-1.5 shrink-0 self-start sm:self-auto">
+        <div className="flex items-center gap-1.5 shrink-0">
           <button
             type="button"
             onClick={() => setExpanded((prev) => !prev)}
-            className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border font-medium cursor-pointer transition-colors hover:bg-black/5"
+            className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-md border cursor-pointer hover:bg-black/5"
             style={{ borderColor: "var(--surco-border-light)", color: "var(--surco-ink-soft)" }}
           >
-            <span>{expanded ? "Ocultar ficha" : "Ver ficha y satélite"}</span>
-            {expanded ? <IconChevronUp className="w-3.5 h-3.5" /> : <IconChevronDown className="w-3.5 h-3.5" />}
+            <span>{expanded ? "Ocultar ficha" : "Ficha técnica"}</span>
+            {expanded ? <IconChevronUp className="w-3 h-3" /> : <IconChevronDown className="w-3 h-3" />}
           </button>
 
           <button
             type="button"
             onClick={onEditLote}
-            className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border font-medium cursor-pointer transition-colors hover:bg-black/5"
-            style={{ borderColor: "var(--surco-border-light)", color: "var(--surco-green)" }}
-            title="Editar datos del lote"
+            className="p-1 rounded-md text-gray-400 hover:text-gray-700 cursor-pointer"
+            title="Editar lote"
           >
             <IconEdit className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Editar</span>
           </button>
         </div>
       </div>
 
-      {/* Ficha técnica desplegable con diseño limpio en pestañas/grilla */}
+      {/* Ficha técnica desplegable */}
       {expanded && (
         <div
-          className="border-t p-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs animate-fadeIn"
+          className="border-t p-3.5 grid grid-cols-1 md:grid-cols-3 gap-3 text-xs"
           style={{
             borderColor: "var(--surco-border-light)",
             background: "var(--surco-bg)",
           }}
         >
-          {/* Columna 1: Vista satelital compacta */}
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between text-[11px] font-semibold text-emerald-900">
-              <span className="inline-flex items-center gap-1">
-                <IconMapPin className="w-3 h-3" /> Polígono Satelital
-              </span>
-              <span className="text-[10px] text-gray-500 font-normal">Esri Imagery</span>
-            </div>
-            <div className="rounded-xl overflow-hidden border" style={{ borderColor: "var(--surco-border-light)" }}>
+          {/* Mapa satelital */}
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] font-semibold uppercase text-gray-400">Ubicación</span>
+            <div className="rounded-lg overflow-hidden border" style={{ borderColor: "var(--surco-border-light)" }}>
               <SatelliteLoteMap
                 center={lote.coordinates || { lat: -37.2785, lng: -59.3612 }}
                 polygon={lote.polygon || []}
@@ -97,80 +74,63 @@ export function LoteHeaderCard({ lote, onEditLote }: Props) {
                 compact
               />
             </div>
-            {lote.sensitiveZoneDistanceM && (
-              <div className="text-[11px] text-amber-800 bg-amber-50 rounded-lg p-2 border border-amber-200/60 leading-tight">
-                ⚠️ A <strong>{lote.sensitiveZoneDistanceM} m</strong> de {lote.sensitiveZoneType?.toLowerCase() || "zona sensible"}. Respetar zona de amortiguamiento [R08].
-              </div>
-            )}
-          </div>
-
-          {/* Columna 2: Suelo y Campaña */}
-          <div className="flex flex-col gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-emerald-900">
-              Suelo y Campaña
+            <span className="text-[11px] text-gray-500">
+              {lote.locality ? `${lote.locality}, ` : ""}{lote.municipality}
+              {lote.sensitiveZoneDistanceM ? ` (${lote.sensitiveZoneDistanceM}m de ${lote.sensitiveZoneType?.toLowerCase()})` : ""}
             </span>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="bg-white rounded-xl p-2.5 border" style={{ borderColor: "var(--surco-border-light)" }}>
-                <span className="text-[10px] text-gray-500 block">N-NO3 (0–60cm)</span>
-                <span className="text-sm font-semibold text-gray-800">{lote.soilNitrateKgHa} kg N/ha</span>
+          </div>
+
+          {/* Suelo y Campaña */}
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[10px] font-semibold uppercase text-gray-400">Suelo y Rendimiento</span>
+            <div className="grid grid-cols-2 gap-1.5">
+              <div className="bg-white rounded-lg p-2 border" style={{ borderColor: "var(--surco-border-light)" }}>
+                <span className="text-[10px] text-gray-400 block">N Suelo</span>
+                <span className="font-semibold text-gray-800">{lote.soilNitrateKgHa} kg/ha</span>
               </div>
-              <div className="bg-white rounded-xl p-2.5 border" style={{ borderColor: "var(--surco-border-light)" }}>
-                <span className="text-[10px] text-gray-500 block">Fósforo Bray</span>
-                <span className="text-sm font-semibold text-gray-800">{lote.soilPhosphorusPpm} ppm</span>
+              <div className="bg-white rounded-lg p-2 border" style={{ borderColor: "var(--surco-border-light)" }}>
+                <span className="text-[10px] text-gray-400 block">P Bray</span>
+                <span className="font-semibold text-gray-800">{lote.soilPhosphorusPpm} ppm</span>
               </div>
-              <div className="bg-white rounded-xl p-2.5 border" style={{ borderColor: "var(--surco-border-light)" }}>
-                <span className="text-[10px] text-gray-500 block">Prof. Tosca</span>
-                <span className="text-sm font-semibold text-gray-800">{lote.toscaDepthCm} cm</span>
+              <div className="bg-white rounded-lg p-2 border" style={{ borderColor: "var(--surco-border-light)" }}>
+                <span className="text-[10px] text-gray-400 block">Prof. Tosca</span>
+                <span className="font-semibold text-gray-800">{lote.toscaDepthCm} cm</span>
               </div>
-              <div className="bg-white rounded-xl p-2.5 border" style={{ borderColor: "var(--surco-border-light)" }}>
-                <span className="text-[10px] text-gray-500 block">Rinde Objetivo</span>
-                <span className="text-sm font-semibold text-gray-800">{lote.targetYieldTonHa} t/ha</span>
+              <div className="bg-white rounded-lg p-2 border" style={{ borderColor: "var(--surco-border-light)" }}>
+                <span className="text-[10px] text-gray-400 block">Rinde Obj.</span>
+                <span className="font-semibold text-gray-800">{lote.targetYieldTonHa} t/ha</span>
               </div>
             </div>
-
-            <div className="text-[11px] text-gray-600 bg-white rounded-xl p-2.5 border leading-relaxed" style={{ borderColor: "var(--surco-border-light)" }}>
-              <div><strong>Materia Orgánica:</strong> {lote.organicMatterPercent ?? 4.5}% · <strong>pH:</strong> {lote.ph ?? 6.2}</div>
-              <div><strong>Relieve:</strong> {lote.relief || "Loma"} · <strong>Antecesor:</strong> {lote.previousCrop}</div>
-              {weeds.length > 0 && (
-                <div className="mt-1 pt-1 border-t border-gray-100">
-                  <span className="text-red-700 font-medium">Malezas / Plagas:</span> {weeds.join(", ")}
-                </div>
-              )}
+            <div className="text-[11px] text-gray-500 bg-white rounded-lg p-2 border" style={{ borderColor: "var(--surco-border-light)" }}>
+              MO: {lote.organicMatterPercent ?? 4.5}% · pH: {lote.ph ?? 6.2} · Relieve: {lote.relief || "Loma"}
+              {weeds.length > 0 && <div>Malezas: {weeds.join(", ")}</div>}
             </div>
           </div>
 
-          {/* Columna 3: Historial de aplicaciones previas */}
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-emerald-900">
-                Aplicaciones Previas ({apps.length})
-              </span>
-            </div>
-
-            <div className="flex flex-col gap-1.5 overflow-y-auto max-h-[190px] pr-1">
+          {/* Aplicaciones Previas */}
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[10px] font-semibold uppercase text-gray-400">
+              Aplicaciones Previas ({apps.length})
+            </span>
+            <div className="flex flex-col gap-1 overflow-y-auto max-h-[170px]">
               {apps.length === 0 ? (
-                <div className="text-[11px] text-gray-500 italic p-3 bg-white rounded-xl border border-dashed border-gray-200 text-center">
-                  Sin aplicaciones previas registradas.
+                <div className="text-[11px] text-gray-400 italic p-2 bg-white rounded-lg border text-center" style={{ borderColor: "var(--surco-border-light)" }}>
+                  Sin aplicaciones registradas.
                 </div>
               ) : (
                 apps.map((a) => (
                   <div
                     key={a.id}
-                    className="bg-white rounded-xl p-2 border text-[11px] leading-tight flex flex-col gap-0.5"
+                    className="bg-white rounded-lg p-2 border text-[11px] flex flex-col gap-0.5"
                     style={{ borderColor: "var(--surco-border-light)" }}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold text-gray-800 truncate">{a.productName}</span>
-                      <span className="font-mono text-[10px] text-emerald-800 shrink-0">{a.date}</span>
+                      <span className="font-medium text-gray-800 truncate">{a.productName}</span>
+                      <span className="font-mono text-[10px] text-gray-400 shrink-0">{a.date}</span>
                     </div>
                     <div className="text-[10px] text-gray-500">
-                      {a.category} · <strong>Dosis:</strong> {a.dose}
+                      {a.category} · {a.dose}
                     </div>
-                    {a.modeOfAction && (
-                      <div className="text-[10px] text-emerald-700 font-medium">
-                        Modo de acción: {a.modeOfAction}
-                      </div>
-                    )}
                   </div>
                 ))
               )}

@@ -2,7 +2,7 @@
 
 import { MouseEvent, useState } from "react";
 import { calculatePolygonHectares } from "@/lib/local-knowledge";
-import { IconMapPin, IconSatellite } from "./Icons";
+import { IconSatellite } from "./Icons";
 
 export interface PresetLocation {
   label: string;
@@ -11,15 +11,6 @@ export interface PresetLocation {
   lat: number;
   lng: number;
 }
-
-export const TANDIL_ZONE_PRESETS: PresetLocation[] = [
-  { label: "Gardey (Tandil)", municipality: "Tandil", locality: "Gardey", lat: -37.2785, lng: -59.3612 },
-  { label: "María Ignacia — Vela (Tandil)", municipality: "Tandil", locality: "María Ignacia (Vela)", lat: -37.4025, lng: -59.5034 },
-  { label: "Tandil Rural Norte", municipality: "Tandil", locality: "Paraje El Gallo", lat: -37.221, lng: -59.142 },
-  { label: "Fulton (Tandil)", municipality: "Tandil", locality: "Fulton", lat: -37.428, lng: -58.915 },
-  { label: "Balcarce", municipality: "Balcarce", locality: "Balcarce", lat: -37.846, lng: -58.255 },
-  { label: "Ayacucho", municipality: "Ayacucho", locality: "Ayacucho", lat: -37.152, lng: -58.488 },
-];
 
 interface Props {
   center: { lat: number; lng: number };
@@ -30,7 +21,6 @@ interface Props {
   compact?: boolean;
 }
 
-// Conversión Web Mercator (EPSG:3857) entre (lat, lng) y coordenadas de tile continuas
 function latLngToTileXY(lat: number, lng: number, zoom: number): { x: number; y: number } {
   const n = Math.pow(2, zoom);
   const x = ((lng + 180) / 360) * n;
@@ -51,7 +41,6 @@ export function SatelliteLoteMap({
   center,
   polygon,
   onChangePolygon,
-  onChangeCenter,
   readOnly = false,
   compact = false,
 }: Props) {
@@ -60,7 +49,6 @@ export function SatelliteLoteMap({
   const baseTileX = Math.floor(centerTile.x) - 1;
   const baseTileY = Math.floor(centerTile.y) - 1;
 
-  // Grilla 3x3 de tiles satelitales Esri World Imagery (768x768 lógico)
   const tiles: { tx: number; ty: number; gx: number; gy: number; url: string }[] = [];
   for (let gy = 0; gy < 3; gy++) {
     for (let gx = 0; gx < 3; gx++) {
@@ -119,69 +107,39 @@ export function SatelliteLoteMap({
   const centerPoint = latLngToSvgPoint(center.lat, center.lng);
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-1.5">
       {!readOnly && !compact && (
-        <div className="flex items-center justify-between gap-2 flex-wrap text-xs">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="font-medium flex items-center gap-1" style={{ color: "var(--surco-ink-muted)" }}>
-              <IconMapPin className="w-3.5 h-3.5 text-emerald-800" />
-              <span>Zona:</span>
-            </span>
-            {TANDIL_ZONE_PRESETS.slice(0, 4).map((p) => (
-              <button
-                key={p.label}
-                type="button"
-                onClick={() => onChangeCenter?.({ lat: p.lat, lng: p.lng }, p)}
-                className="px-2 py-1 rounded-md border text-[11px] cursor-pointer transition-colors hover:bg-black/5"
-                style={{
-                  background: "var(--surco-card)",
-                  borderColor: "var(--surco-border-light)",
-                  color: "var(--surco-ink)",
-                }}
-              >
-                {p.locality}
-              </button>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-1.5">
+        <div className="flex items-center justify-end gap-1.5 text-xs">
+          <button
+            type="button"
+            onClick={handleGenerateSquareLote}
+            className="px-2.5 py-1 rounded-md border text-[11px] font-medium cursor-pointer transition-colors hover:bg-black/5"
+            style={{
+              borderColor: "var(--surco-border-light)",
+              color: "var(--surco-ink)",
+              background: "#ffffff",
+            }}
+          >
+            Trazar lote automático
+          </button>
+          {polygon.length > 0 && (
             <button
               type="button"
-              onClick={handleGenerateSquareLote}
-              className="px-2.5 py-1 rounded-lg border text-[11px] font-medium cursor-pointer shadow-2xs hover:opacity-90"
-              style={{
-                background: "var(--surco-green-tint)",
-                borderColor: "var(--surco-border)",
-                color: "var(--surco-green)",
-              }}
+              onClick={() => onChangePolygon?.([], 0)}
+              className="px-2 py-1 rounded-md text-[11px] text-gray-400 hover:text-gray-700 cursor-pointer"
             >
-              Trazar lote automático
+              Limpiar
             </button>
-            {polygon.length > 0 && (
-              <button
-                type="button"
-                onClick={() => onChangePolygon?.([], 0)}
-                className="px-2 py-1 rounded-lg border text-[11px] cursor-pointer hover:bg-black/5"
-                style={{
-                  background: "var(--surco-card)",
-                  borderColor: "var(--surco-border-light)",
-                  color: "var(--surco-ink-muted)",
-                }}
-              >
-                Limpiar
-              </button>
-            )}
-          </div>
+          )}
         </div>
       )}
 
       <div
         className={`relative w-full overflow-hidden rounded-xl border select-none ${
-          compact ? "h-28" : "h-60 sm:h-72"
+          compact ? "h-24" : "h-60 sm:h-64"
         }`}
         style={{ borderColor: "var(--surco-border-light)", background: "#1b2e1e" }}
       >
-        {/* Mosaico 3x3 de imágenes satelitales reales Esri World Imagery */}
         <div className="absolute inset-0 grid grid-cols-3 grid-rows-3">
           {tiles.map((t) => (
             // eslint-disable-next-line @next/next/no-img-element
@@ -195,7 +153,6 @@ export function SatelliteLoteMap({
           ))}
         </div>
 
-        {/* Capa vectorial interactiva para dibujar y visualizar el polígono del lote */}
         <svg
           viewBox="0 0 100 100"
           preserveAspectRatio="none"
@@ -235,27 +192,25 @@ export function SatelliteLoteMap({
           )}
         </svg>
 
-        {/* Controles de zoom e información de coordenadas sobre la imagen satelital */}
         {!compact && (
-          <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between gap-2 pointer-events-none">
-            <span className="px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-xs text-white text-[11px] font-mono flex items-center gap-1">
+          <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between pointer-events-none">
+            <span className="px-2 py-0.5 rounded-md bg-black/60 text-white text-[10px] font-mono flex items-center gap-1">
               <IconSatellite className="w-3 h-3 text-emerald-400" />
               <span>{center.lat.toFixed(4)}, {center.lng.toFixed(4)}</span>
-              {polygon.length >= 3 ? <span className="opacity-75">· {polygon.length} pts</span> : ""}
             </span>
 
             <div className="flex items-center gap-1 pointer-events-auto">
               <button
                 type="button"
                 onClick={() => setZoom((z) => Math.max(12, z - 1))}
-                className="w-6 h-6 rounded-md bg-black/60 backdrop-blur-xs text-white text-xs font-semibold cursor-pointer hover:bg-black/80 flex items-center justify-center"
+                className="w-5 h-5 rounded bg-black/60 text-white text-xs cursor-pointer hover:bg-black/80 flex items-center justify-center"
               >
                 −
               </button>
               <button
                 type="button"
                 onClick={() => setZoom((z) => Math.min(16, z + 1))}
-                className="w-6 h-6 rounded-md bg-black/60 backdrop-blur-xs text-white text-xs font-semibold cursor-pointer hover:bg-black/80 flex items-center justify-center"
+                className="w-5 h-5 rounded bg-black/60 text-white text-xs cursor-pointer hover:bg-black/80 flex items-center justify-center"
               >
                 +
               </button>
@@ -263,12 +218,6 @@ export function SatelliteLoteMap({
           </div>
         )}
       </div>
-
-      {!readOnly && !compact && (
-        <p className="text-[11px] leading-relaxed" style={{ color: "var(--surco-ink-muted)" }}>
-          Hacé clic sobre el mapa para marcar los vértices de tu lote o usá el botón “Trazar lote automático”. Las hectáreas se calculan solas.
-        </p>
-      )}
     </div>
   );
 }
