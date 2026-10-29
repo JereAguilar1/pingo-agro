@@ -43,6 +43,29 @@ export function ProjectsSidebar({
         borderColor: "var(--surco-border-light)",
       }}
     >
+      {/* Cabecera del sidebar: Título y únicamente la 'x' para cerrar cuando es drawer */}
+      <div
+        className="px-3.5 py-3 border-b flex items-center justify-between"
+        style={{ borderColor: "var(--surco-border-light)" }}
+      >
+        <span className="font-semibold text-xs text-gray-700 tracking-tight">
+          Proyectos e Historial
+        </span>
+
+        {/* Solo la 'x' arriba a la derecha */}
+        {isOpenMobile && (
+          <button
+            type="button"
+            onClick={onCloseMobile}
+            className="p-1 rounded-md text-gray-400 hover:text-gray-700 hover:bg-black/5 cursor-pointer transition-colors"
+            aria-label="Cerrar menú"
+            title="Cerrar menú"
+          >
+            <IconClose className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+
       <div className="p-3 overflow-y-auto flex-1 flex flex-col gap-5">
         {/* Sección: Proyectos (Lotes) */}
         <div className="flex flex-col gap-1.5">
@@ -53,20 +76,23 @@ export function ProjectsSidebar({
               <IconFolder className="w-3 h-3" />
               Proyectos (Lotes)
             </span>
-            <button
-              type="button"
-              onClick={() => {
-                onOpenNewLoteWizard();
-                onCloseMobile();
-              }}
-              className="p-1 rounded text-gray-500 hover:text-emerald-900 cursor-pointer"
-              title="Crear nuevo lote"
-            >
-              <IconPlus className="w-3.5 h-3.5" />
-            </button>
           </div>
 
-          <div className="flex flex-col gap-0.5">
+          {/* Botón limpio para nuevo lote sin solaparse con la 'x' */}
+          <button
+            type="button"
+            onClick={() => {
+              onOpenNewLoteWizard();
+              onCloseMobile();
+            }}
+            className="w-full text-left px-2.5 py-1.5 rounded-lg border border-dashed text-xs font-medium text-emerald-800 transition-colors hover:bg-black/5 flex items-center gap-1.5 cursor-pointer"
+            style={{ borderColor: "var(--surco-border)" }}
+          >
+            <IconPlus className="w-3.5 h-3.5" />
+            <span>Crear nuevo lote</span>
+          </button>
+
+          <div className="flex flex-col gap-0.5 mt-0.5">
             {lotes.map((lote) => {
               const isLoteActive = activeLoteId === lote.id;
               const loteThreads = threads.filter((t) => t.loteId === lote.id);
@@ -150,7 +176,7 @@ export function ProjectsSidebar({
           </div>
         </div>
 
-        {/* Sección: Historial de Chats Generales */}
+        {/* Sección: Historial de Chats */}
         <div
           className="flex flex-col gap-1.5 border-t pt-3"
           style={{ borderColor: "var(--surco-border-light)" }}
@@ -168,10 +194,10 @@ export function ProjectsSidebar({
                 onSelectGeneralChat("new");
                 onCloseMobile();
               }}
-              className="p-1 rounded text-gray-500 hover:text-emerald-900 cursor-pointer"
+              className="text-[11px] text-emerald-800 hover:underline cursor-pointer"
               title="Nueva consulta general"
             >
-              <IconPlus className="w-3.5 h-3.5" />
+              + Nuevo
             </button>
           </div>
 
@@ -241,14 +267,6 @@ export function ProjectsSidebar({
         <div className="fixed inset-0 z-50 flex animate-fadeIn">
           <div className="relative z-50 h-full shadow-2xl flex">
             {sidebarContent}
-            <button
-              type="button"
-              onClick={onCloseMobile}
-              className="absolute top-2.5 right-2.5 p-1.5 rounded-lg bg-black/5 hover:bg-black/10 text-gray-500 cursor-pointer"
-              aria-label="Cerrar menú"
-            >
-              <IconClose className="w-4 h-4" />
-            </button>
           </div>
           <div
             className="flex-1 bg-black/25 backdrop-blur-xs transition-opacity"
