@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { LoteApplicationRecord, ProducerLote } from "@/lib/types";
 import { SatelliteLoteMap } from "./SatelliteLoteMap";
+import { IconCheck, IconClose, IconFolder, IconPlus } from "./Icons";
 
 interface Props {
   isOpen: boolean;
@@ -58,13 +59,13 @@ const QUICK_APPLICATIONS: Omit<LoteApplicationRecord, "id">[] = [
 ];
 
 const COMMON_WEEDS_PESTS = [
-  "Rama negra (Conyza bonariensis)",
-  "Yuyo colorado (Amaranthus hybridus)",
-  "Raigrás anual (Lolium multiflorum)",
-  "Sorgo de Alepo (Sorghum halepense)",
-  "Nabón (Raphanus sativus)",
-  "Oruga cogollera (Spodoptera frugiperda)",
-  "Isoca de la espiga / Diatraea",
+  "Rama negra (Conyza)",
+  "Yuyo colorado (Amaranthus)",
+  "Raigrás anual (Lolium)",
+  "Sorgo de Alepo",
+  "Nabón (Raphanus)",
+  "Oruga cogollera (Spodoptera)",
+  "Diatraea / Barrenador",
 ];
 
 export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Props) {
@@ -139,7 +140,7 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
   const [appDose, setAppDose] = useState("");
 
   const [selectedWeeds, setSelectedWeeds] = useState<string[]>(
-    initialLote?.detectedPestsAndWeeds || ["Rama negra (Conyza bonariensis)"]
+    initialLote?.detectedPestsAndWeeds || ["Rama negra (Conyza)"]
   );
 
   if (!isOpen) return null;
@@ -153,7 +154,7 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
       productName: appProduct.trim(),
       activeIngredient: appActive.trim() || appProduct.trim(),
       modeOfAction: appMode.trim() || undefined,
-      dose: appDose.trim() || "Dosis estándar marbete",
+      dose: appDose.trim() || "Dosis estándar",
     };
     setApplications((prev) => [...prev, item]);
     setAppProduct("");
@@ -212,154 +213,164 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-3 sm:p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-3 sm:p-5 animate-fadeIn">
       <div
-        className="w-full max-w-3xl max-h-[92vh] rounded-2xl border shadow-xl flex flex-col overflow-hidden"
-        style={{ background: "var(--surco-card)", borderColor: "var(--surco-border)" }}
+        className="w-full max-w-3xl max-h-[92vh] rounded-2xl border shadow-xl flex flex-col overflow-hidden bg-white"
+        style={{ borderColor: "var(--surco-border)" }}
       >
-        {/* Header */}
+        {/* Cabecera del modal */}
         <div
           className="px-5 py-3.5 border-b flex items-center justify-between"
-          style={{ background: "var(--surco-bg)", borderColor: "var(--surco-border)" }}
+          style={{ background: "var(--surco-bg)", borderColor: "var(--surco-border-light)" }}
         >
-          <div>
-            <h2 className="font-bold text-base sm:text-lg" style={{ color: "var(--surco-ink)" }}>
-              {initialLote ? `Editar Proyecto: ${initialLote.name}` : "🌾 Crear Nuevo Proyecto de Lote"}
-            </h2>
-            <p className="text-xs" style={{ color: "var(--surco-ink-soft)" }}>
-              Paso {step} de 3 ·{" "}
-              {step === 1
-                ? "Ubicación con Imagen Satelital y Entorno"
-                : step === 2
-                ? "Análisis de Suelo y Campaña Actual"
-                : "Historial de Aplicaciones Previas y Malezas"}
-            </p>
+          <div className="flex items-center gap-2.5">
+            <div
+              className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+              style={{ background: "var(--surco-green-tint)", color: "var(--surco-green)" }}
+            >
+              <IconFolder className="w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-sm sm:text-base leading-tight" style={{ color: "var(--surco-ink)" }}>
+                {initialLote ? `Editar: ${initialLote.name}` : "Nuevo Proyecto de Lote"}
+              </h2>
+              <span className="text-[11px]" style={{ color: "var(--surco-ink-muted)" }}>
+                Paso {step} de 3 · {step === 1 ? "Ubicación Satelital" : step === 2 ? "Suelo y Campaña" : "Historial de Aplicaciones"}
+              </span>
+            </div>
           </div>
+
           <button
             type="button"
             onClick={onClose}
-            className="text-xs font-medium px-3 py-1.5 rounded-lg border cursor-pointer"
-            style={{ borderColor: "var(--surco-border)", color: "var(--surco-ink-soft)" }}
+            className="p-1.5 rounded-lg hover:bg-black/5 text-gray-500 cursor-pointer"
           >
-            Cancelar
+            <IconClose className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Stepper */}
+        {/* Pasos / Stepper estilizado */}
         <div
-          className="grid grid-cols-3 border-b text-xs font-semibold"
-          style={{ borderColor: "var(--surco-border)", background: "var(--surco-bg)" }}
+          className="grid grid-cols-3 border-b text-xs font-medium"
+          style={{ borderColor: "var(--surco-border-light)", background: "var(--surco-bg)" }}
         >
           {[
-            { n: 1 as const, label: "1. Mapa Satelital y Lote" },
-            { n: 2 as const, label: "2. Suelo y Cultivo" },
-            { n: 3 as const, label: "3. Qué se le echó antes" },
-          ].map((item) => (
-            <button
-              key={item.n}
-              type="button"
-              onClick={() => setStep(item.n)}
-              className="py-2.5 px-3 text-center border-b-2 transition-colors cursor-pointer"
-              style={{
-                borderColor: step === item.n ? "var(--surco-green)" : "transparent",
-                color: step === item.n ? "var(--surco-green)" : "var(--surco-ink-soft)",
-              }}
-            >
-              {item.label}
-            </button>
-          ))}
+            { n: 1 as const, label: "1. Satélite y Polígono" },
+            { n: 2 as const, label: "2. Suelo y Campaña" },
+            { n: 3 as const, label: "3. Aplicaciones Previas" },
+          ].map((item) => {
+            const isActive = step === item.n;
+            return (
+              <button
+                key={item.n}
+                type="button"
+                onClick={() => setStep(item.n)}
+                className="py-2.5 px-3 text-center transition-all cursor-pointer border-b-2"
+                style={{
+                  borderColor: isActive ? "var(--surco-green)" : "transparent",
+                  color: isActive ? "var(--surco-green)" : "var(--surco-ink-muted)",
+                  fontWeight: isActive ? 600 : 400,
+                  background: isActive ? "var(--surco-card)" : "transparent",
+                }}
+              >
+                {item.label}
+              </button>
+            );
+          })}
         </div>
 
-        {/* Body */}
+        {/* Contenido según el paso */}
         <div className="p-4 sm:p-5 overflow-y-auto flex-1 flex flex-col gap-4 text-xs sm:text-sm">
           {step === 1 && (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="sm:col-span-2 flex flex-col gap-1">
-                  <label className="font-medium text-xs" style={{ color: "var(--surco-ink-soft)" }}>
-                    Nombre del Lote / Establecimiento
+                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-soft)" }}>
+                    Nombre del Lote / Campo
                   </label>
                   <input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="Ej. Lote 4 — La Loma (Est. San Pedro)"
-                    className="px-3 py-2 rounded-lg border bg-white text-sm"
+                    placeholder="Ej. Lote 4 — La Loma (Gardey)"
+                    className="px-3 py-2 rounded-xl border bg-white text-xs sm:text-sm outline-none transition-all focus:border-emerald-800/50"
                     style={{ borderColor: "var(--surco-border)", color: "var(--surco-ink)" }}
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="font-medium text-xs" style={{ color: "var(--surco-ink-soft)" }}>
+                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-soft)" }}>
                     Superficie (ha)
                   </label>
                   <input
                     type="number"
                     value={hectares}
                     onChange={(e) => setHectares(e.target.value)}
-                    className="px-3 py-2 rounded-lg border bg-white text-sm font-semibold"
+                    className="px-3 py-2 rounded-xl border bg-white text-xs sm:text-sm font-semibold outline-none"
                     style={{ borderColor: "var(--surco-border)", color: "var(--surco-green)" }}
                   />
                 </div>
               </div>
 
-              <SatelliteLoteMap
-                center={center}
-                polygon={polygon}
-                onChangeCenter={(newCenter, preset) => {
-                  setCenter(newCenter);
-                  if (preset) {
-                    setMunicipality(preset.municipality);
-                    setLocality(preset.locality);
-                  }
-                }}
-                onChangePolygon={(newPoly, calcHa) => {
-                  setPolygon(newPoly);
-                  if (calcHa > 0) setHectares(String(calcHa));
-                }}
-              />
+              <div className="rounded-xl overflow-hidden border" style={{ borderColor: "var(--surco-border-light)" }}>
+                <SatelliteLoteMap
+                  center={center}
+                  polygon={polygon}
+                  onChangeCenter={(newCenter, preset) => {
+                    setCenter(newCenter);
+                    if (preset) {
+                      setMunicipality(preset.municipality);
+                      setLocality(preset.locality);
+                    }
+                  }}
+                  onChangePolygon={(newPoly, calcHa) => {
+                    setPolygon(newPoly);
+                    if (calcHa > 0) setHectares(String(calcHa));
+                  }}
+                />
+              </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                 <div className="flex flex-col gap-1">
-                  <label className="font-medium text-xs" style={{ color: "var(--surco-ink-soft)" }}>
-                    Partido / Municipio
+                  <label className="text-[11px] font-medium" style={{ color: "var(--surco-ink-muted)" }}>
+                    Partido
                   </label>
                   <input
                     value={municipality}
                     onChange={(e) => setMunicipality(e.target.value)}
-                    className="px-2.5 py-1.5 rounded-lg border bg-white text-xs"
-                    style={{ borderColor: "var(--surco-border)" }}
+                    className="px-2.5 py-1.5 rounded-lg border bg-white text-xs outline-none"
+                    style={{ borderColor: "var(--surco-border-light)" }}
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="font-medium text-xs" style={{ color: "var(--surco-ink-soft)" }}>
-                    Localidad / Paraje
+                  <label className="text-[11px] font-medium" style={{ color: "var(--surco-ink-muted)" }}>
+                    Localidad
                   </label>
                   <input
                     value={locality}
                     onChange={(e) => setLocality(e.target.value)}
-                    className="px-2.5 py-1.5 rounded-lg border bg-white text-xs"
-                    style={{ borderColor: "var(--surco-border)" }}
+                    className="px-2.5 py-1.5 rounded-lg border bg-white text-xs outline-none"
+                    style={{ borderColor: "var(--surco-border-light)" }}
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="font-medium text-xs" style={{ color: "var(--surco-ink-soft)" }}>
-                    Posición / Relieve
+                  <label className="text-[11px] font-medium" style={{ color: "var(--surco-ink-muted)" }}>
+                    Relieve
                   </label>
                   <select
                     value={relief}
                     onChange={(e) => setRelief(e.target.value as ProducerLote["relief"])}
-                    className="px-2.5 py-1.5 rounded-lg border bg-white text-xs"
-                    style={{ borderColor: "var(--surco-border)" }}
+                    className="px-2.5 py-1.5 rounded-lg border bg-white text-xs outline-none"
+                    style={{ borderColor: "var(--surco-border-light)" }}
                   >
                     <option value="Loma">Loma</option>
                     <option value="Media loma">Media loma</option>
                     <option value="Plano">Plano</option>
-                    <option value="Bajo dulce">Bajo dulce (riesgo helada)</option>
+                    <option value="Bajo dulce">Bajo dulce</option>
                     <option value="Bajo alcalino">Bajo alcalino</option>
                   </select>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="font-medium text-xs" style={{ color: "var(--surco-ink-soft)" }}>
-                    Zona sensible cercana
+                  <label className="text-[11px] font-medium" style={{ color: "var(--surco-ink-muted)" }}>
+                    Zona sensible y distancia (m)
                   </label>
                   <div className="flex gap-1">
                     <select
@@ -367,8 +378,8 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
                       onChange={(e) =>
                         setSensitiveZoneType(e.target.value as ProducerLote["sensitiveZoneType"])
                       }
-                      className="flex-1 px-2 py-1.5 rounded-lg border bg-white text-xs"
-                      style={{ borderColor: "var(--surco-border)" }}
+                      className="flex-1 px-2 py-1.5 rounded-lg border bg-white text-xs outline-none"
+                      style={{ borderColor: "var(--surco-border-light)" }}
                     >
                       <option value="Escuela rural">Escuela</option>
                       <option value="Curso de agua / Arroyo">Arroyo</option>
@@ -380,9 +391,8 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
                       value={sensitiveZoneDistanceM}
                       onChange={(e) => setSensitiveZoneDistanceM(e.target.value)}
                       placeholder="m"
-                      title="Distancia en metros"
-                      className="w-16 px-2 py-1.5 rounded-lg border bg-white text-xs"
-                      style={{ borderColor: "var(--surco-border)" }}
+                      className="w-16 px-2 py-1.5 rounded-lg border bg-white text-xs outline-none"
+                      style={{ borderColor: "var(--surco-border-light)" }}
                     />
                   </div>
                 </div>
@@ -392,19 +402,17 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
 
           {step === 2 && (
             <>
-              <div className="font-semibold text-xs uppercase tracking-wider" style={{ color: "var(--surco-green)" }}>
-                🌱 Cultivo de la Campaña y Manejo
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <span className="text-xs font-semibold uppercase tracking-wider text-emerald-900">
+                Cultivo y Campaña Actual
+              </span>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-soft)" }}>
-                    Cultivo
-                  </label>
+                  <label className="text-[11px] font-medium" style={{ color: "var(--surco-ink-muted)" }}>Cultivo</label>
                   <select
                     value={crop}
                     onChange={(e) => setCrop(e.target.value)}
-                    className="px-3 py-2 rounded-lg border bg-white text-xs"
-                    style={{ borderColor: "var(--surco-border)" }}
+                    className="px-3 py-2 rounded-xl border bg-white text-xs outline-none"
+                    style={{ borderColor: "var(--surco-border-light)" }}
                   >
                     <option value="Maíz">Maíz</option>
                     <option value="Soja">Soja</option>
@@ -414,145 +422,120 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
                   </select>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-soft)" }}>
-                    Híbrido / Variedad y Biotecnología
-                  </label>
+                  <label className="text-[11px] font-medium" style={{ color: "var(--surco-ink-muted)" }}>Híbrido / Variedad</label>
                   <input
                     value={hybrid}
                     onChange={(e) => setHybrid(e.target.value)}
-                    placeholder="Ej. DK 72-10 Trecepta (Vip3A)"
-                    className="px-3 py-2 rounded-lg border bg-white text-xs"
-                    style={{ borderColor: "var(--surco-border)" }}
+                    placeholder="Ej. DK 72-10 Trecepta"
+                    className="px-3 py-2 rounded-xl border bg-white text-xs outline-none"
+                    style={{ borderColor: "var(--surco-border-light)" }}
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-soft)" }}>
-                    Estadio Fenológico Actual
-                  </label>
+                  <label className="text-[11px] font-medium" style={{ color: "var(--surco-ink-muted)" }}>Estadio Fenológico</label>
                   <input
                     value={phenology}
                     onChange={(e) => setPhenology(e.target.value)}
-                    placeholder="Ej. Barbecho, V6, VT, R1"
-                    className="px-3 py-2 rounded-lg border bg-white text-xs"
-                    style={{ borderColor: "var(--surco-border)" }}
+                    placeholder="Ej. V6 (6 hojas)"
+                    className="px-3 py-2 rounded-xl border bg-white text-xs outline-none"
+                    style={{ borderColor: "var(--surco-border-light)" }}
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-soft)" }}>
-                    Fecha de Siembra
-                  </label>
+                  <label className="text-[11px] font-medium" style={{ color: "var(--surco-ink-muted)" }}>Fecha de Siembra</label>
                   <input
                     value={plantingDate}
                     onChange={(e) => setPlantingDate(e.target.value)}
-                    className="px-3 py-2 rounded-lg border bg-white text-xs"
-                    style={{ borderColor: "var(--surco-border)" }}
+                    className="px-3 py-2 rounded-xl border bg-white text-xs outline-none"
+                    style={{ borderColor: "var(--surco-border-light)" }}
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-soft)" }}>
-                    Rinde Objetivo (t/ha)
-                  </label>
+                  <label className="text-[11px] font-medium" style={{ color: "var(--surco-ink-muted)" }}>Rinde Objetivo (t/ha)</label>
                   <input
                     type="number"
                     step="0.5"
                     value={targetYield}
                     onChange={(e) => setTargetYield(e.target.value)}
-                    className="px-3 py-2 rounded-lg border bg-white text-xs"
-                    style={{ borderColor: "var(--surco-border)" }}
+                    className="px-3 py-2 rounded-xl border bg-white text-xs outline-none"
+                    style={{ borderColor: "var(--surco-border-light)" }}
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-soft)" }}>
-                    Cultivo Antecesor
-                  </label>
+                  <label className="text-[11px] font-medium" style={{ color: "var(--surco-ink-muted)" }}>Cultivo Antecesor</label>
                   <input
                     value={previousCrop}
                     onChange={(e) => setPreviousCrop(e.target.value)}
-                    placeholder="Ej. Soja 1ra / Trigo-Soja 2da"
-                    className="px-3 py-2 rounded-lg border bg-white text-xs"
-                    style={{ borderColor: "var(--surco-border)" }}
+                    className="px-3 py-2 rounded-xl border bg-white text-xs outline-none"
+                    style={{ borderColor: "var(--surco-border-light)" }}
                   />
                 </div>
               </div>
 
-              <div className="font-semibold text-xs uppercase tracking-wider pt-2" style={{ color: "var(--surco-green)" }}>
-                🧪 Análisis de Suelo y Perfil Edáfico
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <span className="text-xs font-semibold uppercase tracking-wider text-emerald-900 pt-2">
+                Análisis de Suelo (Laboratorio)
+              </span>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-soft)" }}>
-                    Profundidad a Tosca (cm)
-                  </label>
+                  <label className="text-[11px] font-medium" style={{ color: "var(--surco-ink-muted)" }}>Prof. a Tosca (cm)</label>
                   <input
                     type="number"
                     value={toscaDepth}
                     onChange={(e) => setToscaDepth(e.target.value)}
-                    className="px-3 py-2 rounded-lg border bg-white text-xs"
-                    style={{ borderColor: "var(--surco-border)" }}
+                    className="px-3 py-2 rounded-xl border bg-white text-xs outline-none"
+                    style={{ borderColor: "var(--surco-border-light)" }}
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-soft)" }}>
-                    N-NO3 Suelo 0–60 cm (kg N/ha)
-                  </label>
+                  <label className="text-[11px] font-medium" style={{ color: "var(--surco-ink-muted)" }}>N-NO3 (0–60cm kg/ha)</label>
                   <input
                     type="number"
                     value={soilN}
                     onChange={(e) => setSoilN(e.target.value)}
-                    className="px-3 py-2 rounded-lg border bg-white text-xs"
-                    style={{ borderColor: "var(--surco-border)" }}
+                    className="px-3 py-2 rounded-xl border bg-white text-xs outline-none"
+                    style={{ borderColor: "var(--surco-border-light)" }}
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-soft)" }}>
-                    Fósforo P Bray 0–20 cm (ppm)
-                  </label>
+                  <label className="text-[11px] font-medium" style={{ color: "var(--surco-ink-muted)" }}>Fósforo P Bray (ppm)</label>
                   <input
                     type="number"
                     step="0.5"
                     value={soilP}
                     onChange={(e) => setSoilP(e.target.value)}
-                    className="px-3 py-2 rounded-lg border bg-white text-xs"
-                    style={{ borderColor: "var(--surco-border)" }}
+                    className="px-3 py-2 rounded-xl border bg-white text-xs outline-none"
+                    style={{ borderColor: "var(--surco-border-light)" }}
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-soft)" }}>
-                    Materia Orgánica (%)
-                  </label>
+                  <label className="text-[11px] font-medium" style={{ color: "var(--surco-ink-muted)" }}>Materia Orgánica (%)</label>
                   <input
                     type="number"
                     step="0.1"
                     value={soilMO}
                     onChange={(e) => setSoilMO(e.target.value)}
-                    className="px-3 py-2 rounded-lg border bg-white text-xs"
-                    style={{ borderColor: "var(--surco-border)" }}
+                    className="px-3 py-2 rounded-xl border bg-white text-xs outline-none"
+                    style={{ borderColor: "var(--surco-border-light)" }}
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-soft)" }}>
-                    pH del suelo
-                  </label>
+                  <label className="text-[11px] font-medium" style={{ color: "var(--surco-ink-muted)" }}>pH actual</label>
                   <input
                     type="number"
                     step="0.1"
                     value={soilPh}
                     onChange={(e) => setSoilPh(e.target.value)}
-                    className="px-3 py-2 rounded-lg border bg-white text-xs"
-                    style={{ borderColor: "var(--surco-border)" }}
+                    className="px-3 py-2 rounded-xl border bg-white text-xs outline-none"
+                    style={{ borderColor: "var(--surco-border-light)" }}
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-soft)" }}>
-                    Textura
-                  </label>
+                  <label className="text-[11px] font-medium" style={{ color: "var(--surco-ink-muted)" }}>Textura</label>
                   <select
                     value={soilTexture}
-                    onChange={(e) =>
-                      setSoilTexture(e.target.value as ProducerLote["soilTexture"])
-                    }
-                    className="px-3 py-2 rounded-lg border bg-white text-xs"
-                    style={{ borderColor: "var(--surco-border)" }}
+                    onChange={(e) => setSoilTexture(e.target.value as ProducerLote["soilTexture"])}
+                    className="px-3 py-2 rounded-xl border bg-white text-xs outline-none"
+                    style={{ borderColor: "var(--surco-border-light)" }}
                   >
                     <option value="Franco">Franco</option>
                     <option value="Franco-arcilloso">Franco-arcilloso</option>
@@ -566,23 +549,26 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
           {step === 3 && (
             <>
               <div>
-                <div className="font-semibold text-xs uppercase tracking-wider mb-1.5" style={{ color: "var(--surco-green)" }}>
-                  🚜 ¿Qué se le echó previamente al lote? (Herbicidas, Fitosanitarios y Fertilizantes)
-                </div>
+                <span className="text-xs font-semibold uppercase tracking-wider text-emerald-900 block mb-1">
+                  Historial de lo que se le echó previamente al lote
+                </span>
+                <p className="text-[11px] text-gray-500 mb-2.5">
+                  Herbicidas residuales, arrancadores y fertilizantes aplicados para que el asistente determine carry-over y rotación de modos de acción.
+                </p>
+
+                {/* Accesos rápidos */}
                 <div className="flex items-center gap-1.5 flex-wrap mb-3">
-                  <span className="text-[11px]" style={{ color: "var(--surco-ink-soft)" }}>
-                    Agregar rápido:
-                  </span>
+                  <span className="text-[11px] text-gray-400">Atajos:</span>
                   {QUICK_APPLICATIONS.map((preset) => (
                     <button
                       key={preset.productName}
                       type="button"
                       onClick={() => addQuickApplication(preset)}
-                      className="px-2 py-1 rounded-md border text-[11px] cursor-pointer hover:opacity-80"
+                      className="px-2 py-0.5 rounded-md border text-[11px] transition-colors cursor-pointer hover:bg-black/5"
                       style={{
-                        background: "var(--surco-bg)",
-                        borderColor: "var(--surco-border)",
-                        color: "var(--surco-ink)",
+                        background: "var(--surco-card)",
+                        borderColor: "var(--surco-border-light)",
+                        color: "var(--surco-ink-soft)",
                       }}
                     >
                       + {preset.productName.split("(")[0].trim()}
@@ -590,60 +576,63 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
                   ))}
                 </div>
 
-                {/* Lista de aplicaciones cargadas */}
-                <div className="flex flex-col gap-1.5 mb-3">
-                  {applications.map((app) => (
-                    <div
-                      key={app.id}
-                      className="rounded-lg border px-3 py-2 flex items-center justify-between gap-2 text-xs"
-                      style={{ background: "var(--surco-bg)", borderColor: "var(--surco-border)" }}
-                    >
-                      <div>
-                        <span className="font-mono font-semibold mr-2" style={{ color: "var(--surco-green)" }}>
-                          {app.date}
-                        </span>
-                        <strong>{app.productName}</strong> ({app.activeIngredient}) ·{" "}
-                        <span className="font-medium">{app.dose}</span>
-                        {app.modeOfAction && (
-                          <span className="ml-1.5 text-[11px]" style={{ color: "var(--surco-ink-soft)" }}>
-                            [{app.modeOfAction}]
-                          </span>
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setApplications((prev) => prev.filter((item) => item.id !== app.id))
-                        }
-                        className="text-xs px-1.5 py-0.5 rounded hover:bg-red-50 text-red-700 cursor-pointer"
-                      >
-                        ✕
-                      </button>
+                {/* Lista de aplicaciones */}
+                <div className="flex flex-col gap-1.5 mb-3 max-h-48 overflow-y-auto pr-1">
+                  {applications.length === 0 ? (
+                    <div className="text-center p-3 text-xs text-gray-400 border border-dashed rounded-xl">
+                      Sin aplicaciones registradas todavía.
                     </div>
-                  ))}
+                  ) : (
+                    applications.map((app) => (
+                      <div
+                        key={app.id}
+                        className="rounded-xl border p-2.5 flex items-center justify-between gap-2 text-xs bg-white"
+                        style={{ borderColor: "var(--surco-border-light)" }}
+                      >
+                        <div className="min-w-0">
+                          <span className="font-mono text-[11px] font-semibold text-emerald-800 mr-2">
+                            {app.date}
+                          </span>
+                          <span className="font-medium text-gray-900">{app.productName}</span>
+                          <span className="text-gray-500 ml-1">({app.dose})</span>
+                          {app.modeOfAction && (
+                            <span className="text-[11px] text-emerald-700 ml-1.5">
+                              [{app.modeOfAction}]
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setApplications((prev) => prev.filter((item) => item.id !== app.id))}
+                          className="p-1 rounded-md hover:bg-red-50 text-red-600 cursor-pointer shrink-0"
+                          title="Eliminar"
+                        >
+                          <IconClose className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))
+                  )}
                 </div>
 
-                {/* Agregar aplicación manual */}
+                {/* Formulario rápido para añadir aplicación manual */}
                 <div
-                  className="rounded-xl border p-3 grid grid-cols-2 sm:grid-cols-6 gap-2 text-xs"
-                  style={{ background: "var(--surco-bg)", borderColor: "var(--surco-border)" }}
+                  className="rounded-xl border p-2.5 grid grid-cols-2 sm:grid-cols-6 gap-2 text-xs"
+                  style={{ background: "var(--surco-bg)", borderColor: "var(--surco-border-light)" }}
                 >
                   <input
                     type="date"
                     value={appDate}
                     onChange={(e) => setAppDate(e.target.value)}
-                    className="px-2 py-1.5 rounded border bg-white"
-                    style={{ borderColor: "var(--surco-border)" }}
+                    className="px-2 py-1.5 rounded-lg border bg-white outline-none"
+                    style={{ borderColor: "var(--surco-border-light)" }}
                   />
                   <select
                     value={appCategory}
-                    onChange={(e) =>
-                      setAppCategory(e.target.value as LoteApplicationRecord["category"])
-                    }
-                    className="px-2 py-1.5 rounded border bg-white"
-                    style={{ borderColor: "var(--surco-border)" }}
+                    onChange={(e) => setAppCategory(e.target.value as LoteApplicationRecord["category"])}
+                    className="px-2 py-1.5 rounded-lg border bg-white outline-none"
+                    style={{ borderColor: "var(--surco-border-light)" }}
                   >
-                    <option value="Herbicida barbecho">Herbicida barbecho</option>
+                    <option value="Herbicida barbecho">Barbecho</option>
                     <option value="Herbicida preemergente">Preemergente</option>
                     <option value="Herbicida postemergente">Postemergente</option>
                     <option value="Fertilizante">Fertilizante</option>
@@ -651,42 +640,43 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
                     <option value="Fungicida">Fungicida</option>
                   </select>
                   <input
-                    placeholder="Producto (ej. Atrazina)"
+                    placeholder="Producto comercial"
                     value={appProduct}
                     onChange={(e) => setAppProduct(e.target.value)}
-                    className="px-2 py-1.5 rounded border bg-white"
-                    style={{ borderColor: "var(--surco-border)" }}
+                    className="px-2 py-1.5 rounded-lg border bg-white outline-none"
+                    style={{ borderColor: "var(--surco-border-light)" }}
                   />
                   <input
                     placeholder="Principio activo"
                     value={appActive}
                     onChange={(e) => setAppActive(e.target.value)}
-                    className="px-2 py-1.5 rounded border bg-white"
-                    style={{ borderColor: "var(--surco-border)" }}
+                    className="px-2 py-1.5 rounded-lg border bg-white outline-none"
+                    style={{ borderColor: "var(--surco-border-light)" }}
                   />
                   <input
-                    placeholder="Dosis (ej. 1.5 l/ha)"
+                    placeholder="Dosis (ej. 1,5 l/ha)"
                     value={appDose}
                     onChange={(e) => setAppDose(e.target.value)}
-                    className="px-2 py-1.5 rounded border bg-white"
-                    style={{ borderColor: "var(--surco-border)" }}
+                    className="px-2 py-1.5 rounded-lg border bg-white outline-none"
+                    style={{ borderColor: "var(--surco-border-light)" }}
                   />
                   <button
                     type="button"
                     onClick={addCustomApplication}
-                    className="px-3 py-1.5 rounded font-semibold text-white cursor-pointer"
+                    className="inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg font-medium text-white cursor-pointer shadow-2xs hover:opacity-90"
                     style={{ background: "var(--surco-green)" }}
                   >
-                    + Agregar
+                    <IconPlus className="w-3 h-3" />
+                    <span>Agregar</span>
                   </button>
                 </div>
               </div>
 
-              {/* Malezas y plagas presentes en el lote */}
+              {/* Malezas / Plagas detectadas */}
               <div className="pt-2">
-                <div className="font-semibold text-xs uppercase tracking-wider mb-2" style={{ color: "var(--surco-green)" }}>
-                  🌿 Malezas o Plagas detectadas en este Lote
-                </div>
+                <span className="text-xs font-semibold uppercase tracking-wider text-emerald-900 block mb-2">
+                  Malezas o Plagas Monitoreadas
+                </span>
                 <div className="flex flex-wrap gap-1.5">
                   {COMMON_WEEDS_PESTS.map((w) => {
                     const active = selectedWeeds.includes(w);
@@ -695,15 +685,16 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
                         key={w}
                         type="button"
                         onClick={() => toggleWeed(w)}
-                        className="px-2.5 py-1 rounded-full border text-xs transition-colors cursor-pointer"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs transition-all cursor-pointer"
                         style={{
-                          background: active ? "var(--surco-green)" : "var(--surco-bg)",
-                          borderColor: active ? "var(--surco-green)" : "var(--surco-border)",
-                          color: active ? "#ffffff" : "var(--surco-ink)",
+                          background: active ? "var(--surco-green-tint)" : "var(--surco-card)",
+                          borderColor: active ? "var(--surco-green)" : "var(--surco-border-light)",
+                          color: active ? "var(--surco-green)" : "var(--surco-ink-soft)",
+                          fontWeight: active ? 600 : 400,
                         }}
                       >
-                        {active ? "✓ " : "+ "}
-                        {w}
+                        {active && <IconCheck className="w-3 h-3 text-emerald-800" />}
+                        <span>{w}</span>
                       </button>
                     );
                   })}
@@ -713,18 +704,18 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
           )}
         </div>
 
-        {/* Footer */}
+        {/* Footer del modal */}
         <div
-          className="px-5 py-3.5 border-t flex items-center justify-between"
-          style={{ background: "var(--surco-bg)", borderColor: "var(--surco-border)" }}
+          className="px-5 py-3 border-t flex items-center justify-between"
+          style={{ background: "var(--surco-bg)", borderColor: "var(--surco-border-light)" }}
         >
           <div>
             {step > 1 && (
               <button
                 type="button"
                 onClick={() => setStep((s) => (s - 1) as 1 | 2 | 3)}
-                className="px-3.5 py-2 rounded-xl border text-xs font-medium cursor-pointer"
-                style={{ borderColor: "var(--surco-border)", color: "var(--surco-ink)" }}
+                className="px-3.5 py-1.5 rounded-xl border text-xs font-medium cursor-pointer transition-colors hover:bg-black/5"
+                style={{ borderColor: "var(--surco-border-light)", color: "var(--surco-ink)" }}
               >
                 ← Anterior
               </button>
@@ -736,19 +727,20 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
               <button
                 type="button"
                 onClick={() => setStep((s) => (s + 1) as 1 | 2 | 3)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-white cursor-pointer"
+                className="px-4 py-1.5 rounded-xl text-xs font-medium text-white cursor-pointer shadow-2xs hover:opacity-95"
                 style={{ background: "var(--surco-green)" }}
               >
-                Siguiente paso →
+                Siguiente →
               </button>
             ) : (
               <button
                 type="button"
                 onClick={handleSave}
-                className="px-5 py-2 rounded-xl text-xs sm:text-sm font-semibold text-white cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-white cursor-pointer shadow-2xs hover:opacity-95"
                 style={{ background: "var(--surco-green)" }}
               >
-                ✓ Guardar Proyecto de Lote
+                <IconCheck className="w-4 h-4" />
+                <span>Guardar Proyecto de Lote</span>
               </button>
             )}
           </div>

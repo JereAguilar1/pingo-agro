@@ -1,6 +1,13 @@
 "use client";
 
 import { ChatThread, ProducerLote } from "@/lib/types";
+import {
+  IconClose,
+  IconFolder,
+  IconLayers,
+  IconMessage,
+  IconPlus,
+} from "./Icons";
 
 interface Props {
   lotes: ProducerLote[];
@@ -30,17 +37,21 @@ export function ProjectsSidebar({
   const sidebarContent = (
     <div
       className="w-72 h-full border-r flex flex-col justify-between select-none"
-      style={{ background: "var(--surco-bg-alt)", borderColor: "var(--surco-border)" }}
+      style={{
+        background: "var(--surco-bg-alt)",
+        borderColor: "var(--surco-border-light)",
+      }}
     >
-      <div className="p-3.5 overflow-y-auto flex-1 flex flex-col gap-5">
-        {/* Sección 1: Mis Lotes (Proyectos) */}
-        <div className="flex flex-col gap-1.5">
+      <div className="p-3.5 overflow-y-auto flex-1 flex flex-col gap-6">
+        {/* Cabecera / Sección 1: Proyectos de Lotes */}
+        <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between px-1.5">
             <span
-              className="text-[11px] font-bold uppercase tracking-wider"
-              style={{ color: "var(--surco-ink-soft)" }}
+              className="text-[11px] font-semibold uppercase tracking-wider flex items-center gap-1.5"
+              style={{ color: "var(--surco-ink-muted)" }}
             >
-              🌾 Mis Lotes (Proyectos)
+              <IconFolder className="w-3.5 h-3.5" />
+              Proyectos de Lote
             </span>
             <button
               type="button"
@@ -48,10 +59,11 @@ export function ProjectsSidebar({
                 onOpenNewLoteWizard();
                 onCloseMobile();
               }}
-              className="text-[11px] font-semibold px-2 py-0.5 rounded-md text-white cursor-pointer"
+              className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-lg text-white transition-all cursor-pointer hover:opacity-90 shadow-2xs"
               style={{ background: "var(--surco-green)" }}
             >
-              + Nuevo Lote
+              <IconPlus className="w-3 h-3" />
+              <span>Nuevo Lote</span>
             </button>
           </div>
 
@@ -68,58 +80,84 @@ export function ProjectsSidebar({
                       onSelectLoteProject(lote.id);
                       onCloseMobile();
                     }}
-                    className="w-full text-left px-2.5 py-2 rounded-xl transition-colors flex items-center justify-between gap-2 cursor-pointer"
+                    className="w-full text-left px-2.5 py-2 rounded-xl transition-all flex items-center justify-between gap-2 cursor-pointer group"
                     style={{
                       background: isLoteActive ? "var(--surco-card)" : "transparent",
-                      border: isLoteActive ? "1px solid var(--surco-border)" : "1px solid transparent",
-                      color: "var(--surco-ink)",
+                      border: isLoteActive
+                        ? "1px solid var(--surco-border)"
+                        : "1px solid transparent",
+                      boxShadow: isLoteActive ? "0 1px 3px rgba(0,0,0,0.03)" : "none",
                     }}
                   >
-                    <div className="min-w-0">
-                      <div className="text-xs font-semibold truncate">{lote.name}</div>
-                      <div className="text-[11px] truncate" style={{ color: "var(--surco-ink-soft)" }}>
-                        {lote.hectares} ha · {lote.crop} ({lote.phenology})
+                    <div className="min-w-0 flex items-center gap-2">
+                      <div
+                        className="w-6 h-6 rounded-md flex items-center justify-center shrink-0 transition-colors"
+                        style={{
+                          background: isLoteActive ? "var(--surco-green-tint)" : "rgba(0,0,0,0.04)",
+                          color: isLoteActive ? "var(--surco-green)" : "var(--surco-ink-soft)",
+                        }}
+                      >
+                        <IconLayers className="w-3.5 h-3.5" />
+                      </div>
+                      <div className="min-w-0">
+                        <div
+                          className="text-xs font-semibold truncate"
+                          style={{ color: isLoteActive ? "var(--surco-ink)" : "var(--surco-ink-soft)" }}
+                        >
+                          {lote.name}
+                        </div>
+                        <div className="text-[11px] truncate opacity-70" style={{ color: "var(--surco-ink-soft)" }}>
+                          {lote.hectares} ha · {lote.crop}
+                        </div>
                       </div>
                     </div>
+
                     {isLoteActive && (
                       <span
-                        className="w-2 h-2 rounded-full shrink-0"
+                        className="w-1.5 h-1.5 rounded-full shrink-0"
                         style={{ background: "var(--surco-green)" }}
                       />
                     )}
                   </button>
 
-                  {/* Hilos de chat de este proyecto de lote */}
+                  {/* Hilos de conversación del lote seleccionado */}
                   {isLoteActive && (
-                    <div className="pl-4 pr-1 py-1 flex flex-col gap-1">
+                    <div className="pl-6 pr-1 py-1 flex flex-col gap-1 border-l-2 ml-4 my-0.5 border-emerald-900/15">
                       <button
                         type="button"
                         onClick={() => {
                           onSelectLoteProject(lote.id, "new");
                           onCloseMobile();
                         }}
-                        className="text-left text-[11px] font-medium px-2 py-1 rounded-lg cursor-pointer"
+                        className="inline-flex items-center gap-1.5 text-left text-[11px] font-medium px-2 py-1 rounded-lg transition-colors cursor-pointer hover:bg-black/5"
                         style={{ color: "var(--surco-green)" }}
                       >
-                        + Nuevo chat en este lote
+                        <IconPlus className="w-3 h-3" />
+                        <span>Nueva consulta en este lote</span>
                       </button>
-                      {loteThreads.map((t) => (
-                        <button
-                          key={t.id}
-                          type="button"
-                          onClick={() => {
-                            onSelectLoteProject(lote.id, t.id);
-                            onCloseMobile();
-                          }}
-                          className="text-left text-xs px-2.5 py-1.5 rounded-lg truncate cursor-pointer"
-                          style={{
-                            background: activeThreadId === t.id ? "#e4efe4" : "transparent",
-                            color: activeThreadId === t.id ? "var(--surco-green)" : "var(--surco-ink-soft)",
-                          }}
-                        >
-                          💬 {t.title}
-                        </button>
-                      ))}
+
+                      {loteThreads.map((t) => {
+                        const isThreadActive = activeThreadId === t.id;
+                        return (
+                          <button
+                            key={t.id}
+                            type="button"
+                            onClick={() => {
+                              onSelectLoteProject(lote.id, t.id);
+                              onCloseMobile();
+                            }}
+                            className="inline-flex items-center gap-2 text-left text-[12px] px-2.5 py-1.5 rounded-lg truncate transition-colors cursor-pointer"
+                            style={{
+                              background: isThreadActive ? "var(--surco-green-tint)" : "transparent",
+                              color: isThreadActive ? "var(--surco-green)" : "var(--surco-ink-soft)",
+                              fontWeight: isThreadActive ? 600 : 400,
+                            }}
+                          >
+                            <IconMessage className="w-3 h-3 shrink-0 opacity-60" />
+                            <span className="truncate">{t.title}</span>
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -129,13 +167,17 @@ export function ProjectsSidebar({
         </div>
 
         {/* Sección 2: Chats Generales */}
-        <div className="flex flex-col gap-1.5 border-t pt-4" style={{ borderColor: "var(--surco-border)" }}>
+        <div
+          className="flex flex-col gap-2 border-t pt-4"
+          style={{ borderColor: "var(--surco-border-light)" }}
+        >
           <div className="flex items-center justify-between px-1.5">
             <span
-              className="text-[11px] font-bold uppercase tracking-wider"
-              style={{ color: "var(--surco-ink-soft)" }}
+              className="text-[11px] font-semibold uppercase tracking-wider flex items-center gap-1.5"
+              style={{ color: "var(--surco-ink-muted)" }}
             >
-              💬 Chats Generales
+              <IconMessage className="w-3.5 h-3.5" />
+              Consultas Generales
             </span>
             <button
               type="button"
@@ -143,14 +185,15 @@ export function ProjectsSidebar({
                 onSelectGeneralChat("new");
                 onCloseMobile();
               }}
-              className="text-[11px] font-semibold px-2 py-0.5 rounded-md border cursor-pointer"
+              className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md border transition-colors cursor-pointer hover:bg-black/5"
               style={{
                 background: "var(--surco-card)",
                 borderColor: "var(--surco-border)",
                 color: "var(--surco-ink)",
               }}
             >
-              + Chat General
+              <IconPlus className="w-3 h-3" />
+              <span>Nuevo</span>
             </button>
           </div>
 
@@ -161,9 +204,12 @@ export function ProjectsSidebar({
                 onSelectGeneralChat();
                 onCloseMobile();
               }}
-              className="w-full text-left px-2.5 py-2 rounded-xl text-xs font-medium cursor-pointer"
+              className="w-full text-left px-2.5 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer flex items-center gap-2"
               style={{
-                background: activeLoteId === null && !activeThreadId ? "var(--surco-card)" : "transparent",
+                background:
+                  activeLoteId === null && !activeThreadId
+                    ? "var(--surco-card)"
+                    : "transparent",
                 border:
                   activeLoteId === null && !activeThreadId
                     ? "1px solid var(--surco-border)"
@@ -171,28 +217,57 @@ export function ProjectsSidebar({
                 color: "var(--surco-ink)",
               }}
             >
-              Consulta general sin lote asignado
-            </button>
-
-            {generalThreads.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => {
-                  onSelectGeneralChat(t.id);
-                  onCloseMobile();
-                }}
-                className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs truncate cursor-pointer"
+              <div
+                className="w-5 h-5 rounded-md flex items-center justify-center shrink-0"
                 style={{
-                  background: activeThreadId === t.id ? "#e4efe4" : "transparent",
-                  color: activeThreadId === t.id ? "var(--surco-green)" : "var(--surco-ink-soft)",
+                  background:
+                    activeLoteId === null && !activeThreadId
+                      ? "var(--surco-green-tint)"
+                      : "rgba(0,0,0,0.04)",
+                  color:
+                    activeLoteId === null && !activeThreadId
+                      ? "var(--surco-green)"
+                      : "var(--surco-ink-soft)",
                 }}
               >
-                💬 {t.title}
-              </button>
-            ))}
+                <IconMessage className="w-3 h-3" />
+              </div>
+              <span className="truncate">Consulta libre sin lote</span>
+            </button>
+
+            {generalThreads.map((t) => {
+              const isThreadActive = activeThreadId === t.id && activeLoteId === null;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => {
+                    onSelectGeneralChat(t.id);
+                    onCloseMobile();
+                  }}
+                  className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs truncate transition-colors cursor-pointer flex items-center gap-2"
+                  style={{
+                    background: isThreadActive ? "var(--surco-green-tint)" : "transparent",
+                    color: isThreadActive ? "var(--surco-green)" : "var(--surco-ink-soft)",
+                    fontWeight: isThreadActive ? 600 : 400,
+                  }}
+                >
+                  <IconMessage className="w-3 h-3 shrink-0 opacity-50" />
+                  <span className="truncate">{t.title}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
+      </div>
+
+      {/* Pie del sidebar */}
+      <div
+        className="p-3 border-t text-[11px] flex items-center justify-between"
+        style={{ borderColor: "var(--surco-border-light)", color: "var(--surco-ink-muted)" }}
+      >
+        <span>Surco Agronómico</span>
+        <span>v0.2</span>
       </div>
     </div>
   );
@@ -204,10 +279,19 @@ export function ProjectsSidebar({
 
       {/* Mobile Drawer */}
       {isOpenMobile && (
-        <div className="fixed inset-0 z-40 flex md:hidden">
-          <div className="relative z-50 h-full">{sidebarContent}</div>
+        <div className="fixed inset-0 z-50 flex md:hidden animate-fadeIn">
+          <div className="relative z-50 h-full shadow-2xl flex">
+            {sidebarContent}
+            <button
+              type="button"
+              onClick={onCloseMobile}
+              className="absolute top-3 right-3 p-1.5 rounded-lg bg-black/10 text-gray-700 cursor-pointer"
+            >
+              <IconClose className="w-4 h-4" />
+            </button>
+          </div>
           <div
-            className="flex-1 bg-black/40"
+            className="flex-1 bg-black/30 backdrop-blur-xs transition-opacity"
             onClick={onCloseMobile}
           />
         </div>

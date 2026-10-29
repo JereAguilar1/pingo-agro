@@ -1,18 +1,21 @@
 @import "tailwindcss";
 
 :root {
-  --surco-bg: #faf8f3;
-  --surco-bg-alt: #f1ede3;
-  --surco-ink: #1f2a22;
-  --surco-ink-soft: #4b5a4f;
-  --surco-green: #1f3d2c;
-  --surco-green-dark: #142a1d;
-  --surco-green-soft: #3f6b4c;
-  --surco-accent: #c9a25a;
-  --surco-border: #e3ddcc;
+  --surco-bg: #fcfbf9;
+  --surco-bg-alt: #f5f2eb;
   --surco-card: #ffffff;
-  --surco-warn-bg: #fbf3df;
-  --surco-warn-border: #e8d6a0;
+  --surco-ink: #1b281f;
+  --surco-ink-soft: #526356;
+  --surco-ink-muted: #7c8e81;
+  --surco-green: #1d432e;
+  --surco-green-dark: #122b1d;
+  --surco-green-soft: #2e6043;
+  --surco-green-tint: #edf4ef;
+  --surco-accent: #c29548;
+  --surco-border: #e6e2d6;
+  --surco-border-light: #f0ece3;
+  --surco-warn-bg: #fdf8eb;
+  --surco-warn-border: #ebd9ab;
 }
 
 @theme inline {
@@ -26,9 +29,37 @@ html,
 body {
   background: var(--surco-bg);
   color: var(--surco-ink);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 * {
   box-sizing: border-box;
+}
+
+/* Custom smooth minimalist scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #ded9cd;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #cac3b4;
+}
+
+/* Focus states */
+:focus-visible {
+  outline: 2px solid var(--surco-green);
+  outline-offset: 1px;
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getLocalLLMStatus, LocalLLMStatus } from "@/lib/local-llm";
+import { IconSparkles } from "./Icons";
 
 interface ModelStatusButtonProps {
   onClick: () => void;
@@ -23,11 +24,11 @@ export function ModelStatusButton({ onClick, statusOverride }: ModelStatusButton
     return (
       <button
         onClick={onClick}
-        title="Modelo Llama 3.2 1B activo en memoria"
-        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-700/60 cursor-pointer"
+        title="Modelo SLM activo en memoria del dispositivo"
+        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border bg-emerald-50 text-emerald-800 border-emerald-200 cursor-pointer shadow-2xs"
       >
-        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-        IA Offline: Lista
+        <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
+        <span>SLM Listo</span>
       </button>
     );
   }
@@ -37,10 +38,10 @@ export function ModelStatusButton({ onClick, statusOverride }: ModelStatusButton
       <button
         onClick={onClick}
         title="Descargando pesos del modelo..."
-        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border bg-blue-50 text-blue-800 border-blue-300 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-700/60 cursor-pointer"
+        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border bg-blue-50 text-blue-800 border-blue-200 cursor-pointer shadow-2xs"
       >
-        <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-        Descargando IA...
+        <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
+        <span>Descargando...</span>
       </button>
     );
   }
@@ -48,11 +49,16 @@ export function ModelStatusButton({ onClick, statusOverride }: ModelStatusButton
   return (
     <button
       onClick={onClick}
-      title="Configurar modelo de IA para uso sin señal"
-      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border border-dashed text-stone-600 dark:text-stone-400 border-stone-300 dark:border-stone-700 hover:border-stone-400 cursor-pointer"
+      title="Configurar modelo SLM offline"
+      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors hover:bg-black/5 cursor-pointer"
+      style={{
+        borderColor: "var(--surco-border-light)",
+        color: "var(--surco-ink-soft)",
+        background: "var(--surco-card)",
+      }}
     >
-      <span>⚡</span>
-      <span>IA Offline</span>
+      <IconSparkles className="w-3.5 h-3.5 text-emerald-800" />
+      <span className="hidden sm:inline">IA Offline</span>
     </button>
   );
 }
