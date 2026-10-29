@@ -1,16 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { IconMenu } from "./Icons";
+import { IconEdit, IconMenu } from "./Icons";
 
 interface Props {
   onToggleSidebar: () => void;
   activeTitle?: string;
+  onEditLote?: () => void;
 }
 
 export function TopNavbar({
   onToggleSidebar,
   activeTitle,
+  onEditLote,
 }: Props) {
   return (
     <header
@@ -20,7 +22,7 @@ export function TopNavbar({
         borderColor: "var(--surco-border-light)",
       }}
     >
-      {/* Izquierda: Menú de hamburguesa (para abrir proyectos e historial) y título activo si existe */}
+      {/* Izquierda: Menú de hamburguesa y título activo si existe */}
       <div className="flex items-center gap-2.5 min-w-0">
         <button
           type="button"
@@ -43,8 +45,25 @@ export function TopNavbar({
         )}
       </div>
 
-      {/* Derecha: Logo de la app */}
-      <div className="flex items-center">
+      {/* Derecha: Ícono de editar lote (cuando hay un lote abierto) + Logo de la app */}
+      <div className="flex items-center gap-3">
+        {onEditLote && (
+          <button
+            type="button"
+            onClick={onEditLote}
+            className="p-1.5 rounded-lg border text-xs cursor-pointer transition-colors hover:bg-black/5 flex items-center justify-center"
+            style={{
+              borderColor: "var(--surco-border-light)",
+              color: "var(--surco-ink-soft)",
+              background: "var(--surco-card)",
+            }}
+            aria-label="Editar lote"
+            title="Editar datos del lote"
+          >
+            <IconEdit className="w-4 h-4" />
+          </button>
+        )}
+
         <Link
           href="/"
           className="font-semibold text-base sm:text-lg tracking-tight transition-opacity hover:opacity-85"
