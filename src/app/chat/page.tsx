@@ -437,7 +437,7 @@ function ChatInner() {
                       <IconArrowLeft className="w-3.5 h-3.5" />
                       <span>Volver a {activeLote.name}</span>
                     </button>
-                    <span className="text-[11px]" style={{ color: "var(--surco-ink-muted)" }}>
+                    <span className="text-xs" style={{ color: "var(--surco-ink-muted)" }}>
                       {activeLote.hectares} ha · {activeLote.crop} ({activeLote.phenology})
                     </span>
                   </div>
@@ -450,7 +450,7 @@ function ChatInner() {
                       {activeLote ? `Nuevo chat en ${activeLote.name}` : "Chat General"}
                     </h2>
 
-                    <p className="text-xs" style={{ color: "var(--surco-ink-muted)" }}>
+                    <p className="text-sm" style={{ color: "var(--surco-ink-muted)" }}>
                       {activeLote
                         ? `${activeLote.hectares} ha · ${activeLote.crop} (${activeLote.phenology})`
                         : "Consultas técnicas respaldadas por fuentes oficiales"}
@@ -485,7 +485,7 @@ function ChatInner() {
                 )}
 
                 {(error || audioError) && (
-                  <div className="rounded-xl border px-3.5 py-2.5 text-xs text-red-800 bg-red-50 border-red-200">
+                  <div className="rounded-xl border px-3.5 py-2.5 text-sm text-red-800 bg-red-50 border-red-200">
                     {error || audioError}
                   </div>
                 )}
@@ -513,7 +513,7 @@ function ChatInner() {
                         alt="Preview"
                         className="w-7 h-7 rounded object-cover"
                       />
-                      <span className="truncate max-w-[140px] text-[11px]" style={{ color: "var(--surco-ink)" }}>
+                      <span className="truncate max-w-[140px] text-xs" style={{ color: "var(--surco-ink)" }}>
                         {attachedPhoto.name}
                       </span>
                       <button
@@ -532,7 +532,7 @@ function ChatInner() {
                       {uploadedDocs.map((d) => (
                         <span
                           key={d.id}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md border text-[11px] bg-white"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs bg-white"
                           style={{ borderColor: "var(--surco-border-light)" }}
                         >
                           <span className="truncate max-w-[150px]">{d.title}</span>
@@ -585,7 +585,8 @@ function ChatInner() {
                           type="button"
                           onClick={cancelRecording}
                           disabled={isTranscribing}
-                          className="p-1.5 rounded-lg text-xs font-medium text-gray-500 hover:text-red-600 hover:bg-red-50 cursor-pointer transition-colors"
+                          className="p-1.5 rounded-lg text-xs font-medium hover:text-red-600 hover:bg-red-50 cursor-pointer transition-colors"
+                          style={{ color: "var(--surco-ink-muted)" }}
                           title="Cancelar audio"
                         >
                           <IconClose className="w-4 h-4" />
@@ -624,12 +625,12 @@ function ChatInner() {
                       <button
                         type="button"
                         onClick={() => photoInputRef.current?.click()}
-                        className="p-2 rounded-lg text-xs font-medium cursor-pointer transition-colors hover:bg-black/5 shrink-0"
+                        className="w-10 h-10 shrink-0 rounded-lg flex items-center justify-center cursor-pointer transition-colors hover:bg-black/5"
                         style={{ color: "var(--surco-ink-soft)" }}
                         title="Sacar foto o abrir galería"
                         aria-label="Cámara o galería"
                       >
-                        <IconCamera className="w-4 h-4 text-gray-600" />
+                        <IconCamera className="w-[18px] h-[18px]" />
                       </button>
 
                       <input
@@ -640,7 +641,7 @@ function ChatInner() {
                             ? `Consulta sobre ${activeLote.name}…`
                             : "Escribí tu consulta o grabá un audio…"
                         }
-                        className="flex-1 bg-transparent px-2 py-2 outline-none text-sm"
+                        className="flex-1 bg-transparent px-1.5 py-2.5 outline-none text-sm"
                         style={{ color: "var(--surco-ink)" }}
                       />
 
@@ -648,24 +649,24 @@ function ChatInner() {
                         <button
                           type="submit"
                           disabled={loading}
-                          className="rounded-lg px-3 py-1.5 text-xs font-medium text-white transition-opacity cursor-pointer shrink-0 flex items-center gap-1 hover:opacity-90"
+                          className="w-10 h-10 shrink-0 rounded-lg text-white transition-opacity cursor-pointer flex items-center justify-center hover:opacity-90 disabled:opacity-50"
                           style={{ background: "var(--surco-green)" }}
                           aria-label="Enviar mensaje"
                           title="Enviar mensaje"
                         >
-                          <IconSend className="w-3.5 h-3.5" />
+                          <IconSend className="w-4 h-4" />
                         </button>
                       ) : (
                         <button
                           type="button"
                           onClick={() => void startRecording()}
                           disabled={loading}
-                          className="rounded-lg p-2 text-xs font-medium text-white transition-opacity cursor-pointer shrink-0 flex items-center justify-center hover:opacity-90"
+                          className="w-10 h-10 shrink-0 rounded-lg text-white transition-opacity cursor-pointer flex items-center justify-center hover:opacity-90 disabled:opacity-50"
                           style={{ background: "var(--surco-green)" }}
                           aria-label="Grabar audio"
                           title="Grabar audio para consultar"
                         >
-                          <IconMic className="w-3.5 h-3.5" />
+                          <IconMic className="w-4 h-4" />
                         </button>
                       )}
                     </div>

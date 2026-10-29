@@ -27,18 +27,18 @@ export function TopNavbar({
         <button
           type="button"
           onClick={onToggleSidebar}
-          className="p-1.5 rounded-lg border text-xs font-medium cursor-pointer transition-colors hover:bg-black/5"
-          style={{ borderColor: "var(--surco-border-light)", color: "var(--surco-ink)" }}
+          className="w-10 h-10 shrink-0 rounded-xl flex items-center justify-center cursor-pointer transition-colors hover:bg-black/5"
+          style={{ color: "var(--surco-ink)" }}
           aria-label="Abrir menú de lotes e historial de chats"
           title="Ver proyectos e historial"
         >
-          <IconMenu className="w-4 h-4" />
+          <IconMenu className="w-[22px] h-[22px]" />
         </button>
 
         {activeTitle && (
           <span
-            className="text-xs font-medium truncate max-w-[180px] sm:max-w-xs"
-            style={{ color: "var(--surco-ink-soft)" }}
+            className="text-sm font-semibold truncate max-w-[180px] sm:max-w-xs"
+            style={{ color: "var(--surco-ink)" }}
           >
             {activeTitle}
           </span>
@@ -46,16 +46,15 @@ export function TopNavbar({
       </div>
 
       {/* Derecha: Ícono de editar lote (cuando hay un lote abierto) + Logo de la app */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         {onEditLote && (
           <button
             type="button"
             onClick={onEditLote}
-            className="p-1.5 rounded-lg border text-xs cursor-pointer transition-colors hover:bg-black/5 flex items-center justify-center"
+            className="w-9 h-9 rounded-lg cursor-pointer transition-colors hover:bg-black/5 flex items-center justify-center"
             style={{
-              borderColor: "var(--surco-border-light)",
               color: "var(--surco-ink-soft)",
-              background: "var(--surco-card)",
+              background: "var(--surco-bg-alt)",
             }}
             aria-label="Editar lote"
             title="Editar datos del lote"

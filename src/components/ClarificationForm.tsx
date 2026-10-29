@@ -35,7 +35,7 @@ export function ClarificationForm({ form, disabled, onSubmit }: Props) {
       }}
     >
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold" style={{ color: "var(--surco-ink)" }}>
+        <span className="text-sm font-bold" style={{ color: "var(--surco-ink)" }}>
           {disabled ? "Contexto completado" : "Datos necesarios para continuar"}
         </span>
         {disabled && (
@@ -50,8 +50,8 @@ export function ClarificationForm({ form, disabled, onSubmit }: Props) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
         {form.fields.map((field) => (
-          <label key={field.id} className="flex flex-col gap-1 text-xs">
-            <span className="font-medium" style={{ color: "var(--surco-ink-soft)" }}>
+          <label key={field.id} className="flex flex-col gap-1.5 text-sm">
+            <span className="font-medium text-[13px]" style={{ color: "var(--surco-ink-soft)" }}>
               {field.label}
               {field.required && !disabled && <span className="text-red-500 font-bold ml-0.5">*</span>}
             </span>
@@ -60,7 +60,7 @@ export function ClarificationForm({ form, disabled, onSubmit }: Props) {
                 value={values[field.id] ?? ""}
                 onChange={(e) => setField(field.id, e.target.value)}
                 disabled={disabled}
-                className="rounded-lg border px-3 py-2 bg-white text-xs outline-none transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                className="rounded-lg border px-3 py-2.5 bg-white text-sm outline-none transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                 style={{ borderColor: "var(--surco-border)", color: "var(--surco-ink)" }}
               >
                 <option value="">Seleccionar…</option>
@@ -77,7 +77,7 @@ export function ClarificationForm({ form, disabled, onSubmit }: Props) {
                 onChange={(e) => setField(field.id, e.target.value)}
                 placeholder={field.placeholder}
                 disabled={disabled}
-                className="rounded-lg border px-3 py-2 bg-white text-xs outline-none transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                className="rounded-lg border px-3 py-2.5 bg-white text-sm outline-none transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                 style={{ borderColor: "var(--surco-border)", color: "var(--surco-ink)" }}
               />
             )}
@@ -89,11 +89,11 @@ export function ClarificationForm({ form, disabled, onSubmit }: Props) {
         <button
           type="submit"
           disabled={missingRequired}
-          className="self-start inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-medium text-white disabled:opacity-50 transition-all cursor-pointer hover:opacity-90 shadow-2xs"
+          className="self-start inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50 transition-all cursor-pointer hover:opacity-90 shadow-2xs"
           style={{ background: "var(--surco-green)" }}
         >
           <span>{form.submitLabel ?? "Completar y consultar"}</span>
-          <IconSend className="w-3 h-3" />
+          <IconSend className="w-3.5 h-3.5" />
         </button>
       )}
     </form>

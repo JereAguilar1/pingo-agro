@@ -46,7 +46,10 @@ export function LoteDashboard({
             <span className="text-xs font-medium" style={{ color: "var(--surco-ink-muted)" }}>
               Vista satelital del lote
             </span>
-            <span className="text-xs font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+            <span
+              className="text-xs font-bold px-2 py-0.5 rounded-full border"
+              style={{ color: "var(--surco-green)", background: "var(--surco-green-tint)", borderColor: "var(--surco-border)" }}
+            >
               {lote.hectares} ha
             </span>
           </div>
@@ -186,7 +189,7 @@ export function LoteDashboard({
                 style={{ borderColor: "var(--surco-border-light)" }}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <IconMessage className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                  <IconMessage className="w-3.5 h-3.5 shrink-0" style={{ color: "var(--surco-ink-muted)" }} />
                   <span
                     className="text-sm font-medium truncate group-hover:text-emerald-900"
                     style={{ color: "var(--surco-ink)" }}
@@ -194,7 +197,10 @@ export function LoteDashboard({
                     {t.title}
                   </span>
                 </div>
-                <IconChevronRight className="w-4 h-4 text-gray-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
+                <IconChevronRight
+                  className="w-4 h-4 group-hover:translate-x-0.5 transition-transform shrink-0"
+                  style={{ color: "var(--surco-ink-muted)" }}
+                />
               </button>
             ))}
           </div>

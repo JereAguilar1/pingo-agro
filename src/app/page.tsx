@@ -290,7 +290,10 @@ export default function Home() {
                         </span>
                       </div>
                     </div>
-                    <IconChevronRight className="w-4 h-4 text-gray-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
+                    <IconChevronRight
+                      className="w-4 h-4 group-hover:translate-x-0.5 transition-transform shrink-0"
+                      style={{ color: "var(--surco-ink-muted)" }}
+                    />
                   </button>
                 ))}
               </div>
