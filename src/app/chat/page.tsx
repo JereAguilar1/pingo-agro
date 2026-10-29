@@ -592,17 +592,6 @@ function ChatInner() {
                         <IconPaperclip className="w-4 h-4 text-gray-500" />
                       </button>
 
-                      <button
-                        type="button"
-                        onClick={() => void startRecording()}
-                        className="p-2 rounded-lg text-xs font-medium cursor-pointer transition-colors hover:bg-emerald-50 shrink-0"
-                        style={{ color: "var(--surco-green)" }}
-                        title="Enviar mensaje de audio"
-                        aria-label="Grabar audio"
-                      >
-                        <IconMic className="w-4 h-4" />
-                      </button>
-
                       <input
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
@@ -615,15 +604,30 @@ function ChatInner() {
                         style={{ color: "var(--surco-ink)" }}
                       />
 
-                      <button
-                        type="submit"
-                        disabled={loading || !input.trim()}
-                        className="rounded-lg px-3 py-1.5 text-xs font-medium text-white disabled:opacity-40 transition-opacity cursor-pointer shrink-0 flex items-center gap-1"
-                        style={{ background: "var(--surco-green)" }}
-                        aria-label="Enviar mensaje"
-                      >
-                        <IconSend className="w-3.5 h-3.5" />
-                      </button>
+                      {input.trim() ? (
+                        <button
+                          type="submit"
+                          disabled={loading}
+                          className="rounded-lg px-3 py-1.5 text-xs font-medium text-white transition-opacity cursor-pointer shrink-0 flex items-center gap-1 hover:opacity-90"
+                          style={{ background: "var(--surco-green)" }}
+                          aria-label="Enviar mensaje"
+                          title="Enviar mensaje"
+                        >
+                          <IconSend className="w-3.5 h-3.5" />
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => void startRecording()}
+                          disabled={loading}
+                          className="rounded-lg p-2 text-xs font-medium text-white transition-opacity cursor-pointer shrink-0 flex items-center justify-center hover:opacity-90"
+                          style={{ background: "var(--surco-green)" }}
+                          aria-label="Grabar audio"
+                          title="Grabar audio para consultar"
+                        >
+                          <IconMic className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

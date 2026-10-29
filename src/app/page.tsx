@@ -198,27 +198,29 @@ export default function Home() {
                   />
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => void startRecording()}
-                  className="p-2 rounded-lg text-xs font-medium cursor-pointer transition-colors hover:bg-emerald-50 shrink-0"
-                  style={{ color: "var(--surco-green)" }}
-                  title="Grabar audio"
-                  aria-label="Grabar consulta por audio"
-                >
-                  <IconMic className="w-4 h-4" />
-                </button>
-
-                <button
-                  type="submit"
-                  disabled={!value.trim()}
-                  className="shrink-0 rounded-lg px-3.5 py-2 text-xs font-medium text-white transition-opacity disabled:opacity-40 hover:opacity-90 cursor-pointer flex items-center gap-1.5"
-                  style={{ background: "var(--surco-green)" }}
-                  aria-label="Enviar consulta"
-                >
-                  <span>Enviar</span>
-                  <IconSend className="w-3 h-3" />
-                </button>
+                {value.trim() ? (
+                  <button
+                    type="submit"
+                    className="shrink-0 rounded-lg px-3.5 py-2 text-xs font-medium text-white transition-opacity hover:opacity-90 cursor-pointer flex items-center gap-1.5"
+                    style={{ background: "var(--surco-green)" }}
+                    aria-label="Enviar consulta"
+                  >
+                    <span>Enviar</span>
+                    <IconSend className="w-3.5 h-3.5" />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => void startRecording()}
+                    className="shrink-0 rounded-lg px-3 py-2 text-xs font-medium text-white transition-opacity hover:opacity-90 cursor-pointer flex items-center gap-1.5"
+                    style={{ background: "var(--surco-green)" }}
+                    aria-label="Grabar audio"
+                    title="Grabar consulta por audio"
+                  >
+                    <IconMic className="w-3.5 h-3.5" />
+                    <span>Grabar</span>
+                  </button>
+                )}
               </div>
             )}
           </form>
