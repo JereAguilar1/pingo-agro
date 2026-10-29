@@ -183,7 +183,7 @@ export default function Home() {
               </div>
             ) : (
               <div
-                className="flex items-center gap-2 p-1.5 rounded-xl border bg-white shadow-xs transition-all focus-within:border-emerald-800/40 focus-within:shadow-sm"
+                className="flex items-center gap-2 p-1.5 rounded-xl border bg-white shadow-xs transition-all"
                 style={{ borderColor: "var(--surco-border)" }}
               >
                 <div className="flex items-center gap-2 flex-1 pl-2.5">

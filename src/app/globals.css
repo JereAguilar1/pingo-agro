@@ -58,8 +58,13 @@ body {
   background: #cac3b4;
 }
 
-/* Focus states */
+/* Focus states sin marcos verdes intrusivos */
 :focus-visible {
-  outline: 2px solid var(--surco-green);
-  outline-offset: 1px;
+  outline: none;
+}
+
+input,
+textarea,
+button {
+  outline: none;
 }

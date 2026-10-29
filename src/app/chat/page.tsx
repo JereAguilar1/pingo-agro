@@ -572,7 +572,7 @@ function ChatInner() {
                     </div>
                   ) : (
                     <div
-                      className="flex items-center gap-1.5 p-1 rounded-xl border bg-white transition-all focus-within:border-emerald-800/40"
+                      className="flex items-center gap-1.5 p-1 rounded-xl border bg-white transition-all"
                       style={{ borderColor: "var(--surco-border)" }}
                     >
                       <input
