@@ -1,7 +1,43 @@
 import { describe, expect, it, vi } from "vitest";
 import { runOrchestratorAgent } from "../agents/orchestrator-agent";
+import { calculatePolygonHectares, DEFAULT_PRODUCER_LOTES } from "../local-knowledge";
 
-describe("Agente Orquestador Multi-Agente Online y Formularios Dinámicos Multi-Ronda", () => {
+describe("Agente Orquestador Multi-Agente Online, Lotes como Proyectos y Formularios Dinámicos", () => {
+  it("calcula correctamente la superficie en hectáreas a partir de un polígono satelital", () => {
+    const lote1 = DEFAULT_PRODUCER_LOTES[0];
+    expect(lote1.polygon).toBeDefined();
+    const ha = calculatePolygonHectares(lote1.polygon!);
+    expect(ha).toBeGreaterThan(20);
+    expect(ha).toBeLessThan(80);
+  });
+
+  it("responde con certeza sobre qué se le echó previamente al lote y evalúa carry-over/rotación", async () => {
+    const loteTandil = DEFAULT_PRODUCER_LOTES[0];
+    const res = await runOrchestratorAgent({
+      question: "¿Qué se le echó previamente a este lote en barbecho y qué cuidados de residualidad o rotación debo tener?",
+      activeLote: loteTandil,
+    });
+
+    expect(res.kind).toBe("grounded_answer");
+    expect(res.answer).toContain("Gesaprim 90 WG");
+    expect(res.answer).toContain("Atrazina");
+    expect(res.answer).toContain("Grupo C1");
+    expect(res.sources.length).toBeGreaterThan(0);
+  });
+
+  it("calcula directamente la fertilización sin pedir formulario cuando el Lote Proyecto ya tiene suelo y rinde cargados", async () => {
+    const loteTandil = DEFAULT_PRODUCER_LOTES[0];
+    const res = await runOrchestratorAgent({
+      question: "¿Cómo determino la estrategia de fertilización y dosis para este lote?",
+      activeLote: loteTandil,
+    });
+
+    expect(res.kind).toBe("calculation");
+    expect(res.calculation).toBeDefined();
+    expect(res.answer).toContain("Lote 4 — La Loma");
+    expect(res.sources.length).toBeGreaterThan(0);
+  });
+
   it("ejecuta un ciclo multi-ronda de formulario dinámico hasta completar el contexto y calcular", async () => {
     // Ronda 0: Pregunta inicial sin contexto completo
     const q = "¿Cómo determino la estrategia de fertilización y dosis para este lote?";

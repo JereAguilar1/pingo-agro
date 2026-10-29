@@ -159,11 +159,21 @@ export function tryResolveWithMaizeCodeAndLote(
         ? `Además, el P Bray del lote (${activeLote.soilPhosphorusPpm} ppm) está por debajo del umbral crítico de 15–16 ppm [M01], por lo que requiere fertilización fosfatada a la siembra.`
         : `El P Bray del lote (${activeLote.soilPhosphorusPpm} ppm) alcanza el umbral crítico de 15–16 ppm [M01] (estrategia de reposición/mantenimiento).`;
 
+    const prevFerts = (activeLote.previousApplications || []).filter(
+      (a) => a.category === "Fertilizante"
+    );
+    const prevFertNote =
+      prevFerts.length > 0
+        ? ` En el historial del lote ya figura aplicado: ${prevFerts
+            .map((f) => `${f.productName} (${f.dose} el ${f.date})`)
+            .join(", ")}.`
+        : "";
+
     return {
       kind: "grounded_answer",
       answer:
-        `A partir de los datos guardados en "${activeLote.name}" (Híbrido ${activeLote.hybrid}, en estadio ${activeLote.phenology}, rinde objetivo ${activeLote.targetYieldTonHa} t/ha y N-NO3 inicial de ${activeLote.soilNitrateKgHa} kg N/ha a 0–60 cm): ` +
-        `${calc.resultSummary} ${pStatus}`,
+        `A partir de los datos de "${activeLote.name}" (${activeLote.hectares} ha, Híbrido ${activeLote.hybrid}, estadio ${activeLote.phenology}, rinde objetivo ${activeLote.targetYieldTonHa} t/ha y N-NO3 inicial de ${activeLote.soilNitrateKgHa} kg N/ha a 0–60 cm): ` +
+        `${calc.resultSummary} ${pStatus}${prevFertNote}`,
       calculation: calc,
       sources: [
         makeCardFromFragment(m01, "Requerimiento de 22 kg N/t y umbral crítico de P Bray (15–16 ppm) en maíz."),
@@ -191,6 +201,122 @@ export function tryResolveWithMaizeCodeAndLote(
         makeCardFromFragment(r02, "Buscador público de marbetes y principios activos autorizados en SENASA."),
       ],
       warnings: [m04.limitation],
+      mode: "demo",
+    };
+  }
+
+  // 5. Consultas sobre qué se aplicó previamente, residualidad (carry-over) o rotación en el Lote activo 🔒
+  if (
+    activeLote &&
+    /\b(echo|echaron|aplicad|aplico antes|historial|previa|rotacion|resiembra|carry|residual|herbicida)\b/.test(q)
+  ) {
+    const prevApps = activeLote.previousApplications || [];
+    const r01 = getSourceByCode("R01")!;
+    const r02 = getSourceByCode("R02")!;
+    const r09 = getSourceByCode("R09")!;
+
+    if (prevApps.length > 0) {
+      const appsText = prevApps
+        .map(
+          (a) =>
+            `• ${a.date} — ${a.category}: ${a.productName} (${a.activeIngredient}${
+              a.modeOfAction ? `, ${a.modeOfAction}` : ""
+            }) a dosis de ${a.dose}`
+        )
+        .join("\n");
+
+      const soilContext =
+        activeLote.ph || activeLote.organicMatterPercent
+          ? `Con el perfil edáfico del lote (pH ${activeLote.ph ?? 6.2}, MO ${
+              activeLote.organicMatterPercent ?? 4.5
+            }%, textura ${activeLote.soilTexture || "franca"}), tené especial precaución con la degradación de herbicidas residuales (triulinas, sulfonilureas como metsulfurón o triazinas como atrazina). `
+          : "";
+
+      return {
+        kind: "grounded_answer",
+        answer:
+          `Según el historial cargado en "${activeLote.name}" (${activeLote.hectares} ha en ${
+            activeLote.locality || activeLote.municipality
+          }), las aplicaciones previas registradas son:\n${appsText}\n\n` +
+          `${soilContext}Para evaluar restricciones de rotación (intervalo de siembra) o planificar el próximo tratamiento sin repetir modos de acción [R09], verificá el marbete exacto de los productos aplicados en el vademécum de SENASA [R01, R02].`,
+        sources: [
+          makeCardFromFragment(r02, "Consulta pública de marbetes en SENASA para corroborar intervalo de siembra y restricciones de rotación."),
+          makeCardFromFragment(r09, "Clasificación de modos de acción de herbicidas para rotar principios activos y prevenir resistencias."),
+          makeCardFromFragment(r01, "Registro Nacional de Terapéutica Vegetal (SENASA)."),
+        ],
+        warnings: [r02.limitation],
+        mode: "demo",
+      };
+    }
+  }
+
+  // 6. Consultas sobre malezas del lote usando las malezas detectadas y el historial del Lote activo 🔒
+  if (activeLote && /\b(maleza|malezas|controlar|rama negra|conyza|yuyo colorado|amaranthus|raigras)\b/.test(q)) {
+    const weeds = activeLote.detectedPestsAndWeeds || [];
+    const prevHerbicides = (activeLote.previousApplications || []).filter((a) =>
+      a.category.toLowerCase().includes("herbicida")
+    );
+    const r08 = getSourceByCode("R08")!;
+    const r09 = getSourceByCode("R09")!;
+    const r02 = getSourceByCode("R02")!;
+
+    const weedsSummary =
+      weeds.length > 0 ? weeds.join(", ") : "las malezas presentes en el lote";
+    const prevHerbSummary =
+      prevHerbicides.length > 0
+        ? `Ya aplicaste previamente en este lote: ${prevHerbicides
+            .map((h) => `${h.productName} (${h.modeOfAction || h.activeIngredient}) el ${h.date}`)
+            .join("; ")}. `
+        : "";
+
+    return {
+      kind: "grounded_answer",
+      answer:
+        `En "${activeLote.name}" (${activeLote.crop} — ${activeLote.hybrid} en ${activeLote.phenology}) figuran registradas: ${weedsSummary}. ` +
+        `${prevHerbSummary}De acuerdo con la REM de Aapresid [R08, R09], para evitar quiebres de resistencia debés rotar el sitio de acción respecto de los herbicidas ya utilizados en el barbecho y corroborar en el vademécum de SENASA [R02] los productos selectivos habilitados para el estadio ${activeLote.phenology}.`,
+      sources: [
+        makeCardFromFragment(r08, "Alertas de biotipos resistentes en la Red de Manejo de Plagas (REM - Aapresid)."),
+        makeCardFromFragment(r09, "Rotación de modos de acción herbicida para manejo anti-resistencia."),
+        makeCardFromFragment(r02, "Vademécum oficial de SENASA para confirmar selectividad y registro vigente."),
+      ],
+      warnings: [r08.limitation],
+      mode: "demo",
+    };
+  }
+
+  // 7. Consultas sobre normativa, distancias de pulverización o ubicación satelital del Lote activo 🔒
+  if (
+    activeLote &&
+    /\b(normativa|ordenanza|pulverizar|aplicar|distancia|escuela|arroyo|curso de agua|ubicacion)\b/.test(q)
+  ) {
+    const r12 = getSourceByCode("R12")!;
+    const r13 = getSourceByCode("R13")!;
+    const r14 = getSourceByCode("R14")!;
+    const r16 = getSourceByCode("R16")!;
+    const r19 = getSourceByCode("R19")!;
+
+    const distInfo = activeLote.sensitiveZoneDistanceM
+      ? `a ${activeLote.sensitiveZoneDistanceM} m de ${activeLote.sensitiveZoneType || "zona sensible"}`
+      : "en zona agrícola";
+
+    return {
+      kind: "grounded_answer",
+      answer:
+        `Tu lote "${activeLote.name}" (${activeLote.hectares} ha) está ubicado por imagen satelital en ${
+          activeLote.locality ? `${activeLote.locality}, ` : ""
+        }${activeLote.municipality} (${distInfo}). ` +
+        `En el Partido de Tandil rige la Ley Provincial 10.699 [R12] y el Decreto 499/1991 [R13] (receta agronómica obligatoria y equipo habilitado), junto con la Ordenanza Municipal 17.404/2021 [R14] y el Decreto 423/2026 [R16] que notificó la suspensión cautelar judicial del artículo 8. ` +
+        `Antes de pulverizar a ${activeLote.sensitiveZoneDistanceM ?? 0} m de ${
+          activeLote.sensitiveZoneType?.toLowerCase() || "la zona lindera"
+        }, verificá las condiciones meteorológicas in situ con termoanemómetro (viento y Delta T) según las pautas de monitoreo de deriva del INTA [R19].`,
+      sources: [
+        makeCardFromFragment(r14, "Ordenanza Municipal de Tandil 17.404/2021 sobre zonas de amortiguamiento."),
+        makeCardFromFragment(r16, "Decreto 423/2026 de Tandil sobre medida cautelar judicial del Art. 8."),
+        makeCardFromFragment(r12, "Ley Provincial 10.699 de agroquímicos de la Provincia de Buenos Aires."),
+        makeCardFromFragment(r13, "Decreto Reglamentario 499/1991: exigencia de receta agronómica."),
+        makeCardFromFragment(r19, "Monitoreo instrumental de condiciones de aplicación y control de deriva (INTA)."),
+      ],
+      warnings: [r16.limitation],
       mode: "demo",
     };
   }

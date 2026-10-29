@@ -232,7 +232,7 @@ export async function resolveChatQuery(
     const res = await effectiveFetch("/api/chat", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ question: safeQuestion, form, uploadedDocs }),
+      body: JSON.stringify({ question: safeQuestion, form, activeLote, uploadedDocs }),
     });
 
     if (res.ok) {

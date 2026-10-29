@@ -15,6 +15,23 @@ export interface SourceCardData {
   supports: string; // qué afirmación respalda este fragmento en esta respuesta puntual
 }
 
+export interface LoteApplicationRecord {
+  id: string;
+  date: string;
+  category:
+    | "Herbicida barbecho"
+    | "Herbicida preemergente"
+    | "Herbicida postemergente"
+    | "Fertilizante"
+    | "Insecticida"
+    | "Fungicida";
+  productName: string;
+  activeIngredient: string;
+  modeOfAction?: string;
+  dose: string;
+  notes?: string;
+}
+
 export interface ProducerLote {
   id: string;
   name: string;
@@ -31,6 +48,24 @@ export interface ProducerLote {
   previousCrop: string;
   municipality: string;
   sensitiveZoneDistanceM?: number;
+  // Campos ampliados para "Lotes como Proyectos" (Satelital + Suelo completo + Aplicaciones previas)
+  locality?: string;
+  coordinates?: { lat: number; lng: number };
+  polygon?: [number, number][];
+  relief?: "Loma" | "Media loma" | "Bajo dulce" | "Bajo alcalino" | "Plano";
+  sensitiveZoneType?:
+    | "Ninguna cercana"
+    | "Escuela rural"
+    | "Curso de agua / Arroyo"
+    | "Zona periurbana";
+  organicMatterPercent?: number;
+  ph?: number;
+  sulfurPpm?: number;
+  soilTexture?: "Franco" | "Franco-arcilloso" | "Franco-arenoso";
+  targetDensityPlantsHa?: number;
+  previousApplications?: LoteApplicationRecord[];
+  detectedPestsAndWeeds?: string[];
+  notes?: string;
 }
 
 export interface PipelineTrace {
@@ -161,4 +196,13 @@ export interface ChatMessage {
     note?: string;
   };
   loteName?: string;
+}
+
+export interface ChatThread {
+  id: string;
+  title: string;
+  loteId: string | null; // null = Chat General; id = Chat del Proyecto de Lote
+  messages: ChatMessage[];
+  uploadedDocs?: UploadedDocument[];
+  updatedAt: number;
 }

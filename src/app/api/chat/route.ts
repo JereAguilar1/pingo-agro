@@ -83,6 +83,11 @@ export async function POST(req: NextRequest) {
 
   const form = parseFormSubmission(body);
   const uploadedDocs = parseUploadedDocs(body);
+  const rawLote = (body as { activeLote?: unknown })?.activeLote;
+  const activeLote =
+    rawLote && typeof rawLote === "object" && typeof (rawLote as { name?: unknown }).name === "string"
+      ? (rawLote as Parameters<typeof runOrchestratorAgent>[0]["activeLote"])
+      : undefined;
   const question = (body as { question?: unknown })?.question;
   if (!form && (typeof question !== "string" || !question.trim())) {
     return NextResponse.json(
@@ -103,6 +108,7 @@ export async function POST(req: NextRequest) {
     const result = await runOrchestratorAgent({
       question: safeQuestion,
       form,
+      activeLote,
       uploadedDocs,
     });
     return NextResponse.json({ response: result, aiConfigured: isAiConfigured() });

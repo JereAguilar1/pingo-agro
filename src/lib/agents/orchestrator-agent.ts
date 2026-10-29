@@ -114,13 +114,29 @@ export async function runOrchestratorAgent(
     ...(form?.data || {}),
   };
 
-  // Si hay un lote activo, inyectar sus datos base si no fueron sobreescritos en el formulario
+  // Si hay un lote activo, inyectar todo su expediente técnico (ubicación satelital, suelo,
+  // aplicaciones previas y malezas) si no fueron sobreescritos en el formulario
   if (activeLote) {
-    if (!accumulatedContext.cultivo) accumulatedContext.cultivo = activeLote.crop;
+    accumulatedContext.lote = `${activeLote.name} (${activeLote.hectares} ha en ${
+      activeLote.locality ? `${activeLote.locality}, ` : ""
+    }${activeLote.municipality})`;
+    if (!accumulatedContext.cultivo) accumulatedContext.cultivo = `${activeLote.crop} (${activeLote.hybrid})`;
+    if (!accumulatedContext.estadio) accumulatedContext.estadio = activeLote.phenology;
     if (!accumulatedContext.rindeObjetivo)
       accumulatedContext.rindeObjetivo = String(activeLote.targetYieldTonHa);
     if (!accumulatedContext.nSuelo)
       accumulatedContext.nSuelo = String(activeLote.soilNitrateKgHa);
+    accumulatedContext.suelo = `Tosca ${activeLote.toscaDepthCm} cm, P Bray ${activeLote.soilPhosphorusPpm} ppm, MO ${
+      activeLote.organicMatterPercent ?? 4.5
+    }%, pH ${activeLote.ph ?? 6.2}`;
+    if (activeLote.previousApplications && activeLote.previousApplications.length > 0) {
+      accumulatedContext.aplicacionesPrevias = activeLote.previousApplications
+        .map((a) => `${a.date}: ${a.productName} (${a.activeIngredient}, ${a.dose})`)
+        .join(" | ");
+    }
+    if (activeLote.detectedPestsAndWeeds && activeLote.detectedPestsAndWeeds.length > 0) {
+      accumulatedContext.malezasYPlagas = activeLote.detectedPestsAndWeeds.join(", ");
+    }
   }
 
   // 1. Si el usuario acaba de enviar un formulario, verificar si hace falta una Ronda 2
