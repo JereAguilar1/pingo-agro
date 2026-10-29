@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { TopNavbar } from "@/components/TopNavbar";
@@ -8,13 +7,7 @@ import { ProjectsSidebar } from "@/components/ProjectsSidebar";
 import { LoteWizardModal } from "@/components/LoteWizardModal";
 import { DEFAULT_PRODUCER_LOTES, getSavedLotes, getSavedThreads, saveLotes } from "@/lib/local-knowledge";
 import { ChatThread, ProducerLote } from "@/lib/types";
-import {
-  IconChevronRight,
-  IconFolder,
-  IconPlus,
-  IconSearch,
-  IconSend,
-} from "@/components/Icons";
+import { IconSearch, IconSend } from "@/components/Icons";
 
 export default function Home() {
   const router = useRouter();
@@ -53,14 +46,12 @@ export default function Home() {
 
   return (
     <div className="flex-1 flex flex-col min-h-screen" style={{ background: "var(--surco-bg)" }}>
-      {/* Nav superior unificado: Hamburguesa a la izquierda, logo Surco, sin IA offline */}
+      {/* Nav superior con menú a la izquierda y logo Surco a la derecha (sin 'en línea') */}
       <TopNavbar
         onToggleSidebar={() => setShowSidebar((prev) => !prev)}
-        onOpenNewLote={() => setShowLoteWizard(true)}
-        showNewLoteButton={true}
       />
 
-      {/* Drawer lateral que muestra Proyectos (Lotes) e Historial de chats */}
+      {/* Drawer lateral que muestra Proyectos (Lotes) e Historial de chats al abrir el menú */}
       <ProjectsSidebar
         lotes={lotes}
         threads={threads}
@@ -97,8 +88,9 @@ export default function Home() {
         onSaveLote={handleSaveLoteFromWizard}
       />
 
-      <main className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 py-12 sm:py-20">
-        <div className="w-full max-w-2xl mx-auto flex flex-col gap-10">
+      {/* Inicio limpio y minimalista: Solamente escribir una consulta */}
+      <main className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 py-16 sm:py-24">
+        <div className="w-full max-w-xl mx-auto flex flex-col gap-8">
           <header className="flex flex-col items-center text-center gap-2">
             <h1
               className="text-2xl sm:text-3xl font-semibold tracking-tight"
@@ -106,12 +98,11 @@ export default function Home() {
             >
               Asistente agronómico
             </h1>
-            <p className="text-xs sm:text-sm" style={{ color: "var(--surco-ink-muted)" }}>
+            <p className="text-xs sm:text-sm text-gray-500">
               Consultas técnicas con respaldo de INTA, SENASA y vademécums oficiales.
             </p>
           </header>
 
-          {/* Barra de Consulta sin distracciones */}
           <form onSubmit={handleSubmit} className="w-full">
             <div
               className="flex items-center gap-2 p-1.5 rounded-xl border bg-white shadow-xs transition-all focus-within:border-emerald-800/40 focus-within:shadow-sm"
@@ -123,8 +114,9 @@ export default function Home() {
                   value={value}
                   onChange={(e) => setValue(e.target.value)}
                   placeholder="Escribí una consulta agronómica…"
-                  className="w-full bg-transparent py-2 outline-none text-sm"
+                  className="w-full bg-transparent py-2.5 outline-none text-sm"
                   style={{ color: "var(--surco-ink)" }}
+                  autoFocus
                 />
               </div>
 
@@ -133,60 +125,13 @@ export default function Home() {
                 disabled={!value.trim()}
                 className="shrink-0 rounded-lg px-3.5 py-2 text-xs font-medium text-white transition-opacity disabled:opacity-40 hover:opacity-90 cursor-pointer flex items-center gap-1.5"
                 style={{ background: "var(--surco-green)" }}
+                aria-label="Enviar consulta"
               >
                 <span>Enviar</span>
                 <IconSend className="w-3 h-3" />
               </button>
             </div>
           </form>
-
-          {/* Lista de Proyectos de Lotes */}
-          <section className="flex flex-col gap-3 pt-2">
-            <div className="flex items-center justify-between">
-              <span
-                className="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5"
-                style={{ color: "var(--surco-ink-muted)" }}
-              >
-                <IconFolder className="w-3.5 h-3.5" />
-                Mis Lotes
-              </span>
-              <button
-                type="button"
-                onClick={() => setShowLoteWizard(true)}
-                className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-lg border transition-colors hover:bg-black/5 cursor-pointer"
-                style={{
-                  background: "var(--surco-card)",
-                  borderColor: "var(--surco-border-light)",
-                  color: "var(--surco-green)",
-                }}
-              >
-                <IconPlus className="w-3 h-3" />
-                <span>Nuevo lote</span>
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              {lotes.map((l) => (
-                <Link
-                  key={l.id}
-                  href={`/chat?lote=${encodeURIComponent(l.id)}`}
-                  className="rounded-xl border p-3.5 transition-all hover:border-emerald-800/30 flex items-center justify-between gap-3 group bg-white"
-                  style={{ borderColor: "var(--surco-border-light)" }}
-                >
-                  <div className="min-w-0">
-                    <div className="font-semibold text-xs sm:text-sm truncate group-hover:text-emerald-900" style={{ color: "var(--surco-ink)" }}>
-                      {l.name}
-                    </div>
-                    <div className="text-[11px] mt-0.5 truncate" style={{ color: "var(--surco-ink-muted)" }}>
-                      {l.hectares} ha · {l.crop} ({l.phenology})
-                    </div>
-                  </div>
-
-                  <IconChevronRight className="w-4 h-4 text-gray-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
-                </Link>
-              ))}
-            </div>
-          </section>
         </div>
       </main>
     </div>

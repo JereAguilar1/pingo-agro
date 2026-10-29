@@ -332,12 +332,7 @@ function ChatInner() {
             setIsCollapsedDesktop((prev) => !prev);
           }
         }}
-        onOpenNewLote={() => {
-          setEditingLote(null);
-          setShowLoteWizard(true);
-        }}
         activeTitle={activeLote ? activeLote.name : "Chat General"}
-        showNewLoteButton={true}
       />
 
       <LoteWizardModal
