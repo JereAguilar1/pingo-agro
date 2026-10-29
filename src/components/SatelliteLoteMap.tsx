@@ -34,6 +34,8 @@ interface Props {
   readOnly?: boolean;
   compact?: boolean;
   heightClassName?: string;
+  /** Miniatura dentro de una tarjeta: sin controles ni clics propios. */
+  preview?: boolean;
 }
 
 // Conversión Web Mercator (EPSG:3857)
@@ -61,6 +63,7 @@ export function SatelliteLoteMap({
   readOnly = false,
   compact = false,
   heightClassName,
+  preview = false,
 }: Props) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [zoom, setZoom] = useState(15);
@@ -109,6 +112,29 @@ export function SatelliteLoteMap({
     window.addEventListener("resize", updateSize);
     return () => window.removeEventListener("resize", updateSize);
   }, [isFullscreen, compact, heightClassName]);
+
+  // En miniatura, encuadrar el lote completo: sin esto el zoom por defecto
+  // deja el polígono fuera de cuadro y la tarjeta muestra sólo tierra suelta.
+  useEffect(() => {
+    if (!preview || initialPolygon.length < 3) return;
+    if (viewSize.width === 0 || viewSize.height === 0) return;
+
+    const lats = initialPolygon.map((p) => p[0]);
+    const lngs = initialPolygon.map((p) => p[1]);
+    const padding = 1.35; // deja aire alrededor del lote
+
+    for (let z = 18; z >= 12; z--) {
+      const topLeft = latLngToTileXY(Math.max(...lats), Math.min(...lngs), z);
+      const bottomRight = latLngToTileXY(Math.min(...lats), Math.max(...lngs), z);
+      const widthPx = (bottomRight.x - topLeft.x) * 256 * padding;
+      const heightPx = (bottomRight.y - topLeft.y) * 256 * padding;
+      if (widthPx <= viewSize.width && heightPx <= viewSize.height) {
+        setZoom(z);
+        return;
+      }
+    }
+    setZoom(12);
+  }, [preview, initialPolygon, viewSize.width, viewSize.height]);
 
   // Atajos de teclado: Escape para salir de pantalla completa, Ctrl+Z para deshacer
   useEffect(() => {
@@ -333,11 +359,17 @@ export function SatelliteLoteMap({
         isFullscreen
           ? "flex-1 h-full cursor-crosshair"
           : heightClassName
-          ? `${heightClassName} rounded-xl border`
+          ? `${heightClassName}${preview ? "" : " rounded-xl border"}`
           : compact
           ? "h-28 rounded-xl border"
           : "h-64 sm:h-72 rounded-xl border"
-      } ${!readOnly ? "cursor-crosshair" : "cursor-grab active:cursor-grabbing"}`}
+      } ${
+        preview
+          ? "pointer-events-none"
+          : !readOnly
+          ? "cursor-crosshair"
+          : "cursor-grab active:cursor-grabbing"
+      }`}
       style={{
         background: "#0f1712",
         borderColor: "var(--surco-border-light)",
@@ -345,7 +377,7 @@ export function SatelliteLoteMap({
       }}
     >
       {/* Botón flotante para ver en pantalla completa en modo de sólo lectura */}
-      {readOnly && !isFullscreen && (
+      {readOnly && !isFullscreen && !preview && (
         <button
           type="button"
           onClick={(e) => {
@@ -432,33 +464,37 @@ export function SatelliteLoteMap({
       </svg>
 
       {/* Brújula / Indicador de zoom y posición */}
-      <div className="absolute bottom-3 left-3 flex items-center gap-2 pointer-events-none">
-        <span className="px-2 py-0.5 rounded-md bg-black/65 backdrop-blur-xs text-white text-[10px] font-mono flex items-center gap-1.5 shadow-md">
-          <IconSatellite className="w-3 h-3 text-emerald-400" />
-          <span>{mapCenter.lat.toFixed(4)}, {mapCenter.lng.toFixed(4)}</span>
-          <span className="opacity-60">· z{zoom}</span>
-        </span>
-      </div>
+      {!preview && (
+        <div className="absolute bottom-3 left-3 flex items-center gap-2 pointer-events-none">
+          <span className="px-2 py-0.5 rounded-md bg-black/65 backdrop-blur-xs text-white text-[10px] font-mono flex items-center gap-1.5 shadow-md">
+            <IconSatellite className="w-3 h-3 text-emerald-400" />
+            <span>{mapCenter.lat.toFixed(4)}, {mapCenter.lng.toFixed(4)}</span>
+            <span className="opacity-60">· z{zoom}</span>
+          </span>
+        </div>
+      )}
 
       {/* Controles de zoom rápidos en pantalla */}
-      <div className="absolute bottom-3 right-3 flex items-center gap-1">
-        <button
-          type="button"
-          onClick={() => setZoom((z) => Math.max(12, z - 1))}
-          className="w-7 h-7 rounded-lg bg-black/70 backdrop-blur-xs text-white text-sm font-semibold cursor-pointer hover:bg-black/90 flex items-center justify-center shadow-md transition-colors"
-          title="Alejar mapa"
-        >
-          −
-        </button>
-        <button
-          type="button"
-          onClick={() => setZoom((z) => Math.min(18, z + 1))}
-          className="w-7 h-7 rounded-lg bg-black/70 backdrop-blur-xs text-white text-sm font-semibold cursor-pointer hover:bg-black/90 flex items-center justify-center shadow-md transition-colors"
-          title="Acercar mapa"
-        >
-          +
-        </button>
-      </div>
+      {!preview && (
+        <div className="absolute bottom-3 right-3 flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setZoom((z) => Math.max(12, z - 1))}
+            className="w-7 h-7 rounded-lg bg-black/70 backdrop-blur-xs text-white text-sm font-semibold cursor-pointer hover:bg-black/90 flex items-center justify-center shadow-md transition-colors"
+            title="Alejar mapa"
+          >
+            −
+          </button>
+          <button
+            type="button"
+            onClick={() => setZoom((z) => Math.min(18, z + 1))}
+            className="w-7 h-7 rounded-lg bg-black/70 backdrop-blur-xs text-white text-sm font-semibold cursor-pointer hover:bg-black/90 flex items-center justify-center shadow-md transition-colors"
+            title="Acercar mapa"
+          >
+            +
+          </button>
+        </div>
+      )}
     </div>
   );
 

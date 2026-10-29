@@ -1,6 +1,6 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ChangeEvent, FormEvent, Suspense, useEffect, useRef, useState } from "react";
 import { MessageBubble } from "@/components/MessageBubble";
 import { TopNavbar } from "@/components/TopNavbar";
@@ -35,6 +35,7 @@ import {
 
 function ChatInner() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [lotes, setLotes] = useState<ProducerLote[]>(DEFAULT_PRODUCER_LOTES);
   const [activeLoteId, setActiveLoteState] = useState<string | null>("lote-la-loma");
   const [threads, setThreads] = useState<ChatThread[]>([]);
@@ -420,6 +421,11 @@ function ChatInner() {
                   setActiveThreadId(null);
                   setMessages([]);
                 }}
+                onEditLote={() => {
+                  setEditingLote(activeLote);
+                  setShowLoteWizard(true);
+                }}
+                onBack={() => router.push("/")}
               />
             </main>
           ) : (

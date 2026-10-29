@@ -68,3 +68,11 @@ textarea,
 button {
   outline: none;
 }
+
+/* Scroll horizontal sin barra visible (chips de filtros, pestañas) */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
