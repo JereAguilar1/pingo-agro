@@ -9,9 +9,9 @@ import { LoteDashboard } from "@/components/LoteDashboard";
 import { LoteWizardModal } from "@/components/LoteWizardModal";
 import {
   IconArrowLeft,
+  IconCamera,
   IconClose,
   IconMic,
-  IconPaperclip,
   IconSend,
 } from "@/components/Icons";
 import {
@@ -63,7 +63,12 @@ function ChatInner() {
     cancelRecording,
   } = useAudioRecorder();
 
-  const docInputRef = useRef<HTMLInputElement>(null);
+  const [attachedPhoto, setAttachedPhoto] = useState<{
+    name: string;
+    dataUrl: string;
+  } | null>(null);
+
+  const photoInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const initialized = useRef(false);
 
@@ -227,24 +232,20 @@ function ChatInner() {
     setMessages([]);
   }
 
-  function handleDocUpload(e: ChangeEvent<HTMLInputElement>) {
+  function handlePhotoSelect(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
     reader.onload = () => {
-      const content = typeof reader.result === "string" ? reader.result : "";
-      if (content.trim()) {
-        const newDoc: UploadedDocument = {
-          id: `doc-${Date.now()}`,
-          title: file.name,
-          content: content.slice(0, 15000),
-          uploadedAt: new Date().toISOString().slice(0, 10),
-        };
-        setUploadedDocs((prev) => [...prev, newDoc]);
+      if (typeof reader.result === "string") {
+        setAttachedPhoto({
+          name: file.name,
+          dataUrl: reader.result,
+        });
       }
     };
-    reader.readAsText(file);
+    reader.readAsDataURL(file);
     e.target.value = "";
   }
 
@@ -255,16 +256,25 @@ function ChatInner() {
     modality: "chat" | "voice" = "chat"
   ) {
     const q = question.trim();
-    if (!q || loading) return;
+    if ((!q && !attachedPhoto) || loading) return;
 
     const effectiveLote = overrideLote !== undefined ? overrideLote : activeLote;
     const effectiveLoteId = effectiveLote?.id ?? null;
 
+    const currentPhoto = attachedPhoto;
+    setAttachedPhoto(null);
+
     const userMsg: ChatMessage = {
       id: crypto.randomUUID(),
       role: "user",
-      content: q,
-      inputModality: modality,
+      content: q || "Consulta sobre la foto adjunta",
+      inputModality: currentPhoto ? "photo" : modality,
+      photoAttachment: currentPhoto
+        ? {
+            name: currentPhoto.name,
+            dataUrl: currentPhoto.dataUrl,
+          }
+        : undefined,
       createdAt: Date.now(),
     };
     const withUser = [...messages, userMsg];
@@ -488,6 +498,30 @@ function ChatInner() {
                 }}
               >
                 <div className="max-w-2xl mx-auto flex flex-col gap-2">
+                  {attachedPhoto && (
+                    <div
+                      className="inline-flex items-center gap-2 p-1 pl-1.5 pr-2 rounded-lg border bg-white text-xs self-start shadow-xs"
+                      style={{ borderColor: "var(--surco-border-light)" }}
+                    >
+                      <img
+                        src={attachedPhoto.dataUrl}
+                        alt="Preview"
+                        className="w-7 h-7 rounded object-cover"
+                      />
+                      <span className="truncate max-w-[140px] text-[11px]" style={{ color: "var(--surco-ink)" }}>
+                        {attachedPhoto.name}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setAttachedPhoto(null)}
+                        className="opacity-50 hover:opacity-100 cursor-pointer ml-1"
+                        title="Quitar foto"
+                      >
+                        <IconClose className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
+
                   {uploadedDocs.length > 0 && (
                     <div className="flex items-center gap-1.5 flex-wrap text-xs">
                       {uploadedDocs.map((d) => (
@@ -576,20 +610,21 @@ function ChatInner() {
                       style={{ borderColor: "var(--surco-border)" }}
                     >
                       <input
-                        ref={docInputRef}
+                        ref={photoInputRef}
                         type="file"
-                        accept=".txt,.md,.csv,.json"
-                        onChange={handleDocUpload}
+                        accept="image/*"
+                        onChange={handlePhotoSelect}
                         className="hidden"
                       />
                       <button
                         type="button"
-                        onClick={() => docInputRef.current?.click()}
+                        onClick={() => photoInputRef.current?.click()}
                         className="p-2 rounded-lg text-xs font-medium cursor-pointer transition-colors hover:bg-black/5 shrink-0"
                         style={{ color: "var(--surco-ink-soft)" }}
-                        title="Adjuntar documento (.txt, .md, .csv)"
+                        title="Sacar foto o abrir galería"
+                        aria-label="Cámara o galería"
                       >
-                        <IconPaperclip className="w-4 h-4 text-gray-500" />
+                        <IconCamera className="w-4 h-4 text-gray-600" />
                       </button>
 
                       <input
@@ -604,7 +639,7 @@ function ChatInner() {
                         style={{ color: "var(--surco-ink)" }}
                       />
 
-                      {input.trim() ? (
+                      {input.trim() || attachedPhoto ? (
                         <button
                           type="submit"
                           disabled={loading}

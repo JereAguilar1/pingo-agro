@@ -7,7 +7,15 @@ import { ProjectsSidebar } from "@/components/ProjectsSidebar";
 import { LoteWizardModal } from "@/components/LoteWizardModal";
 import { DEFAULT_PRODUCER_LOTES, getSavedLotes, getSavedThreads, saveLotes } from "@/lib/local-knowledge";
 import { ChatThread, ProducerLote } from "@/lib/types";
-import { IconClose, IconMic, IconSearch, IconSend } from "@/components/Icons";
+import {
+  IconChevronRight,
+  IconClose,
+  IconFolder,
+  IconMic,
+  IconPlus,
+  IconSearch,
+  IconSend,
+} from "@/components/Icons";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 
 export default function Home() {
@@ -224,6 +232,69 @@ export default function Home() {
               </div>
             )}
           </form>
+
+          {/* Tus lotes */}
+          <section className="flex flex-col gap-3 pt-2">
+            <div className="flex items-center justify-between">
+              <span
+                className="text-xs font-semibold uppercase tracking-wider"
+                style={{ color: "var(--surco-ink-muted)" }}
+              >
+                Tus lotes
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowLoteWizard(true)}
+                className="inline-flex items-center gap-1 text-xs font-medium cursor-pointer hover:underline"
+                style={{ color: "var(--surco-green)" }}
+              >
+                <IconPlus className="w-3.5 h-3.5" />
+                <span>Nuevo lote</span>
+              </button>
+            </div>
+
+            {lotes.length === 0 ? (
+              <div
+                className="rounded-xl border p-5 text-center text-xs bg-white"
+                style={{ borderColor: "var(--surco-border-light)", color: "var(--surco-ink-muted)" }}
+              >
+                No tenés lotes creados aún.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {lotes.map((lote) => (
+                  <button
+                    key={lote.id}
+                    type="button"
+                    onClick={() => router.push(`/chat?lote=${encodeURIComponent(lote.id)}`)}
+                    className="text-left rounded-xl border p-3 bg-white transition-all hover:border-emerald-800/30 hover:shadow-xs flex items-center justify-between gap-3 cursor-pointer group"
+                    style={{ borderColor: "var(--surco-border-light)" }}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div
+                        className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border"
+                        style={{ background: "var(--surco-bg)", borderColor: "var(--surco-border-light)" }}
+                      >
+                        <IconFolder className="w-4 h-4 text-emerald-800" />
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <span
+                          className="text-xs sm:text-sm font-medium truncate group-hover:text-emerald-900"
+                          style={{ color: "var(--surco-ink)" }}
+                        >
+                          {lote.name}
+                        </span>
+                        <span className="text-[11px] truncate" style={{ color: "var(--surco-ink-muted)" }}>
+                          {lote.hectares} ha · {lote.crop} ({lote.phenology})
+                        </span>
+                      </div>
+                    </div>
+                    <IconChevronRight className="w-4 h-4 text-gray-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </section>
         </div>
       </main>
     </div>

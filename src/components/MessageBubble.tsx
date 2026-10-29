@@ -25,7 +25,16 @@ export function MessageBubble({ message, onSubmitForm }: Props) {
               <span>Audio transcrito</span>
             </div>
           )}
-          <p className="whitespace-pre-wrap">{message.content}</p>
+          {message.photoAttachment?.dataUrl && (
+            <div className="rounded-xl overflow-hidden max-h-48 max-w-xs border border-white/20 my-0.5">
+              <img
+                src={message.photoAttachment.dataUrl}
+                alt={message.photoAttachment.name || "Foto adjunta"}
+                className="w-full h-auto object-cover max-h-48"
+              />
+            </div>
+          )}
+          {message.content && <p className="whitespace-pre-wrap">{message.content}</p>}
         </div>
       </div>
     );
