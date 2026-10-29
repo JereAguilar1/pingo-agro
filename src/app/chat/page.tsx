@@ -10,6 +10,7 @@ import { LoteWizardModal } from "@/components/LoteWizardModal";
 import {
   IconArrowLeft,
   IconClose,
+  IconMic,
   IconPaperclip,
   IconSend,
 } from "@/components/Icons";
@@ -21,6 +22,7 @@ import {
   UploadedDocument,
 } from "@/lib/types";
 import { resolveChatQuery } from "@/lib/offline-client";
+import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import {
   DEFAULT_PRODUCER_LOTES,
   getActiveLoteId,
@@ -49,6 +51,17 @@ function ChatInner() {
   const [showLoteWizard, setShowLoteWizard] = useState(false);
   const [editingLote, setEditingLote] = useState<ProducerLote | null>(null);
   const [showLoteDashboard, setShowLoteDashboard] = useState(true);
+
+  const {
+    isRecording,
+    isTranscribing,
+    recordingTime,
+    liveTranscript,
+    error: audioError,
+    startRecording,
+    stopAndSend,
+    cancelRecording,
+  } = useAudioRecorder();
 
   const docInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -238,7 +251,8 @@ function ChatInner() {
   async function sendMessage(
     question: string,
     form?: FormSubmission,
-    overrideLote?: ProducerLote | null
+    overrideLote?: ProducerLote | null,
+    modality: "chat" | "voice" = "chat"
   ) {
     const q = question.trim();
     if (!q || loading) return;
@@ -250,6 +264,7 @@ function ChatInner() {
       id: crypto.randomUUID(),
       role: "user",
       content: q,
+      inputModality: modality,
       createdAt: Date.now(),
     };
     const withUser = [...messages, userMsg];
@@ -454,16 +469,16 @@ function ChatInner() {
                   </div>
                 )}
 
-                {error && (
+                {(error || audioError) && (
                   <div className="rounded-xl border px-3.5 py-2.5 text-xs text-red-800 bg-red-50 border-red-200">
-                    {error}
+                    {error || audioError}
                   </div>
                 )}
 
                 <div ref={bottomRef} />
               </main>
 
-              {/* Formulario de entrada minimalista */}
+              {/* Formulario de entrada minimalista con soporte de audio */}
               <form
                 onSubmit={handleSubmit}
                 className="sticky bottom-0 px-4 sm:px-6 py-3"
@@ -496,49 +511,121 @@ function ChatInner() {
                     </div>
                   )}
 
-                  <div
-                    className="flex items-center gap-1.5 p-1 rounded-xl border bg-white transition-all focus-within:border-emerald-800/40"
-                    style={{ borderColor: "var(--surco-border)" }}
-                  >
-                    <input
-                      ref={docInputRef}
-                      type="file"
-                      accept=".txt,.md,.csv,.json"
-                      onChange={handleDocUpload}
-                      className="hidden"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => docInputRef.current?.click()}
-                      className="p-2 rounded-lg text-xs font-medium cursor-pointer transition-colors hover:bg-black/5 shrink-0"
-                      style={{ color: "var(--surco-ink-soft)" }}
-                      title="Adjuntar documento (.txt, .md, .csv)"
+                  {isRecording || isTranscribing ? (
+                    <div
+                      className="flex items-center justify-between gap-3 px-3 py-2 rounded-xl border bg-white transition-all shadow-xs"
+                      style={{ borderColor: "rgba(220, 38, 38, 0.4)" }}
                     >
-                      <IconPaperclip className="w-4 h-4 text-gray-500" />
-                    </button>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="relative flex h-3 w-3 shrink-0">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                          <span className="relative inline-flex rounded-full h-3 w-3 bg-red-600" />
+                        </span>
 
-                    <input
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                      placeholder={
-                        activeLote
-                          ? `Consulta sobre ${activeLote.name}…`
-                          : "Escribí tu consulta…"
-                      }
-                      className="flex-1 bg-transparent px-2 py-2 outline-none text-sm"
-                      style={{ color: "var(--surco-ink)" }}
-                    />
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-xs font-semibold tabular-nums text-red-600 shrink-0">
+                            {Math.floor(recordingTime / 60)}:
+                            {recordingTime % 60 < 10 ? "0" : ""}
+                            {recordingTime % 60}
+                          </span>
+                          <span
+                            className="text-xs truncate italic"
+                            style={{ color: "var(--surco-ink-muted)" }}
+                          >
+                            {isTranscribing
+                              ? "Transcribiendo audio…"
+                              : liveTranscript
+                              ? `"${liveTranscript}"`
+                              : "Grabando… hablá tu consulta"}
+                          </span>
+                        </div>
+                      </div>
 
-                    <button
-                      type="submit"
-                      disabled={loading || !input.trim()}
-                      className="rounded-lg px-3 py-1.5 text-xs font-medium text-white disabled:opacity-40 transition-opacity cursor-pointer shrink-0 flex items-center gap-1"
-                      style={{ background: "var(--surco-green)" }}
-                      aria-label="Enviar mensaje"
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={cancelRecording}
+                          disabled={isTranscribing}
+                          className="p-1.5 rounded-lg text-xs font-medium text-gray-500 hover:text-red-600 hover:bg-red-50 cursor-pointer transition-colors"
+                          title="Cancelar audio"
+                        >
+                          <IconClose className="w-4 h-4" />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const transcribed = await stopAndSend();
+                            if (transcribed) {
+                              void sendMessage(transcribed, undefined, activeLote, "voice");
+                            }
+                          }}
+                          disabled={isTranscribing}
+                          className="rounded-lg px-3 py-1.5 text-xs font-medium text-white disabled:opacity-40 transition-opacity cursor-pointer flex items-center gap-1"
+                          style={{ background: "var(--surco-green)" }}
+                          title="Enviar audio y transcribir"
+                        >
+                          <span>Enviar</span>
+                          <IconSend className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      className="flex items-center gap-1.5 p-1 rounded-xl border bg-white transition-all focus-within:border-emerald-800/40"
+                      style={{ borderColor: "var(--surco-border)" }}
                     >
-                      <IconSend className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                      <input
+                        ref={docInputRef}
+                        type="file"
+                        accept=".txt,.md,.csv,.json"
+                        onChange={handleDocUpload}
+                        className="hidden"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => docInputRef.current?.click()}
+                        className="p-2 rounded-lg text-xs font-medium cursor-pointer transition-colors hover:bg-black/5 shrink-0"
+                        style={{ color: "var(--surco-ink-soft)" }}
+                        title="Adjuntar documento (.txt, .md, .csv)"
+                      >
+                        <IconPaperclip className="w-4 h-4 text-gray-500" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => void startRecording()}
+                        className="p-2 rounded-lg text-xs font-medium cursor-pointer transition-colors hover:bg-emerald-50 shrink-0"
+                        style={{ color: "var(--surco-green)" }}
+                        title="Enviar mensaje de audio"
+                        aria-label="Grabar audio"
+                      >
+                        <IconMic className="w-4 h-4" />
+                      </button>
+
+                      <input
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        placeholder={
+                          activeLote
+                            ? `Consulta sobre ${activeLote.name}…`
+                            : "Escribí tu consulta o grabá un audio…"
+                        }
+                        className="flex-1 bg-transparent px-2 py-2 outline-none text-sm"
+                        style={{ color: "var(--surco-ink)" }}
+                      />
+
+                      <button
+                        type="submit"
+                        disabled={loading || !input.trim()}
+                        className="rounded-lg px-3 py-1.5 text-xs font-medium text-white disabled:opacity-40 transition-opacity cursor-pointer shrink-0 flex items-center gap-1"
+                        style={{ background: "var(--surco-green)" }}
+                        aria-label="Enviar mensaje"
+                      >
+                        <IconSend className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               </form>
             </>

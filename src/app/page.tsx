@@ -7,7 +7,8 @@ import { ProjectsSidebar } from "@/components/ProjectsSidebar";
 import { LoteWizardModal } from "@/components/LoteWizardModal";
 import { DEFAULT_PRODUCER_LOTES, getSavedLotes, getSavedThreads, saveLotes } from "@/lib/local-knowledge";
 import { ChatThread, ProducerLote } from "@/lib/types";
-import { IconSearch, IconSend } from "@/components/Icons";
+import { IconClose, IconMic, IconSearch, IconSend } from "@/components/Icons";
+import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 
 export default function Home() {
   const router = useRouter();
@@ -16,6 +17,17 @@ export default function Home() {
   const [threads, setThreads] = useState<ChatThread[]>([]);
   const [showSidebar, setShowSidebar] = useState(false);
   const [showLoteWizard, setShowLoteWizard] = useState(false);
+
+  const {
+    isRecording,
+    isTranscribing,
+    recordingTime,
+    liveTranscript,
+    error: audioError,
+    startRecording,
+    stopAndSend,
+    cancelRecording,
+  } = useAudioRecorder();
 
   useEffect(() => {
     setLotes(getSavedLotes());
@@ -103,34 +115,112 @@ export default function Home() {
             </p>
           </header>
 
-          <form onSubmit={handleSubmit} className="w-full">
-            <div
-              className="flex items-center gap-2 p-1.5 rounded-xl border bg-white shadow-xs transition-all focus-within:border-emerald-800/40 focus-within:shadow-sm"
-              style={{ borderColor: "var(--surco-border)" }}
-            >
-              <div className="flex items-center gap-2 flex-1 pl-2.5">
-                <IconSearch className="w-4 h-4 shrink-0" style={{ color: "var(--surco-ink-muted)" }} />
-                <input
-                  value={value}
-                  onChange={(e) => setValue(e.target.value)}
-                  placeholder="Escribí una consulta agronómica…"
-                  className="w-full bg-transparent py-2.5 outline-none text-sm"
-                  style={{ color: "var(--surco-ink)" }}
-                  autoFocus
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={!value.trim()}
-                className="shrink-0 rounded-lg px-3.5 py-2 text-xs font-medium text-white transition-opacity disabled:opacity-40 hover:opacity-90 cursor-pointer flex items-center gap-1.5"
-                style={{ background: "var(--surco-green)" }}
-                aria-label="Enviar consulta"
-              >
-                <span>Enviar</span>
-                <IconSend className="w-3 h-3" />
-              </button>
+          {audioError && (
+            <div className="rounded-xl border px-3.5 py-2 text-xs text-red-800 bg-red-50 border-red-200 text-center">
+              {audioError}
             </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="w-full">
+            {isRecording || isTranscribing ? (
+              <div
+                className="flex items-center justify-between gap-3 px-3.5 py-3 rounded-xl border bg-white shadow-xs transition-all"
+                style={{ borderColor: "rgba(220, 38, 38, 0.4)" }}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="relative flex h-3 w-3 shrink-0">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-600" />
+                  </span>
+
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-xs font-semibold tabular-nums text-red-600 shrink-0">
+                      {Math.floor(recordingTime / 60)}:
+                      {recordingTime % 60 < 10 ? "0" : ""}
+                      {recordingTime % 60}
+                    </span>
+                    <span
+                      className="text-xs truncate italic"
+                      style={{ color: "var(--surco-ink-muted)" }}
+                    >
+                      {isTranscribing
+                        ? "Transcribiendo audio…"
+                        : liveTranscript
+                        ? `"${liveTranscript}"`
+                        : "Grabando… hablá tu consulta"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={cancelRecording}
+                    disabled={isTranscribing}
+                    className="p-1.5 rounded-lg text-xs font-medium text-gray-500 hover:text-red-600 hover:bg-red-50 cursor-pointer transition-colors"
+                    title="Cancelar audio"
+                  >
+                    <IconClose className="w-4 h-4" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const transcribed = await stopAndSend();
+                      if (transcribed) {
+                        goToChat(transcribed);
+                      }
+                    }}
+                    disabled={isTranscribing}
+                    className="rounded-lg px-3 py-1.5 text-xs font-medium text-white disabled:opacity-40 transition-opacity cursor-pointer flex items-center gap-1"
+                    style={{ background: "var(--surco-green)" }}
+                    title="Enviar audio y consultar"
+                  >
+                    <span>Enviar</span>
+                    <IconSend className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div
+                className="flex items-center gap-2 p-1.5 rounded-xl border bg-white shadow-xs transition-all focus-within:border-emerald-800/40 focus-within:shadow-sm"
+                style={{ borderColor: "var(--surco-border)" }}
+              >
+                <div className="flex items-center gap-2 flex-1 pl-2.5">
+                  <IconSearch className="w-4 h-4 shrink-0" style={{ color: "var(--surco-ink-muted)" }} />
+                  <input
+                    value={value}
+                    onChange={(e) => setValue(e.target.value)}
+                    placeholder="Escribí una consulta agronómica…"
+                    className="w-full bg-transparent py-2.5 outline-none text-sm"
+                    style={{ color: "var(--surco-ink)" }}
+                    autoFocus
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => void startRecording()}
+                  className="p-2 rounded-lg text-xs font-medium cursor-pointer transition-colors hover:bg-emerald-50 shrink-0"
+                  style={{ color: "var(--surco-green)" }}
+                  title="Grabar audio"
+                  aria-label="Grabar consulta por audio"
+                >
+                  <IconMic className="w-4 h-4" />
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={!value.trim()}
+                  className="shrink-0 rounded-lg px-3.5 py-2 text-xs font-medium text-white transition-opacity disabled:opacity-40 hover:opacity-90 cursor-pointer flex items-center gap-1.5"
+                  style={{ background: "var(--surco-green)" }}
+                  aria-label="Enviar consulta"
+                >
+                  <span>Enviar</span>
+                  <IconSend className="w-3 h-3" />
+                </button>
+              </div>
+            )}
           </form>
         </div>
       </main>
