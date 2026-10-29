@@ -390,13 +390,10 @@ function ChatInner() {
                 lote={activeLote}
                 threads={threads.filter((t) => t.loteId === activeLote.id)}
                 onOpenThread={(threadId) => handleSelectLoteProject(activeLote.id, threadId)}
-                onStartNewChat={(initialQ) => {
+                onStartNewChat={() => {
                   setShowLoteDashboard(false);
                   setActiveThreadId(null);
                   setMessages([]);
-                  if (initialQ) {
-                    void sendMessage(initialQ, undefined, activeLote);
-                  }
                 }}
               />
             </main>

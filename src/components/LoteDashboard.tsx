@@ -1,15 +1,14 @@
 "use client";
 
-import { FormEvent, useState } from "react";
 import { ChatThread, ProducerLote } from "@/lib/types";
 import { SatelliteLoteMap } from "./SatelliteLoteMap";
-import { IconChevronRight, IconMessage, IconPlus, IconSend } from "./Icons";
+import { IconChevronRight, IconMessage, IconPlus } from "./Icons";
 
 interface Props {
   lote: ProducerLote;
   threads: ChatThread[];
   onOpenThread: (threadId: string) => void;
-  onStartNewChat: (initialQuestion?: string) => void;
+  onStartNewChat: () => void;
 }
 
 export function LoteDashboard({
@@ -18,16 +17,7 @@ export function LoteDashboard({
   onOpenThread,
   onStartNewChat,
 }: Props) {
-  const [question, setQuestion] = useState("");
   const apps = lote.previousApplications || [];
-
-  function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    const q = question.trim();
-    if (!q) return;
-    setQuestion("");
-    onStartNewChat(q);
-  }
 
   return (
     <div className="w-full max-w-2xl mx-auto py-4 sm:py-6 flex flex-col gap-6">
@@ -140,33 +130,6 @@ export function LoteDashboard({
         )}
       </section>
 
-      {/* Opción de un Chat Nuevo en el lote */}
-      <section className="flex flex-col gap-2">
-        <form onSubmit={handleSubmit}>
-          <div
-            className="flex items-center gap-2 p-1.5 rounded-xl border bg-white transition-all focus-within:border-emerald-800/40"
-            style={{ borderColor: "var(--surco-border)" }}
-          >
-            <input
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              placeholder={`Iniciar nuevo chat en ${lote.name}…`}
-              className="flex-1 bg-transparent px-2.5 py-2 outline-none text-sm"
-              style={{ color: "var(--surco-ink)" }}
-            />
-            <button
-              type="submit"
-              disabled={!question.trim()}
-              className="shrink-0 rounded-lg px-3.5 py-2 text-xs font-medium text-white disabled:opacity-40 cursor-pointer flex items-center gap-1.5"
-              style={{ background: "var(--surco-green)" }}
-            >
-              <span>Consultar</span>
-              <IconSend className="w-3 h-3" />
-            </button>
-          </div>
-        </form>
-      </section>
-
       {/* Historial de chats del lote */}
       <section className="flex flex-col gap-2.5">
         <div className="flex items-center justify-between">
@@ -178,21 +141,30 @@ export function LoteDashboard({
           </span>
           <button
             type="button"
-            onClick={() => onStartNewChat()}
-            className="inline-flex items-center gap-1 text-xs font-medium cursor-pointer hover:underline"
+            onClick={onStartNewChat}
+            className="inline-flex items-center gap-1.5 text-xs font-medium cursor-pointer hover:underline"
             style={{ color: "var(--surco-green)" }}
           >
-            <IconPlus className="w-3 h-3" />
+            <IconPlus className="w-3.5 h-3.5" />
             <span>Nuevo chat</span>
           </button>
         </div>
 
         {threads.length === 0 ? (
           <div
-            className="rounded-xl border p-6 text-center text-xs bg-white"
+            className="rounded-xl border p-8 text-center text-xs bg-white flex flex-col items-center justify-center gap-3"
             style={{ borderColor: "var(--surco-border-light)", color: "var(--surco-ink-muted)" }}
           >
-            No hay chats previos en este lote.
+            <p>No hay chats previos en este lote.</p>
+            <button
+              type="button"
+              onClick={onStartNewChat}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white transition-opacity hover:opacity-90 cursor-pointer"
+              style={{ background: "var(--surco-green)" }}
+            >
+              <IconPlus className="w-3.5 h-3.5" />
+              <span>Nuevo chat</span>
+            </button>
           </div>
         ) : (
           <div className="flex flex-col gap-1.5">
