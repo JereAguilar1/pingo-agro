@@ -785,8 +785,8 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
                     step="0.5"
                     value={targetYield}
                     onChange={(e) => setTargetYield(e.target.value)}
-                    className="px-3 py-2 rounded-xl border bg-white text-xs outline-none"
-                    style={{ borderColor: "var(--surco-border-light)" }}
+                    className="px-3 py-2 rounded-xl border bg-white text-xs font-bold outline-none"
+                    style={{ borderColor: "var(--surco-border-light)", color: "var(--surco-green)" }}
                   />
                 </div>
                 <div className="flex flex-col gap-1">

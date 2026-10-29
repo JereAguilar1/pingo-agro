@@ -616,6 +616,16 @@ export function SatelliteLoteMap({
                 >
                   <IconTrash className="w-4 h-4" />
                 </button>
+
+                <button
+                  type="button"
+                  onClick={() => closeFullscreen(true)}
+                  className="ml-0.5 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white text-emerald-900 text-xs font-bold cursor-pointer transition-colors"
+                  title="Confirmar y cerrar"
+                >
+                  <IconCheck className="w-3.5 h-3.5" />
+                  <span>Listo</span>
+                </button>
               </div>
             )}
           </div>
