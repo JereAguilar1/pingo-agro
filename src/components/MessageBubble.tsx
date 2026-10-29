@@ -8,9 +8,17 @@ import { IconMic } from "./Icons";
 interface Props {
   message: ChatMessage;
   onSubmitForm?: (messageId: string, data: Record<string, string>) => void;
+  hasLoteContext?: boolean;
 }
 
-export function MessageBubble({ message, onSubmitForm }: Props) {
+const KIND_BADGE: Record<string, string> = {
+  calculation: "Cálculo verificado",
+  insufficient_info: "Faltan datos",
+  no_evidence: "Sin evidencia suficiente",
+  grounded_answer: "Con fuentes",
+};
+
+export function MessageBubble({ message, onSubmitForm, hasLoteContext }: Props) {
   if (message.role === "user") {
     const isVoice = message.inputModality === "voice";
     return (
@@ -48,6 +56,27 @@ export function MessageBubble({ message, onSubmitForm }: Props) {
         className="w-full max-w-[96%] sm:max-w-[88%] rounded-2xl rounded-tl-sm border px-4 py-3.5 flex flex-col gap-3 bg-white"
         style={{ borderColor: "var(--surco-border-light)" }}
       >
+        {r && (r.kind in KIND_BADGE || hasLoteContext) && (
+          <div className="flex flex-wrap gap-1.5">
+            {r.kind in KIND_BADGE && (
+              <span
+                className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full"
+                style={{ color: "var(--surco-green)", background: "var(--surco-green-tint)" }}
+              >
+                {KIND_BADGE[r.kind]}
+              </span>
+            )}
+            {hasLoteContext && (
+              <span
+                className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full"
+                style={{ color: "#8a6a1f", background: "var(--surco-warn-bg)" }}
+              >
+                Con contexto del lote
+              </span>
+            )}
+          </div>
+        )}
+
         <p
           className="whitespace-pre-wrap leading-relaxed text-[14px]"
           style={{ color: "var(--surco-ink)" }}

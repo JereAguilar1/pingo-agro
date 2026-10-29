@@ -15,6 +15,7 @@ import {
   IconPlus,
   IconSearch,
   IconSend,
+  IconShieldCheck,
 } from "@/components/Icons";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 
@@ -118,7 +119,7 @@ export default function Home() {
             >
               Asistente agronómico
             </h1>
-            <p className="text-xs sm:text-sm text-gray-500">
+            <p className="text-sm" style={{ color: "var(--surco-ink-soft)" }}>
               Consultas técnicas con respaldo de INTA, SENASA y vademécums oficiales.
             </p>
           </header>
@@ -191,10 +192,10 @@ export default function Home() {
               </div>
             ) : (
               <div
-                className="flex items-center gap-2 p-1.5 rounded-xl border bg-white shadow-xs transition-all"
+                className="flex items-center gap-2 p-1.5 rounded-2xl border bg-white shadow-xs transition-all"
                 style={{ borderColor: "var(--surco-border)" }}
               >
-                <div className="flex items-center gap-2 flex-1 pl-2.5">
+                <div className="flex items-center gap-2 flex-1 pl-3">
                   <IconSearch className="w-4 h-4 shrink-0" style={{ color: "var(--surco-ink-muted)" }} />
                   <input
                     value={value}
@@ -245,7 +246,7 @@ export default function Home() {
               <button
                 type="button"
                 onClick={() => setShowLoteWizard(true)}
-                className="inline-flex items-center gap-1 text-xs font-medium cursor-pointer hover:underline"
+                className="inline-flex items-center gap-1.5 text-sm font-semibold cursor-pointer hover:underline"
                 style={{ color: "var(--surco-green)" }}
               >
                 <IconPlus className="w-3.5 h-3.5" />
@@ -267,24 +268,24 @@ export default function Home() {
                     key={lote.id}
                     type="button"
                     onClick={() => router.push(`/chat?lote=${encodeURIComponent(lote.id)}`)}
-                    className="text-left rounded-xl border p-3 bg-white transition-all hover:border-emerald-800/30 hover:shadow-xs flex items-center justify-between gap-3 cursor-pointer group"
+                    className="text-left rounded-2xl border p-3.5 bg-white transition-all hover:border-emerald-800/30 hover:shadow-xs flex items-center justify-between gap-3 cursor-pointer group"
                     style={{ borderColor: "var(--surco-border-light)" }}
                   >
-                    <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="flex items-center gap-3 min-w-0">
                       <div
-                        className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border"
-                        style={{ background: "var(--surco-bg)", borderColor: "var(--surco-border-light)" }}
+                        className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                        style={{ background: "var(--surco-green-tint)" }}
                       >
-                        <IconFolder className="w-4 h-4 text-emerald-800" />
+                        <IconFolder className="w-5 h-5" style={{ color: "var(--surco-green)" }} />
                       </div>
-                      <div className="flex flex-col min-w-0">
+                      <div className="flex flex-col min-w-0 gap-0.5">
                         <span
-                          className="text-xs sm:text-sm font-medium truncate group-hover:text-emerald-900"
+                          className="text-sm font-semibold truncate group-hover:text-emerald-900"
                           style={{ color: "var(--surco-ink)" }}
                         >
                           {lote.name}
                         </span>
-                        <span className="text-[11px] truncate" style={{ color: "var(--surco-ink-muted)" }}>
+                        <span className="text-xs truncate" style={{ color: "var(--surco-ink-muted)" }}>
                           {lote.hectares} ha · {lote.crop} ({lote.phenology})
                         </span>
                       </div>
@@ -295,6 +296,19 @@ export default function Home() {
               </div>
             )}
           </section>
+
+          <div
+            className="flex items-start gap-2.5 rounded-2xl px-3.5 py-3"
+            style={{ background: "var(--surco-green-tint)" }}
+          >
+            <IconShieldCheck
+              className="w-[17px] h-[17px] shrink-0 mt-0.5"
+              style={{ color: "var(--surco-green)" }}
+            />
+            <p className="text-[13px] leading-relaxed m-0" style={{ color: "var(--surco-green)" }}>
+              Cada respuesta muestra sus fuentes y avisa cuando falta evidencia para concluir.
+            </p>
+          </div>
         </div>
       </main>
     </div>

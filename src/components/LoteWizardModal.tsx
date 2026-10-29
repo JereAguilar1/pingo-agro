@@ -70,6 +70,17 @@ const COMMON_WEEDS_PESTS = [
   "Diatraea / Barrenador",
 ];
 
+function AutoBadge() {
+  return (
+    <span
+      className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+      style={{ color: "var(--surco-green)", background: "var(--surco-green-tint)" }}
+    >
+      detectado
+    </span>
+  );
+}
+
 export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Props) {
   // Si es un lote nuevo, arrancamos por la captura rápida (audio/foto);
   // si se está editando uno existente, vamos directo al formulario.
@@ -588,8 +599,9 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
               )}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="sm:col-span-2 flex flex-col gap-1">
-                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-soft)" }}>
+                  <label className="text-xs font-medium flex items-center gap-1.5" style={{ color: "var(--surco-ink-soft)" }}>
                     Nombre del Lote / Campo
+                    {autoFilledFields.includes("name") && <AutoBadge />}
                   </label>
                   <input
                     value={name}
@@ -600,8 +612,9 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-soft)" }}>
+                  <label className="text-xs font-medium flex items-center gap-1.5" style={{ color: "var(--surco-ink-soft)" }}>
                     Superficie (ha)
+                    {autoFilledFields.includes("hectares") && <AutoBadge />}
                   </label>
                   <input
                     type="number"
@@ -633,8 +646,9 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-muted)" }}>
+                  <label className="text-xs font-medium flex items-center gap-1.5" style={{ color: "var(--surco-ink-muted)" }}>
                     Partido
+                    {autoFilledFields.includes("municipality") && <AutoBadge />}
                   </label>
                   <input
                     value={municipality}
@@ -644,8 +658,9 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-muted)" }}>
+                  <label className="text-xs font-medium flex items-center gap-1.5" style={{ color: "var(--surco-ink-muted)" }}>
                     Localidad
+                    {autoFilledFields.includes("locality") && <AutoBadge />}
                   </label>
                   <input
                     value={locality}
@@ -655,8 +670,9 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-muted)" }}>
+                  <label className="text-xs font-medium flex items-center gap-1.5" style={{ color: "var(--surco-ink-muted)" }}>
                     Relieve
+                    {autoFilledFields.includes("relief") && <AutoBadge />}
                   </label>
                   <select
                     value={relief}
@@ -710,7 +726,10 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
               </span>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-muted)" }}>Cultivo</label>
+                  <label className="text-xs font-medium flex items-center gap-1.5" style={{ color: "var(--surco-ink-muted)" }}>
+                    Cultivo
+                    {autoFilledFields.includes("crop") && <AutoBadge />}
+                  </label>
                   <select
                     value={crop}
                     onChange={(e) => setCrop(e.target.value)}
@@ -735,7 +754,10 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-muted)" }}>Estadio Fenológico</label>
+                  <label className="text-xs font-medium flex items-center gap-1.5" style={{ color: "var(--surco-ink-muted)" }}>
+                    Estadio Fenológico
+                    {autoFilledFields.includes("phenology") && <AutoBadge />}
+                  </label>
                   <input
                     value={phenology}
                     onChange={(e) => setPhenology(e.target.value)}
@@ -754,7 +776,10 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-muted)" }}>Rinde Objetivo (t/ha)</label>
+                  <label className="text-xs font-medium flex items-center gap-1.5" style={{ color: "var(--surco-ink-muted)" }}>
+                    Rinde Objetivo (t/ha)
+                    {autoFilledFields.includes("targetYieldTonHa") && <AutoBadge />}
+                  </label>
                   <input
                     type="number"
                     step="0.5"
@@ -765,7 +790,10 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-muted)" }}>Cultivo Antecesor</label>
+                  <label className="text-xs font-medium flex items-center gap-1.5" style={{ color: "var(--surco-ink-muted)" }}>
+                    Cultivo Antecesor
+                    {autoFilledFields.includes("previousCrop") && <AutoBadge />}
+                  </label>
                   <input
                     value={previousCrop}
                     onChange={(e) => setPreviousCrop(e.target.value)}
@@ -790,7 +818,10 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-muted)" }}>N-NO3 (0–60cm kg/ha)</label>
+                  <label className="text-xs font-medium flex items-center gap-1.5" style={{ color: "var(--surco-ink-muted)" }}>
+                    N-NO3 (0–60cm kg/ha)
+                    {autoFilledFields.includes("soilNitrateKgHa") && <AutoBadge />}
+                  </label>
                   <input
                     type="number"
                     value={soilN}
@@ -800,7 +831,10 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-muted)" }}>Fósforo P Bray (ppm)</label>
+                  <label className="text-xs font-medium flex items-center gap-1.5" style={{ color: "var(--surco-ink-muted)" }}>
+                    Fósforo P Bray (ppm)
+                    {autoFilledFields.includes("soilPhosphorusPpm") && <AutoBadge />}
+                  </label>
                   <input
                     type="number"
                     step="0.5"
@@ -811,7 +845,10 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-muted)" }}>Materia Orgánica (%)</label>
+                  <label className="text-xs font-medium flex items-center gap-1.5" style={{ color: "var(--surco-ink-muted)" }}>
+                    Materia Orgánica (%)
+                    {autoFilledFields.includes("organicMatterPercent") && <AutoBadge />}
+                  </label>
                   <input
                     type="number"
                     step="0.1"
@@ -822,7 +859,10 @@ export function LoteWizardModal({ isOpen, initialLote, onClose, onSaveLote }: Pr
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium" style={{ color: "var(--surco-ink-muted)" }}>pH actual</label>
+                  <label className="text-xs font-medium flex items-center gap-1.5" style={{ color: "var(--surco-ink-muted)" }}>
+                    pH actual
+                    {autoFilledFields.includes("ph") && <AutoBadge />}
+                  </label>
                   <input
                     type="number"
                     step="0.1"

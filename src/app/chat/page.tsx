@@ -460,7 +460,12 @@ function ChatInner() {
 
                 {/* Mensajes */}
                 {messages.map((m) => (
-                  <MessageBubble key={m.id} message={m} onSubmitForm={handleFormSubmit} />
+                  <MessageBubble
+                    key={m.id}
+                    message={m}
+                    onSubmitForm={handleFormSubmit}
+                    hasLoteContext={Boolean(activeLote)}
+                  />
                 ))}
 
                 {loading && (
