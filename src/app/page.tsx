@@ -3,12 +3,11 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
-import { NetworkBadge } from "@/components/NetworkBadge";
-import { ModelManager } from "@/components/ModelManager";
-import { ModelStatusButton } from "@/components/ModelStatusButton";
-import { LocalLLMStatus } from "@/lib/local-llm";
-import { DEFAULT_PRODUCER_LOTES, getSavedLotes } from "@/lib/local-knowledge";
-import { ProducerLote } from "@/lib/types";
+import { TopNavbar } from "@/components/TopNavbar";
+import { ProjectsSidebar } from "@/components/ProjectsSidebar";
+import { LoteWizardModal } from "@/components/LoteWizardModal";
+import { DEFAULT_PRODUCER_LOTES, getSavedLotes, getSavedThreads, saveLotes } from "@/lib/local-knowledge";
+import { ChatThread, ProducerLote } from "@/lib/types";
 import {
   IconChevronRight,
   IconFolder,
@@ -20,12 +19,14 @@ import {
 export default function Home() {
   const router = useRouter();
   const [value, setValue] = useState("");
-  const [showModelManager, setShowModelManager] = useState(false);
-  const [modelStatus, setModelStatus] = useState<LocalLLMStatus>("unloaded");
   const [lotes, setLotes] = useState<ProducerLote[]>(DEFAULT_PRODUCER_LOTES);
+  const [threads, setThreads] = useState<ChatThread[]>([]);
+  const [showSidebar, setShowSidebar] = useState(false);
+  const [showLoteWizard, setShowLoteWizard] = useState(false);
 
   useEffect(() => {
     setLotes(getSavedLotes());
+    setThreads(getSavedThreads());
   }, []);
 
   function goToChat(question: string) {
@@ -42,46 +43,62 @@ export default function Home() {
     goToChat(value);
   }
 
+  function handleSaveLoteFromWizard(saved: ProducerLote) {
+    const next = [saved, ...lotes.filter((l) => l.id !== saved.id)];
+    setLotes(next);
+    saveLotes(next);
+    setShowLoteWizard(false);
+    router.push(`/chat?lote=${encodeURIComponent(saved.id)}`);
+  }
+
   return (
     <div className="flex-1 flex flex-col min-h-screen" style={{ background: "var(--surco-bg)" }}>
-      {/* Barra superior minimalista */}
-      <header
-        className="sticky top-0 z-20 border-b px-4 sm:px-8 py-3 flex items-center justify-between"
-        style={{
-          background: "var(--surco-bg)",
-          borderColor: "var(--surco-border-light)",
-        }}
-      >
-        <div className="flex items-center gap-2.5">
-          <Link href="/" className="font-semibold text-lg tracking-tight" style={{ color: "var(--surco-green)" }}>
-            Surco
-          </Link>
-          <NetworkBadge />
-        </div>
-        <div className="flex items-center gap-2">
-          <ModelStatusButton
-            onClick={() => setShowModelManager(true)}
-            statusOverride={modelStatus}
-          />
-          <Link
-            href="/chat"
-            className="text-xs sm:text-sm font-medium rounded-lg px-3 py-1.5 text-white transition-opacity hover:opacity-90 cursor-pointer"
-            style={{ background: "var(--surco-green)" }}
-          >
-            Abrir chat
-          </Link>
-        </div>
-      </header>
+      {/* Nav superior unificado: Hamburguesa a la izquierda, logo Surco, sin IA offline */}
+      <TopNavbar
+        onToggleSidebar={() => setShowSidebar((prev) => !prev)}
+        onOpenNewLote={() => setShowLoteWizard(true)}
+        showNewLoteButton={true}
+      />
 
-      <ModelManager
-        isOpen={showModelManager}
-        onClose={() => setShowModelManager(false)}
-        onStatusChange={setModelStatus}
+      {/* Drawer lateral que muestra Proyectos (Lotes) e Historial de chats */}
+      <ProjectsSidebar
+        lotes={lotes}
+        threads={threads}
+        activeLoteId={null}
+        activeThreadId={null}
+        onSelectGeneralChat={(threadId) => {
+          setShowSidebar(false);
+          if (threadId && threadId !== "new") {
+            router.push(`/chat?lote=general&thread=${encodeURIComponent(threadId)}`);
+          } else {
+            router.push("/chat?lote=general");
+          }
+        }}
+        onSelectLoteProject={(loteId, threadId) => {
+          setShowSidebar(false);
+          if (threadId && threadId !== "new") {
+            router.push(`/chat?lote=${encodeURIComponent(loteId)}&thread=${encodeURIComponent(threadId)}`);
+          } else {
+            router.push(`/chat?lote=${encodeURIComponent(loteId)}`);
+          }
+        }}
+        onOpenNewLoteWizard={() => {
+          setShowSidebar(false);
+          setShowLoteWizard(true);
+        }}
+        isOpenMobile={showSidebar}
+        onCloseMobile={() => setShowSidebar(false)}
+        isCollapsedDesktop={true}
+      />
+
+      <LoteWizardModal
+        isOpen={showLoteWizard}
+        onClose={() => setShowLoteWizard(false)}
+        onSaveLote={handleSaveLoteFromWizard}
       />
 
       <main className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 py-12 sm:py-20">
         <div className="w-full max-w-2xl mx-auto flex flex-col gap-10">
-          {/* Título minimalista sin marketing ni textos redundantes */}
           <header className="flex flex-col items-center text-center gap-2">
             <h1
               className="text-2xl sm:text-3xl font-semibold tracking-tight"
@@ -94,7 +111,7 @@ export default function Home() {
             </p>
           </header>
 
-          {/* Barra de Consulta sin sugerencias ni distracciones */}
+          {/* Barra de Consulta sin distracciones */}
           <form onSubmit={handleSubmit} className="w-full">
             <div
               className="flex items-center gap-2 p-1.5 rounded-xl border bg-white shadow-xs transition-all focus-within:border-emerald-800/40 focus-within:shadow-sm"
@@ -123,7 +140,7 @@ export default function Home() {
             </div>
           </form>
 
-          {/* Lista limpia de Lotes */}
+          {/* Lista de Proyectos de Lotes */}
           <section className="flex flex-col gap-3 pt-2">
             <div className="flex items-center justify-between">
               <span
@@ -133,9 +150,10 @@ export default function Home() {
                 <IconFolder className="w-3.5 h-3.5" />
                 Mis Lotes
               </span>
-              <Link
-                href="/chat?newLote=1"
-                className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-lg border transition-colors hover:bg-black/5"
+              <button
+                type="button"
+                onClick={() => setShowLoteWizard(true)}
+                className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-lg border transition-colors hover:bg-black/5 cursor-pointer"
                 style={{
                   background: "var(--surco-card)",
                   borderColor: "var(--surco-border-light)",
@@ -144,7 +162,7 @@ export default function Home() {
               >
                 <IconPlus className="w-3 h-3" />
                 <span>Nuevo lote</span>
-              </Link>
+              </button>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">

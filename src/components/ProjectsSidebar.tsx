@@ -18,6 +18,7 @@ interface Props {
   onOpenNewLoteWizard: () => void;
   isOpenMobile: boolean;
   onCloseMobile: () => void;
+  isCollapsedDesktop?: boolean;
 }
 
 export function ProjectsSidebar({
@@ -30,6 +31,7 @@ export function ProjectsSidebar({
   onOpenNewLoteWizard,
   isOpenMobile,
   onCloseMobile,
+  isCollapsedDesktop = false,
 }: Props) {
   const generalThreads = threads.filter((t) => t.loteId === null);
 
@@ -42,14 +44,14 @@ export function ProjectsSidebar({
       }}
     >
       <div className="p-3 overflow-y-auto flex-1 flex flex-col gap-5">
-        {/* Sección: Lotes */}
+        {/* Sección: Proyectos (Lotes) */}
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center justify-between px-1">
             <span
               className="text-[10px] font-semibold uppercase tracking-wider flex items-center gap-1 text-gray-500"
             >
               <IconFolder className="w-3 h-3" />
-              Lotes
+              Proyectos (Lotes)
             </span>
             <button
               type="button"
@@ -58,7 +60,7 @@ export function ProjectsSidebar({
                 onCloseMobile();
               }}
               className="p-1 rounded text-gray-500 hover:text-emerald-900 cursor-pointer"
-              title="Nuevo lote"
+              title="Crear nuevo lote"
             >
               <IconPlus className="w-3.5 h-3.5" />
             </button>
@@ -148,7 +150,7 @@ export function ProjectsSidebar({
           </div>
         </div>
 
-        {/* Sección: Consultas Generales */}
+        {/* Sección: Historial de Chats Generales */}
         <div
           className="flex flex-col gap-1.5 border-t pt-3"
           style={{ borderColor: "var(--surco-border-light)" }}
@@ -158,7 +160,7 @@ export function ProjectsSidebar({
               className="text-[10px] font-semibold uppercase tracking-wider flex items-center gap-1 text-gray-500"
             >
               <IconMessage className="w-3 h-3" />
-              General
+              Historial de Chats
             </span>
             <button
               type="button"
@@ -229,24 +231,27 @@ export function ProjectsSidebar({
 
   return (
     <>
-      {/* Desktop Sidebar */}
-      <aside className="hidden md:block shrink-0">{sidebarContent}</aside>
+      {/* Desktop Sidebar (ocultable si isCollapsedDesktop es true) */}
+      {!isCollapsedDesktop && (
+        <aside className="hidden md:block shrink-0">{sidebarContent}</aside>
+      )}
 
-      {/* Mobile Drawer */}
+      {/* Drawer desplegable (para mobile o cuando se activa desde el nav) */}
       {isOpenMobile && (
-        <div className="fixed inset-0 z-50 flex md:hidden">
-          <div className="relative z-50 h-full shadow-xl flex">
+        <div className="fixed inset-0 z-50 flex animate-fadeIn">
+          <div className="relative z-50 h-full shadow-2xl flex">
             {sidebarContent}
             <button
               type="button"
               onClick={onCloseMobile}
-              className="absolute top-2.5 right-2.5 p-1 rounded-lg text-gray-400 hover:text-gray-700 cursor-pointer"
+              className="absolute top-2.5 right-2.5 p-1.5 rounded-lg bg-black/5 hover:bg-black/10 text-gray-500 cursor-pointer"
+              aria-label="Cerrar menú"
             >
               <IconClose className="w-4 h-4" />
             </button>
           </div>
           <div
-            className="flex-1 bg-black/20 transition-opacity"
+            className="flex-1 bg-black/25 backdrop-blur-xs transition-opacity"
             onClick={onCloseMobile}
           />
         </div>

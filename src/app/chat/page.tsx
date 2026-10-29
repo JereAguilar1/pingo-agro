@@ -1,20 +1,15 @@
 "use client";
 
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ChangeEvent, FormEvent, Suspense, useEffect, useRef, useState } from "react";
 import { MessageBubble } from "@/components/MessageBubble";
-import { NetworkBadge } from "@/components/NetworkBadge";
-import { ModelManager } from "@/components/ModelManager";
-import { ModelStatusButton } from "@/components/ModelStatusButton";
+import { TopNavbar } from "@/components/TopNavbar";
 import { ProjectsSidebar } from "@/components/ProjectsSidebar";
 import { LoteHeaderCard } from "@/components/LoteHeaderCard";
 import { LoteWizardModal } from "@/components/LoteWizardModal";
 import {
   IconClose,
-  IconMenu,
   IconPaperclip,
-  IconPlus,
   IconSend,
 } from "@/components/Icons";
 import {
@@ -49,9 +44,8 @@ function ChatInner() {
   const [error, setError] = useState<string | null>(null);
   const [uploadedDocs, setUploadedDocs] = useState<UploadedDocument[]>([]);
 
-  const [showModelManager, setShowModelManager] = useState(false);
-  const [modelStatus, setModelStatus] = useState<LocalLLMStatus>("unloaded");
   const [showSidebarMobile, setShowSidebarMobile] = useState(false);
+  const [isCollapsedDesktop, setIsCollapsedDesktop] = useState(false);
   const [showLoteWizard, setShowLoteWizard] = useState(false);
   const [editingLote, setEditingLote] = useState<ProducerLote | null>(null);
 
@@ -329,67 +323,21 @@ function ChatInner() {
 
   return (
     <div className="flex-1 flex flex-col min-h-screen" style={{ background: "var(--surco-bg)" }}>
-      {/* Barra de navegación superior sobria y limpia */}
-      <header
-        className="sticky top-0 z-20 border-b px-3.5 sm:px-6 py-2.5 flex items-center justify-between"
-        style={{
-          background: "var(--surco-bg)",
-          borderColor: "var(--surco-border-light)",
+      {/* Barra de navegación superior idéntica y unificada */}
+      <TopNavbar
+        onToggleSidebar={() => {
+          if (typeof window !== "undefined" && window.innerWidth < 768) {
+            setShowSidebarMobile((prev) => !prev);
+          } else {
+            setIsCollapsedDesktop((prev) => !prev);
+          }
         }}
-      >
-        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-          <button
-            type="button"
-            onClick={() => setShowSidebarMobile(true)}
-            className="md:hidden p-1.5 rounded-lg border text-xs font-medium cursor-pointer hover:bg-black/5"
-            style={{ borderColor: "var(--surco-border-light)", color: "var(--surco-ink)" }}
-            aria-label="Abrir menú"
-          >
-            <IconMenu className="w-4 h-4" />
-          </button>
-
-          <Link href="/" className="font-semibold text-base sm:text-lg tracking-tight" style={{ color: "var(--surco-green)" }}>
-            Surco
-          </Link>
-
-          <span className="text-gray-300 hidden sm:inline">/</span>
-
-          <span className="text-xs font-medium truncate max-w-[150px] sm:max-w-xs" style={{ color: "var(--surco-ink-soft)" }}>
-            {activeLote ? activeLote.name : "Chat General"}
-          </span>
-
-          <NetworkBadge />
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              setEditingLote(null);
-              setShowLoteWizard(true);
-            }}
-            className="inline-flex items-center gap-1 text-xs font-medium rounded-lg px-2.5 py-1.5 cursor-pointer border hover:bg-black/5"
-            style={{
-              borderColor: "var(--surco-border-light)",
-              color: "var(--surco-ink)",
-              background: "var(--surco-card)",
-            }}
-          >
-            <IconPlus className="w-3.5 h-3.5 text-emerald-800" />
-            <span className="hidden sm:inline">Nuevo lote</span>
-          </button>
-
-          <ModelStatusButton
-            onClick={() => setShowModelManager(true)}
-            statusOverride={modelStatus}
-          />
-        </div>
-      </header>
-
-      <ModelManager
-        isOpen={showModelManager}
-        onClose={() => setShowModelManager(false)}
-        onStatusChange={setModelStatus}
+        onOpenNewLote={() => {
+          setEditingLote(null);
+          setShowLoteWizard(true);
+        }}
+        activeTitle={activeLote ? activeLote.name : "Chat General"}
+        showNewLoteButton={true}
       />
 
       <LoteWizardModal
@@ -415,6 +363,7 @@ function ChatInner() {
           }}
           isOpenMobile={showSidebarMobile}
           onCloseMobile={() => setShowSidebarMobile(false)}
+          isCollapsedDesktop={isCollapsedDesktop}
         />
 
         {/* Espacio principal de conversación */}
